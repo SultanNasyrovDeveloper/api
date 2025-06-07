@@ -3,7 +3,7 @@ from yarl import URL
 from api.core.settings.db import DBConnectionConfig
 
 
-def to_database_url(config: DBConnectionConfig, **additional) -> str:
+def make_database_url(config: DBConnectionConfig, **additional) -> str:
     url = URL.build(
         user=config.username,
         password=config.password.get_secret_value(),

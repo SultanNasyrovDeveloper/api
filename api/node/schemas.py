@@ -6,10 +6,10 @@ from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from surorm.serializers import SurrealSerializer
 from api.core.utils import flatten_ancestors
-
 from api.palace.schemas import IdMixin
+from api.surorm.serializers import SurrealSerializer
+
 from . import enums
 from .utils import get_content_size
 

@@ -2,7 +2,6 @@ from pydantic import BaseModel, SecretStr
 
 
 class SurrealConfig(BaseModel):
-
     driver: str = 'surreal'
     name: str
     namespace: str | None = None

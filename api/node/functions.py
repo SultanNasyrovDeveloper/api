@@ -1,4 +1,4 @@
-from surorm.query import function
+from api.surorm.query import function
 
 
 class GetAncestors(function.DBFunction):

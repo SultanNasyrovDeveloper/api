@@ -7,7 +7,8 @@ from aio_pika.exchange import ExchangeType
 from api.core.amqp.tester import AsyncAMQPConnectionTester
 from api.logger import get_logger
 from api.node.managers import PalaceNodeManager
-from api.settings import config
+from api.settings import config, user_profile_db
+from api.user_profile.models import UserProfile
 
 logger = get_logger(__name__)
 nodes_manager = PalaceNodeManager(config.palace_node_db)
@@ -29,6 +30,9 @@ async def handler(message: aio_pika.abc.AbstractIncomingMessage):
                         questions='What is Mind Palace?',
                     )
                     logger.info(new_)
+            new_user = UserProfile(user_id=user_id)
+            async with user_profile_db.begin() as session:
+                session.add(new_user)
             logger.info(f'New user created: ID={body['userId']}...')
 
 

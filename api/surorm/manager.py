@@ -33,6 +33,11 @@ class SurrealDBManager:
     async def connect(self):
         assert self._config.namespace
         assert self._config.name
+        auth = None
+        if self._config.username and self._config.password:
+            auth = BasicAuth(
+                login=self._config.username, password=self._config.password.get_secret_value()
+            )
         self._connection = ClientSession(
             base_url=self._base_url,
             headers={
@@ -40,9 +45,7 @@ class SurrealDBManager:
                 'surreal-ns': self._config.namespace,
                 'surreal-db': self._config.name,
             },
-            auth=BasicAuth(
-                login=self._config.username, password=self._config.password.get_secret_value()
-            ),
+            auth=auth,
         )
         return self._connection
 

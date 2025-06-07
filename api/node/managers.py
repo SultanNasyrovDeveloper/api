@@ -1,15 +1,7 @@
-from surorm import SurrealDBManager
-from surorm.query import (
-    Create,
-    Operation,
-    Record,
-    Select,
-    Transaction,
-    Update,
-)
-from api.node.functions import DeleteSubtree
+from api.node.functions import DeleteSubtree, GetSubtreeIds
+from api.surorm import SurrealDBManager
+from api.surorm.query import Create, Operation, Record, Select, Transaction, Update
 
-from api.node.functions import GetSubtreeIds
 from . import enums, schemas, utils
 from .requests.add_tag import AddTagRequest, AddTagRequestConfig
 from .requests.create_child import CreateChildConfig, CreateChildRequest
@@ -51,7 +43,11 @@ class PalaceNodeManager(SurrealDBManager):
         return schemas.PalaceStatistics.model_validate(statistics)
 
     async def list_(
-        self, owner_id: str, search: str, page: int = 1, per_page: int = 10,
+        self,
+        owner_id: str,
+        search: str,
+        page: int = 1,
+        per_page: int = 10,
     ) -> list[schemas.NodeListItemSchema] | None:
         self._check_connection()
         config = ListNodesRequestConfig(
