@@ -2,12 +2,19 @@ import pytest
 from faker import Faker
 from fastapi.testclient import TestClient
 from jwt import encode
-
-from api.app import app
 from surorm.manager import SurrealDBManager
 from surorm.migrations import PerformMigrationCommand
-from surorm.query import DefineDatabase, DefineNamespace, Delete, Info, Remove, Transaction
-from api.settings import config
+from surorm.query import (
+    DefineDatabase,
+    DefineNamespace,
+    Delete,
+    Info,
+    Remove,
+    Transaction,
+)
+
+from minager.app import app
+from minager.settings import config
 
 
 @pytest.fixture
@@ -35,7 +42,9 @@ def db_client(app_config):
 @pytest.fixture(scope='session', autouse=True)
 async def db(app_config, db_client):
     async with db_client as session:
-        await session.query(DefineNamespace(app_config.palace_node_db.namespace).if_not_exists(True))
+        await session.query(
+            DefineNamespace(app_config.palace_node_db.namespace).if_not_exists(True)
+        )
         await session.query(Remove('database', app_config.palace_node_db.name).if_exists(True))
         await session.query(DefineDatabase(app_config.palace_node_db.name).if_not_exists(True))
         await PerformMigrationCommand(session, app_config.base_path).upgrade()
@@ -62,6 +71,5 @@ def api_user():
 
 @pytest.fixture
 def api_client(api_user):
-    with TestClient(app, headers={'Authorization': f'Bearer: {encode(api_user, "")}'}) as client:
+    with TestClient(app, headers={'Authorization': f'Bearer: {encode(api_user, '')}'}) as client:
         yield client
-

@@ -4,11 +4,11 @@ import json
 import aio_pika
 from aio_pika.exchange import ExchangeType
 
-from api.core.amqp.tester import AsyncAMQPConnectionTester
-from api.logger import get_logger
-from api.node.managers import PalaceNodeManager
-from api.settings import config, user_profile_db
-from api.user_profile.models import UserProfile
+from minager.core.amqp.tester import AsyncAMQPConnectionTester
+from minager.logger import get_logger
+from minager.node.managers import PalaceNodeManager
+from minager.settings import config, user_profile_db
+from minager.user_profile.models import UserProfile
 
 logger = get_logger(__name__)
 nodes_manager = PalaceNodeManager(config.palace_node_db)

@@ -4,7 +4,7 @@ from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
 from alembic import context
-from api.settings import ApplicationConfig
+from minager.settings import ApplicationConfig
 
 alembic_config = context.config
 

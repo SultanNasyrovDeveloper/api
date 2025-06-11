@@ -1,12 +1,10 @@
 import argparse
 import asyncio
 
-from surorm.manager import SurrealDBManager
-from surorm.migrations import PerformMigrationCommand
-
-from api.app import config
-from api.logger import get_logger
-
+from minager.app import config
+from minager.logger import get_logger
+from minager.surorm.manager import SurrealDBManager
+from minager.surorm.migrations import PerformMigrationCommand
 
 logger = get_logger(__name__)
 

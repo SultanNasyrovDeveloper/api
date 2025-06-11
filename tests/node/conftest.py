@@ -2,7 +2,7 @@ from random import randrange
 
 import pytest
 
-from api.node.managers import PalaceNodeManager
+from minager.node.managers import PalaceNodeManager
 
 
 @pytest.fixture
@@ -13,20 +13,14 @@ def palace_client(app_config):
 @pytest.fixture
 async def subtree(api_user, fake, palace_client):
     async with palace_client as session:
-        root = await session.create(**{
-            'owner_id': api_user['id'],
-            'title': fake.pystr(),
-            'questions': fake.pystr()
-        })
+        root = await session.create(
+            **{'owner_id': api_user['id'], 'title': fake.pystr(), 'questions': fake.pystr()}
+        )
         root_children = []
         for _ in range(10):
             child = await session.create_child(
                 root.id,
-                {
-                    'owner_id': api_user['id'],
-                    'title': fake.pystr(),
-                    'questions': fake.pystr()
-                }
+                {'owner_id': api_user['id'], 'title': fake.pystr(), 'questions': fake.pystr()},
             )
             root_children.append(child)
         root.children = root_children
@@ -35,11 +29,7 @@ async def subtree(api_user, fake, palace_client):
             for _ in range(randrange(3, 8)):
                 grand_child = await session.create_child(
                     child.id,
-                    {
-                        'owner_id': api_user['id'],
-                        'title': fake.pystr(),
-                        'questions': fake.pystr()
-                    }
+                    {'owner_id': api_user['id'], 'title': fake.pystr(), 'questions': fake.pystr()},
                 )
                 child.children.append(grand_child)
     return root
@@ -54,4 +44,3 @@ def subtree_ids(subtree):
         for grandchild in child.children:
             ids.append(grandchild.id)
     return ids
-

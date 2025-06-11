@@ -1,7 +1,6 @@
 from fastapi import status
 
-from api.node import schemas
-
+from minager.node import schemas
 
 BASE_URL = 'api/v1/mind-palace/nodes/'
 
@@ -25,11 +24,7 @@ async def test_get_node(api_client, api_user, fake, palace_client):
 
 async def test_get_my_palace_root(api_client, api_user, fake, palace_client):
     url = BASE_URL + 'my-palace-root'
-    root_node_data = {
-        'owner_id': api_user['id'],
-        'title': fake.pystr(),
-        'question': fake.pystr()
-    }
+    root_node_data = {'owner_id': api_user['id'], 'title': fake.pystr(), 'question': fake.pystr()}
     async with palace_client as session:
         root = await session.create(**root_node_data)
     response = api_client.get(url)
@@ -46,7 +41,7 @@ async def test_create_child(api_client, api_user, fake, palace_client):
         'title': fake.pystr(),
         'questions': fake.pystr(),
         'is_learn': False,
-        'order': 'bbbbbb'
+        'order': 'bbbbbb',
     }
     response = api_client.post(url, json=child_data)
     response_data = response.json()
@@ -62,5 +57,3 @@ async def test_get_subtree_ids(subtree_ids, api_client):
     response = api_client.get(url)
     response_data = response.json()
     assert response_data == subtree_ids
-
-
