@@ -1,5 +1,8 @@
 from pathlib import Path
 
+from fastapi.security import OAuth2PasswordBearer
+from passlib.context import CryptContext
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -11,14 +14,21 @@ from minager.surorm.settings import SurrealConfig
 
 class ApplicationConfig(BaseSettings):
     debug: bool = False
+    base_path: str = str(Path(__file__).parent)
+
+    # security
+    jwt_hashing_algorithm: str = 'HS256'
+    secret_key: SecretStr
+    access_token_expire: int = 60 * 4  # minutes
+    refresh_token_expire: int = 7  # days
+
     logging: LoggingConfig = LoggingConfig()
+
     palace_node_db: SurrealConfig
     learning_session_db: DBConnectionConfig
     main_db: DBConnectionConfig
     user_events_routing_key: str
     user_events: AMQPConfig
-
-    base_path: str = str(Path(__file__).parent)
 
     model_config = SettingsConfigDict(env_nested_delimiter='__', env_file=('.env.local', '.env'))
 
@@ -29,3 +39,6 @@ user_profile_db = async_sessionmaker(user_profile_db_engine, expire_on_commit=Fa
 
 main_db_engine = create_async_engine(config.main_db.to_str(), echo=True)
 main_db = async_sessionmaker(main_db_engine, expire_on_commit=False)
+
+crypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+AuthBearerToken = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/token')

@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel
+from sqlmodel import Field, SQLModel  # noqa
 
 from minager.logger import get_logger
 

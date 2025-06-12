@@ -1,28 +1,45 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 
-from minager.core.api.response import PaginatedResponse
-from minager.core.api.viewset import ModelViewSet
+from minager.core.api.dependencies import App, RequestDBUser, RequestUser
 
-from . import models, schemas
+from . import schemas
 
-router = APIRouter(prefix='/users')
+user_router = APIRouter(prefix='/users')
+auth_router = APIRouter()
 
 
-class UserViewSet(ModelViewSet):
-    router = router
-    model = models.User
-    manager_state_parameter = 'users'
+@user_router.post('/')
+async def create_user(app: App, data: schemas.UserCreateDataSchema) -> schemas.UserDetailSchema:
+    manager = app.state.users
+    async with manager:
+        return await manager.add_user(data)
 
-    request_models = {
-        'default': schemas.UserDetailSchema,
-        'create': schemas.UserCreateDataSchema,
-        'update': schemas.UserCreateDataSchema,
-    }
-    response_models = {
-        'default': schemas.UserDetailSchema,
-        'select': PaginatedResponse[schemas.UserDetailSchema],
-    }
 
-    # @router.post('/token')
-    # def token(self):
-    #     return 'ok'
+@user_router.get('/me')
+async def get_current_user(user: RequestDBUser) -> schemas.UserDetailSchema:
+    return user
+
+
+@auth_router.post('/token')
+async def get_token(app: App, data: OAuth2PasswordRequestForm = Depends()) -> schemas.Tokens:
+    manager = app.state.users
+    async with manager:
+        user = await manager.authenticate(data)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    return manager.make_user_tokens(user)
+
+
+@auth_router.post('/refresh')
+async def refresh_token(
+    app: App, request_user: RequestUser, data: schemas.TokenRefreshDataSchema
+) -> schemas.Tokens:
+    if request_user:
+        manager = app.state.users
+        manager.validate_token(data.refresh)
+        async with manager:
+            db_user = manager.get(request_user.get('id'))
+        return manager.make_user_tokens(db_user)
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)

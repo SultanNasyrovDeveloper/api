@@ -14,7 +14,7 @@ if alembic_config.config_file_name is not None:
 
 app_settings = ApplicationConfig()
 alembic_config.set_main_option(
-    'sqlalchemy.url', app_settings.user_profile_db.to_str(scheme='postgresql+psycopg')
+    'sqlalchemy.url', app_settings.main_db.to_str(scheme='postgresql+psycopg')
 )
 target_metadata = SQLModel.metadata
 

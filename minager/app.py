@@ -1,7 +1,7 @@
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from minager.auth.api import router as user_router
+from minager.auth.api import auth_router, user_router
 
 from .lifespan import lifespan
 from .settings import config
@@ -24,7 +24,8 @@ async def healthcheck() -> str:
     return 'Ok'
 
 
-v1_router.include_router(user_router, tags=['User'])
+v1_router.include_router(router=auth_router, prefix='/auth', tags=['Auth'])
+v1_router.include_router(router=user_router, prefix='/auth', tags=['Auth User'])
 
 
 app.include_router(v1_router)
