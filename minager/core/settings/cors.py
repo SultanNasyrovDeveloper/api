@@ -2,7 +2,6 @@ from pydantic import BaseModel
 
 
 class CorsConfiguration(BaseModel):
-
     allow_origins: list[str]
     allow_origin_regex: str = None
     allow_credentials: bool = False

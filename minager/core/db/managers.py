@@ -1,9 +1,11 @@
 from itertools import batched
 from typing import Type
 
+from fastapi import HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import ScalarResult, delete, func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from minager.settings import main_db
@@ -81,8 +83,12 @@ class DatabaseManager[ModelT](BaseManager[ModelT]):
         self._check_active_session(session)
         item = self.model_class(**data)
         session = self.get_session(session)
-        session.add(item)
-        await session.commit()
+        try:
+            session.add(item)
+            await session.commit()
+        except IntegrityError as error:
+            print(error)
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT)
         item_id = getattr(item, self.id_field_name)
         created = await self.get(item_id, session)
         return created

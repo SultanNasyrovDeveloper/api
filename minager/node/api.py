@@ -10,7 +10,7 @@ router = APIRouter(prefix='/nodes')
 
 @router.get('/my-palace-root')
 async def get_my_palace_root(user: RequestUser, app: App) -> str | None:
-    node_id = await app.state.palace_node.get_my_palace_root(user['sub'])
+    node_id = await app.state.palace_node.get_my_palace_root(user['id'])
     if not node_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return node_id
@@ -23,7 +23,7 @@ async def add_child(
     user: RequestUser,
     app: App,
 ) -> schemas.NodeDetailSchema:
-    data.owner_id = user.get('sub')
+    data.owner_id = user.get('id')
     return await app.state.palace_node.create_child(parent_uid=uid, data=data)
 
 
@@ -36,7 +36,7 @@ async def search(
     query: str,
 ) -> PaginatedResult[schemas.NodeListItemSchema]:
     nodes = await app.state.palace_node.search(
-        user_id=user.get('sub'),
+        user_id=user.get('id'),
         page=page,
         per_page=per_page,
         query=query,
