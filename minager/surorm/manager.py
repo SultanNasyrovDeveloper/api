@@ -5,7 +5,6 @@ from surrealdb import AsyncSurreal
 
 from .query import Expression
 from .query.utils import render
-from .response import Response
 from .settings import SurrealConfig
 
 
@@ -39,6 +38,7 @@ class SurrealDBManager:
     def _check_connection(self):
         assert self._connection
 
-    async def query(self, sql: Expression, variables: dict[str, Any] | None = None) -> Response:
-        response = await self._connection.query(query=render(sql), vars=variables)
-        return Response(data=response)
+    async def query(
+        self, sql: Expression, variables: dict[str, Any] | None = None
+    ) -> dict | list[dict]:
+        return await self._connection.query(query=render(sql), vars=variables)

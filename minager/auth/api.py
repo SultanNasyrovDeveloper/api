@@ -11,9 +11,14 @@ auth_router = APIRouter()
 
 @user_router.post('/')
 async def create_user(app: App, data: schemas.UserCreateDataSchema) -> schemas.UserDetailSchema:
-    manager = app.state.users
-    async with manager:
-        return await manager.add_user(data)
+    user_manager = app.state.users
+    user_profile_manager = app.state.user_profiles
+    palace_manager = app.state.nodes
+    async with user_manager, user_profile_manager, palace_manager:
+        user = await user_manager.add_user(data)
+        node = await palace_manager.create(owner_id=str(user.id))
+        await user_profile_manager.create({'user_id': str(user.id), 'palace_root_id': node.id})
+    return user
 
 
 @user_router.get('/me')

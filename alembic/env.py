@@ -1,9 +1,9 @@
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
-from sqlmodel import SQLModel
 
 from alembic import context
+from minager.core.db.models import Model
 from minager.settings import ApplicationConfig
 
 alembic_config = context.config
@@ -16,7 +16,7 @@ app_settings = ApplicationConfig()
 alembic_config.set_main_option(
     'sqlalchemy.url', app_settings.main_db.to_str(scheme='postgresql+psycopg')
 )
-target_metadata = SQLModel.metadata
+target_metadata = Model.metadata
 
 
 def run_migrations_offline() -> None:

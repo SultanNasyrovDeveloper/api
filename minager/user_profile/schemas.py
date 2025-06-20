@@ -8,6 +8,7 @@ class UserProfileSchema(BaseModel):
     name: str
     bio: str
     experience: int
+    palace_root_id: str
 
     model_config = ConfigDict()
 

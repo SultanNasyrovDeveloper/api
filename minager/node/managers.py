@@ -65,7 +65,7 @@ class PalaceNodeManager(SurrealDBManager):
         root_schema = schemas.NodeCreateSchema.model_validate(kwargs)
         query = Create('node').content(root_schema.model_dump_surreal()).return_('after')
         response = await self.query(query)
-        return schemas.NodeDetailSchema.model_validate(response.data()[0])
+        return schemas.NodeDetailSchema.model_validate(response[0])
 
     async def create_child(
         self, parent_uid: str, data: dict | schemas.NodeCreateSchema
@@ -94,8 +94,6 @@ class PalaceNodeManager(SurrealDBManager):
         self._check_connection()
         if isinstance(data, dict):
             data = schemas.NodeEditSchema.model_validate(data)
-        print(data.model_dump(mode='json', exclude_unset=True))
-        print(data.model_dump_surreal(exclude_unset=True))
         query = Update(Record('node', uid)).merge(data.model_dump_surreal(exclude_unset=True))
         await self.query(query.sql())
         return await self.get(uid)

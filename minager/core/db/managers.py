@@ -32,6 +32,7 @@ class BaseManager[ModelT: Model]:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.session.commit()
         await self.session.__aexit__(exc_type, exc_val, exc_tb)
         self.session = None
 
@@ -85,9 +86,7 @@ class DatabaseManager[ModelT](BaseManager[ModelT]):
         session = self.get_session(session)
         try:
             session.add(item)
-            await session.commit()
-        except IntegrityError as error:
-            print(error)
+        except IntegrityError:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT)
         item_id = getattr(item, self.id_field_name)
         created = await self.get(item_id, session)

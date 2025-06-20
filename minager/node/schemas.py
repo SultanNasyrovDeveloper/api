@@ -26,9 +26,11 @@ class ParentIdMixin:
     parent_id: str | None = Field(default=None, validate_default=True)
 
     # noinspection PyNestedDecorators
-    @field_validator('parent_id')
+    @field_validator('parent_id', mode='before')
     @classmethod
     def extract_id(cls, v: str | None) -> str:
+        if v and not isinstance(v, str):
+            v = str(v)
         return v if v is None or ':' not in v else v.split(':')[-1]
 
 
@@ -71,7 +73,6 @@ class NodeListItemSchema(BaseModel, IdMixin):
 
 
 class TreeNodeItemSchema(BaseModel, IdMixin, ParentIdMixin):
-
     title: str
     order: str | None = ''
     ancestors: list[NodeListItemSchema] = Field(default_factory=list)

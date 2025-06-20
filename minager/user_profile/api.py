@@ -5,7 +5,7 @@ from minager.core.api.response import PaginatedResponse
 
 from . import schemas
 
-router = APIRouter(prefix='/user-profile/profiles')
+router = APIRouter(prefix='/user-profiles')
 
 
 @router.get('/')
