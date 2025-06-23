@@ -1,7 +1,6 @@
 from typing import TypedDict
 
 from minager.core.lexorank import Lexorank
-from minager.surorm import Response
 from minager.surorm.query import (
     Create,
     DefineVariable,
@@ -22,7 +21,7 @@ class CreateChildConfig(TypedDict):
 
 
 class CreateChildRequest(AbstractRequest[CreateChildConfig]):
-    async def perform(self) -> Response | None:
+    async def perform(self) -> dict | None:
         last_child_order_query = (
             Select()
             .columns('value order')
@@ -34,8 +33,9 @@ class CreateChildRequest(AbstractRequest[CreateChildConfig]):
         create_data = self._config['data']
         if isinstance(create_data, dict):
             create_data = NodeCreateSchema.model_validate(create_data)
-        response = await self._db.query(last_child_order_query.sql())
-        last_child_order = response.raw(many=False) or ''
+        last_child_order = await self._db.query(last_child_order_query.sql())
+        if isinstance(last_child_order, list):
+            last_child_order = last_child_order[0] if len(last_child_order) > 0 else None
         create_data.order = Lexorank.middle(previous=last_child_order)
         create_query = (
             Transaction()

@@ -2,7 +2,7 @@ from minager.node.functions import DeleteSubtree, GetSubtreeIds
 from minager.surorm import SurrealDBManager
 from minager.surorm.query import Create, Operation, Record, Select, Transaction, Update
 
-from . import enums, schemas, utils
+from . import enums, schemas
 from .requests.add_tag import AddTagRequest, AddTagRequestConfig
 from .requests.create_child import CreateChildConfig, CreateChildRequest
 from .requests.get_detail import GetNodeDetailConfig, GetNodeDetailRequest
@@ -28,9 +28,8 @@ class PalaceNodeManager(SurrealDBManager):
     async def get(self, node_id: str) -> schemas.NodeDetailSchema | None:
         self._check_connection()
         config = GetNodeDetailConfig(id=node_id)
-        response = await GetNodeDetailRequest(db=self, config=config).perform()
-        node_schema = schemas.NodeDetailSchema.from_db_response(response.data())
-        return node_schema
+        node = await GetNodeDetailRequest(db=self, config=config).perform()
+        return schemas.NodeDetailSchema.from_db_response(node)
 
     async def get_overall_statistics(self, owner_id: str) -> schemas.PalaceStatistics | None:
         self._check_connection()
@@ -73,19 +72,16 @@ class PalaceNodeManager(SurrealDBManager):
         self._check_connection()
         config = CreateChildConfig(parent_id=parent_uid, data=data)
         request = CreateChildRequest(db=self, config=config)
-        response = await request.perform()
-        new_node = response.data()
+        new_node = await request.perform()
         if not new_node:
             return
-        return await self.get(utils.parse_id(new_node.get('id'))[1])
+        return await self.get(new_node.get('id').id)
 
     async def get_subtree(self, uid: str) -> schemas.TreeNodeItemSchema:
         self._check_connection()
         config = GetSubtreeConfig(root_id=uid)
         request = GetSubtreeRequest(db=self, config=config)
-        response = await request.perform()
-        root = response.raw(many=False)
-        root['ancestors'] = root['ancestors'][::-1] if root['ancestors'] is not None else None
+        root = await request.perform()
         return schemas.model_validate_tree(root)
 
     async def patch(
@@ -139,4 +135,4 @@ class PalaceNodeManager(SurrealDBManager):
             .limit(limit)
         )
         response = await self.query(query.sql())
-        return [node.get('id').split(':')[-1] for node in response.raw()]
+        return [node.get('id').split(':')[-1] for node in response]

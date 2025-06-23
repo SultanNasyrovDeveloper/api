@@ -1,7 +1,6 @@
 from typing import TypedDict
 
 from minager.node.functions import GetAncestors
-from minager.surorm import Response
 from minager.surorm.query import (
     Alias,
     DefineVariable,
@@ -20,7 +19,7 @@ class GetSubtreeConfig(TypedDict):
 
 class GetSubtreeRequest(AbstractRequest[GetSubtreeConfig]):
 
-    async def perform(self) -> Response:
+    async def perform(self) -> dict | list[dict]:
         root_id = Record('node', self._config['root_id'])
         query = (
             Transaction()

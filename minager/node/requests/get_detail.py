@@ -1,6 +1,5 @@
 from typing import TypedDict
 
-from minager.surorm import Response
 from minager.surorm.query import Alias, ArrayFirst, Expression, Record, Select, Traverse
 
 from .abstract import AbstractRequest
@@ -11,7 +10,7 @@ class GetNodeDetailConfig(TypedDict):
 
 
 class GetNodeDetailRequest(AbstractRequest[GetNodeDetailConfig]):
-    async def perform(self) -> Response:
+    async def perform(self) -> dict | None:
         return await self._db.query(self.make_query())
 
     def make_query(self) -> Expression:

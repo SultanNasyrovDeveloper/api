@@ -10,7 +10,7 @@ router = APIRouter(prefix='/nodes')
 
 @router.get('/my-palace-root')
 async def get_my_palace_root(user: RequestUser, app: App) -> str | None:
-    node_id = await app.state.palace_node.get_my_palace_root(user['id'])
+    node_id = await app.state.nodes.get_my_palace_root(user['id'])
     if not node_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return node_id
@@ -24,7 +24,7 @@ async def add_child(
     app: App,
 ) -> schemas.NodeDetailSchema:
     data.owner_id = user.get('id')
-    return await app.state.palace_node.create_child(parent_uid=uid, data=data)
+    return await app.state.nodes.create_child(parent_uid=uid, data=data)
 
 
 @router.get('/search')
@@ -35,7 +35,7 @@ async def search(
     per_page: int,
     query: str,
 ) -> PaginatedResult[schemas.NodeListItemSchema]:
-    nodes = await app.state.palace_node.search(
+    nodes = await app.state.nodes.search(
         user_id=user.get('id'),
         page=page,
         per_page=per_page,
@@ -46,7 +46,7 @@ async def search(
 
 @router.get('/{uid}')
 async def get(uid: str, app: App) -> schemas.NodeDetailSchema:
-    node = await app.state.palace_node.get(uid)
+    node = await app.state.nodes.get(uid)
     if not node:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return node
@@ -54,28 +54,28 @@ async def get(uid: str, app: App) -> schemas.NodeDetailSchema:
 
 @router.get('/{uid}/subtree-ids')
 async def get_subtree_ids(uid: str, app: App, limit: int = 50) -> list[str]:
-    return await app.state.palace_node.get_subtree_ids(uid, limit=limit)
+    return await app.state.nodes.get_subtree_ids(uid, limit=limit)
 
 
 @router.get('/{uid}/subtree')
 async def subtree(uid: str, app: App) -> schemas.TreeNodeItemSchema:
-    return await app.state.palace_node.get_subtree(uid)
+    return await app.state.nodes.get_subtree(uid)
 
 
 @router.post('/{uid}/move')
 async def move_node(
     uid: str, app: App, move_config: schemas.NodeMoveConfiguration
 ) -> schemas.UpdatedNodeSchema:
-    return await app.state.palace_node.move(uid, move_config.target_id, move_config.position)
+    return await app.state.nodes.move(uid, move_config.target_id, move_config.position)
 
 
 @router.patch('/{uid}')
 async def update(
     uid: str, app: App, update_data: schemas.NodeEditSchema
 ) -> schemas.NodeDetailSchema:
-    return await app.state.palace_node.patch(uid, update_data)
+    return await app.state.nodes.patch(uid, update_data)
 
 
 @router.delete('/{uid}')
 async def delete(uid: str, app: App) -> None:
-    await app.state.palace_node.delete(uid)
+    await app.state.nodes.delete(uid)

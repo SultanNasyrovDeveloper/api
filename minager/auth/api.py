@@ -16,7 +16,7 @@ async def create_user(app: App, data: schemas.UserCreateDataSchema) -> schemas.U
     palace_manager = app.state.nodes
     async with user_manager, user_profile_manager, palace_manager:
         user = await user_manager.add_user(data)
-        node = await palace_manager.create(owner_id=str(user.id))
+        node = await palace_manager.create(owner_id=str(user.id), title='Mind Palace')
         await user_profile_manager.create({'user_id': str(user.id), 'palace_root_id': node.id})
     return user
 

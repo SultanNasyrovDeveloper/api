@@ -4,14 +4,28 @@ import json
 from datetime import UTC, datetime, timedelta
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
 from minager.core.utils import flatten_ancestors
-from minager.palace.schemas import IdMixin
 from minager.surorm.serializers import SurrealSerializer
 
 from . import enums
 from .utils import get_content_size
+
+
+class RecordID(BaseModel):
+    id: str
+    table_name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @model_serializer(mode='plain')
+    def serialize_as_string(self) -> str:
+        return self.id
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return {'type': 'string'}
 
 
 class PalaceStatistics(BaseModel):
@@ -22,16 +36,12 @@ class PalaceStatistics(BaseModel):
     empty_nodes: int = 0
 
 
-class ParentIdMixin:
-    parent_id: str | None = Field(default=None, validate_default=True)
+class IdMixin:
+    id: RecordID | None = None
 
-    # noinspection PyNestedDecorators
-    @field_validator('parent_id', mode='before')
-    @classmethod
-    def extract_id(cls, v: str | None) -> str:
-        if v and not isinstance(v, str):
-            v = str(v)
-        return v if v is None or ':' not in v else v.split(':')[-1]
+
+class ParentIdMixin:
+    parent_id: RecordID | None = Field(default=None, validate_default=True)
 
 
 class NodeStatisticsMixin(BaseModel):
