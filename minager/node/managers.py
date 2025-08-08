@@ -94,6 +94,8 @@ class PalaceNodeManager(SurrealDBManager):
         await self.query(query.sql())
         return await self.get(uid)
 
+    update = patch
+
     async def add_tag(self, node_id: str, tag_ids: list[str]) -> schemas.UpdatedNodeSchema:
         self._check_connection()
         config = AddTagRequestConfig(node_id=node_id, tag_ids=tag_ids)
@@ -135,4 +137,4 @@ class PalaceNodeManager(SurrealDBManager):
             .limit(limit)
         )
         response = await self.query(query.sql())
-        return [node.get('id').split(':')[-1] for node in response]
+        return [node['id'].id for node in response]

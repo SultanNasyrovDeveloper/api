@@ -96,14 +96,14 @@ class LearningSessionClient:
         )
         return schemas.LearningSessionSchema.model_validate(new_session)
 
-    async def record_repetition(
+    async def perform_repetition(
         self, session_id: str, node_id: str, rating: int, user_id: str
     ) -> schemas.LearningSessionSchema:
         session = await self.get(session_id)
-        repeated_node = await self.palace_client.get_node(node_id)
+        repeated_node = await self.palace_client.get(node_id)
         # Check if node was repeated not long ago do not save another repetition
         study_result = learning_strategy.study_node(repeated_node, rating)
-        await self.palace_client.update_node(
+        await self.palace_client.update(
             node_id,
             {
                 'last_repetition': datetime.now(UTC),
@@ -114,8 +114,8 @@ class LearningSessionClient:
                 'cpr': repeated_node.cpr + 1 if rating >= 3 else 0,
             },
         )
-        session_update_data = {'last_activity_datetime': datetime.now(UTC)}
-        if repeated_node.id in session.queue:
+        session_update_data: dict = {'last_activity_datetime': datetime.now(UTC)}
+        if node_id in session.queue:
             session.queue.remove(node_id)
         if node_id == session.current_node:
             if not session.queue and session.bad_repetition_queue:

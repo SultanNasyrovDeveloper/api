@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from learning_session.palace_client.schemas import PalaceNode
+from minager.core.clients.palace.schemas import NodeDetailSchema
 
 from .base import BaseLearningStrategy
 
@@ -15,7 +15,7 @@ class StudyNodeResult:
 
 
 class SuperMemo2LearningStrategy(BaseLearningStrategy):
-    def study_node(self, node: PalaceNode, rating: int) -> StudyNodeResult:
+    def study_node(self, node: NodeDetailSchema, rating: int) -> StudyNodeResult:
         """
         Handle node repetition using supermemo2 strategy.
 
