@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from minager.core.clients.palace.schemas import NodeDetailSchema
+from minager.node.schemas import NodeDetailSchema
 
 from .base import BaseLearningStrategy
 
