@@ -1,15 +1,16 @@
 from abc import ABC, abstractmethod
 from typing import TypedDict
 
+from minager import surorm
 from minager.core.lexorank import Lexorank
-from minager.surorm import Response, SurrealDBManager
-from minager.surorm.query import (
+from minager.surorm import (
     Alias,
     DefineVariable,
+    Manager,
     Record,
+    Response,
     Select,
     Transaction,
-    function,
 )
 
 from ..enums import NodeRelationType
@@ -25,7 +26,7 @@ class MoveNodeConfig(TypedDict):
 
 class MoveNodeStrategy(ABC):
 
-    def __init__(self, db: SurrealDBManager, config: MoveNodeConfig):
+    def __init__(self, db: Manager, config: MoveNodeConfig):
         self._db = db
         self._config = config
 
@@ -137,11 +138,11 @@ class MoveNodeBefore(MoveNodeStrategy):
                     'target',
                     Select()
                     .from_(f'node:{self._config['target_id']}', only=True)
-                    .columns('order', Alias('parent_id', function.ArrayFirst('->child.out'))),
+                    .columns('order', Alias('parent_id', surorm.F.array.first('->child.out'))),
                 ),
                 DefineVariable(
                     'prev_order',
-                    function.ArrayFirst(
+                    surorm.F.array.first(
                         Select()
                         .from_('node')
                         .columns('value order')
@@ -199,11 +200,11 @@ class MoveNodeAfter(MoveNodeStrategy):
                     'target',
                     Select()
                     .from_(f'node:{self._config['target_id']}', only=True)
-                    .columns('order', Alias('parent_id', function.ArrayFirst('->child.out'))),
+                    .columns('order', Alias('parent_id', surorm.F.array.first('->child.out'))),
                 ),
                 DefineVariable(
                     'next_order',
-                    function.ArrayFirst(
+                    surorm.F.array.first(
                         Select()
                         .from_('node')
                         .columns('value order')

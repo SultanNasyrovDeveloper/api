@@ -103,7 +103,7 @@ class LearningSessionClient:
         repeated_node = await self.palace_client.get(node_id)
         # Check if node was repeated not long ago do not save another repetition
         study_result = learning_strategy.study_node(repeated_node, rating)
-        await self.palace_client.update(
+        response = await self.palace_client.update(
             node_id,
             {
                 'last_repetition': datetime.now(UTC),

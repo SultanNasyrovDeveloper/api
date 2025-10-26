@@ -9,7 +9,6 @@ class NodeRelationType(IntEnum):
 
 
 class MovePosition(IntEnum):
-
     first_child = 1
     last_child = 2
     left = 3
@@ -19,5 +18,9 @@ class MovePosition(IntEnum):
 class NodeOrdering(IntEnum):
     random = 1
     outdated = 2
+
     breadth_first = 3
     depth_first = 4
+
+    with_zero_owner_views = 5
+    with_zero_size = 6

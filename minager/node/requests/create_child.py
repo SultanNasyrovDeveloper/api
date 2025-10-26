@@ -1,16 +1,16 @@
 from typing import TypedDict
 
 from minager.core.lexorank import Lexorank
-from minager.surorm.query import (
+from minager.surorm import Record
+from minager.surorm.statements import (
     Create,
     DefineVariable,
-    Record,
     Relate,
-    Select,
     Transaction,
     Variable,
 )
 
+from ..queries import get_last_child_order_query
 from ..schemas import NodeCreateSchema
 from .abstract import AbstractRequest
 
@@ -22,32 +22,25 @@ class CreateChildConfig(TypedDict):
 
 class CreateChildRequest(AbstractRequest[CreateChildConfig]):
     async def perform(self) -> dict | None:
-        last_child_order_query = (
-            Select()
-            .columns('value order')
-            .from_('node')
-            .where(f'->(child where out == {Record('node', self._config['parent_id']).sql()})')
-            .order_by('order', direction='desc')
-            .limit(1)
-        )
+        last_child_order_query = get_last_child_order_query(self._config['parent_id'])
+        last_child_order: str | list = await self._db.query(last_child_order_query)
+        if isinstance(last_child_order, list):
+            last_child_order: str = last_child_order[0] if len(last_child_order) > 0 else None
+
         create_data = self._config['data']
         if isinstance(create_data, dict):
             create_data = NodeCreateSchema.model_validate(create_data)
-        last_child_order = await self._db.query(last_child_order_query.sql())
-        if isinstance(last_child_order, list):
-            last_child_order = last_child_order[0] if len(last_child_order) > 0 else None
         create_data.order = Lexorank.middle(previous=last_child_order)
-        create_query = (
-            Transaction()
-            .perform(
-                DefineVariable(
-                    'child',
-                    Create('node', only=True).content(
-                        create_data.model_dump_surreal(exclude_unset=True, exclude_defaults=True)
-                    ),
+
+        child_var = Variable('child')
+
+        create_query = Transaction(
+            DefineVariable(
+                'child',
+                Create('node', only=True).content(
+                    create_data.model_dump_surreal(exclude_unset=True, exclude_defaults=True)
                 ),
-                Relate('child').from_('$child').to(Record('node', self._config['parent_id'])),
-            )
-            .return_(Variable('child'))
-        )
-        return await self._db.query(create_query.sql())
+            ),
+            Relate('child').from_(child_var).to(Record('node', self._config['parent_id'])),
+        ).return_(child_var)
+        return await self._db.query(create_query)

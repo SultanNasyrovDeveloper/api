@@ -1,5 +1,5 @@
+from minager.surorm import DefineField, Remove
 from minager.surorm.migrations import MigrationOperation
-from minager.surorm.query import DefineField, Remove
 
 operations = [
     MigrationOperation(query=Remove('field', 'tags').on('table', 'node').if_exists(True)),

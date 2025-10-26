@@ -6,7 +6,7 @@ from minager.auth.managers import UserManager
 from minager.core.clients.palace.client import PalaceNodeServiceClient
 from minager.learning_session.db import LearningSessionClient
 from minager.node.managers import PalaceNodeManager
-from minager.surorm.tester import SurrealConnectionTester
+from minager.surorm.core.tester import SurrealConnectionTester
 from minager.user_profile.managers import UserProfileManager
 
 from .settings import config

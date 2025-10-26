@@ -1,23 +1,13 @@
-from minager.node.functions import DeleteSubtree, GetSubtreeIds
-from minager.surorm import SurrealDBManager
-from minager.surorm.query import Create, Operation, Record, Select, Transaction, Update
+from minager import surorm
 
-from . import enums, schemas
-from .requests.add_tag import AddTagRequest, AddTagRequestConfig
+from . import dto, enums, queries, schemas, utils
 from .requests.create_child import CreateChildConfig, CreateChildRequest
-from .requests.get_detail import GetNodeDetailConfig, GetNodeDetailRequest
 from .requests.get_palace_root import GetPalaceRootConfig, GetPalaceRootRequest
-from .requests.get_statistics import (
-    GetOverallStatisticsConfig,
-    GetOverallStatisticsRequest,
-)
-from .requests.get_subtree import GetSubtreeConfig, GetSubtreeRequest
 from .requests.list import ListNodesRequest, ListNodesRequestConfig
 from .requests.move import MoveNodeConfig, MoveNodeRequest
-from .requests.remove_tag import RemoveTagRequest, RemoveTagRequestConfig
 
 
-class PalaceNodeManager(SurrealDBManager):
+class PalaceNodeManager(surorm.Manager):
     async def get_my_palace_root(self, owner_id: str) -> str | None:
         self._check_connection()
         config = GetPalaceRootConfig(owner_id=owner_id)
@@ -25,21 +15,32 @@ class PalaceNodeManager(SurrealDBManager):
         palace_root_id: str = response.raw(many=False)
         return palace_root_id.lstrip('node:') if palace_root_id else None
 
+    async def create(self, **kwargs) -> schemas.NodeDetailSchema | None:
+        root_schema = schemas.NodeCreateSchema.model_validate(kwargs)
+        query = surorm.Create('node').content(root_schema.model_dump_surreal()).return_('after')
+        response = await self.query(query)
+        return schemas.NodeDetailSchema.model_validate(response[0])
+
+    async def create_child(
+        self, parent_uid: str, data: dict | schemas.NodeCreateSchema
+    ) -> schemas.NodeDetailSchema | None:
+        self._check_connection()
+        config = CreateChildConfig(parent_id=parent_uid, data=data)
+        request = CreateChildRequest(db=self, config=config)
+        new_node = await request.perform()
+        if not new_node:
+            return None
+        return await self.get(new_node.get('id').id)
+
     async def get(self, node_id: str) -> schemas.NodeDetailSchema | None:
         self._check_connection()
-        config = GetNodeDetailConfig(id=node_id)
-        node = await GetNodeDetailRequest(db=self, config=config).perform()
-        return schemas.NodeDetailSchema.from_db_response(node)
-
-    async def get_overall_statistics(self, owner_id: str) -> schemas.PalaceStatistics | None:
-        self._check_connection()
-        config = GetOverallStatisticsConfig(owner_id=owner_id)
-        response = await GetOverallStatisticsRequest(db=self, config=config).perform()
-        response_data = response.data()
-        statistics = (
-            response_data[0] if isinstance(response_data, list) and len(response_data) else {}
-        )
-        return schemas.PalaceStatistics.model_validate(statistics)
+        query = surorm.Select(
+            surorm.Alias('parent_id', surorm.F.array.first('->child.out')),
+            surorm.Alias('ancestors', queries.ancestors_query),
+            all_=True,
+        ).from_(surorm.F.type.thing('node', node_id))
+        node_data: dict | None = await self.query(query)
+        return schemas.NodeDetailSchema.model_validate(node_data) if node_data else None
 
     async def list_(
         self,
@@ -60,29 +61,51 @@ class PalaceNodeManager(SurrealDBManager):
             else None
         )
 
-    async def create(self, **kwargs) -> schemas.NodeDetailSchema | None:
-        root_schema = schemas.NodeCreateSchema.model_validate(kwargs)
-        query = Create('node').content(root_schema.model_dump_surreal()).return_('after')
-        response = await self.query(query)
-        return schemas.NodeDetailSchema.model_validate(response[0])
-
-    async def create_child(
-        self, parent_uid: str, data: dict | schemas.NodeCreateSchema
-    ) -> schemas.NodeDetailSchema | None:
-        self._check_connection()
-        config = CreateChildConfig(parent_id=parent_uid, data=data)
-        request = CreateChildRequest(db=self, config=config)
-        new_node = await request.perform()
-        if not new_node:
-            return
-        return await self.get(new_node.get('id').id)
-
     async def get_subtree(self, uid: str) -> schemas.TreeNodeItemSchema:
         self._check_connection()
-        config = GetSubtreeConfig(root_id=uid)
-        request = GetSubtreeRequest(db=self, config=config)
-        root = await request.perform()
-        return schemas.model_validate_tree(root)
+        stmt = surorm.Select(
+            'id',
+            'title',
+            'order',
+            surorm.Alias('parent_id', queries.parent_id_query),
+            surorm.Alias('ancestors', queries.ancestors_query),
+        ).from_(f'{surorm.F.type.thing('node', uid)}.{{1..2+collect+inclusive}}<-child<-node')
+        nodes = await self.query(stmt)
+        tree_root = utils.construct_tree(nodes)
+        return schemas.TreeNodeItemSchema.model_validate(tree_root)
+
+    async def get_children(self, uid: str) -> list[schemas.NodeListItemSchema]:
+        self._check_connection()
+        query = surorm.Select('VALUE <-child<-node.{id, title, order}').from_(
+            surorm.F.type.thing('node', uid), only=True
+        )
+        children: list[dict] = await self.query(query)
+        return [schemas.NodeListItemSchema.model_validate(node_data) for node_data in children]
+
+    async def get_subtree_statistics(self, root_id: str) -> dto.SubtreeStatistics:
+        self._check_connection()
+        query = surorm.Transaction(
+            surorm.DefineVariable('node', surorm.F.type.thing('node', root_id)),
+            surorm.Select(
+                surorm.Alias('total_nodes', surorm.F.count()),
+                surorm.Alias('average_rating', surorm.F.math.mean('last_rating')),
+                surorm.Alias('total_size', surorm.F.math.sum('size')),
+                surorm.Alias('total_owner_views', surorm.F.math.sum('owner_views')),
+                surorm.Alias('total_repetitions', surorm.F.math.sum('repetitions')),
+                surorm.Alias(
+                    'total_outdated',
+                    surorm.F.math.sum(
+                        'IF next_optimal_repetition <= time::now() THEN 1 ELSE 0 END'
+                    ),
+                ),
+                surorm.Alias(
+                    'total_not_visited', surorm.F.math.sum('IF owner_views = 0 THEN 1 ELSE 0 END')
+                ),
+                surorm.Alias('total_empty', surorm.F.math.sum('IF size = 0 THEN 1 ELSE 0 END')),
+            ).from_(f'{surorm.Variable('node')}.{{..+collect+inclusive}}<-child<-node'),
+        )
+        stats = await self.query(query)
+        return dto.SubtreeStatistics.model_validate(stats)
 
     async def patch(
         self, uid: str, data: dict | schemas.NodeEditSchema
@@ -90,23 +113,13 @@ class PalaceNodeManager(SurrealDBManager):
         self._check_connection()
         if isinstance(data, dict):
             data = schemas.NodeEditSchema.model_validate(data)
-        query = Update(Record('node', uid)).merge(data.model_dump_surreal(exclude_unset=True))
+        query = surorm.Update(surorm.Record('node', uid)).merge(
+            data.model_dump_surreal(exclude_unset=True)
+        )
         await self.query(query.sql())
         return await self.get(uid)
 
     update = patch
-
-    async def add_tag(self, node_id: str, tag_ids: list[str]) -> schemas.UpdatedNodeSchema:
-        self._check_connection()
-        config = AddTagRequestConfig(node_id=node_id, tag_ids=tag_ids)
-        response = await AddTagRequest(db=self, config=config).perform()
-        return schemas.UpdatedNodeSchema.model_validate(response.data())
-
-    async def remove_tag(self, node_id: str, tag_ids: list[str]) -> schemas.UpdatedNodeSchema:
-        self._check_connection()
-        config = RemoveTagRequestConfig(node_id=node_id, tag_ids=tag_ids)
-        response = await RemoveTagRequest(db=self, config=config).perform()
-        return schemas.UpdatedNodeSchema.model_validate(response.data())
 
     async def move(
         self, node_id: str, target_id: str, move_position: int
@@ -118,7 +131,7 @@ class PalaceNodeManager(SurrealDBManager):
 
     async def delete(self, uid: str):
         self._check_connection()
-        query = Transaction().perform(DeleteSubtree(f'node:{uid}'))
+        query = surorm.Transaction().perform(surorm.DeleteSubtree(f'node:{uid}'))
         await self.query(query.sql())
 
     async def get_subtree_ids(
@@ -129,10 +142,13 @@ class PalaceNodeManager(SurrealDBManager):
     ) -> list[str]:
         self._check_connection()
         query = (
-            Select()
+            surorm.Select()
             .from_('node')
             .columns('id', 'next_optimal_repetition')
-            .where('is_learn = true', Operation('in', 'id', GetSubtreeIds(Record('node', root_id))))
+            .where(
+                'is_learn = true',
+                surorm.Operation('in', 'id', surorm.GetSubtreeIds(Record('node', root_id))),
+            )
             .order_by('next_optimal_repetition', direction='asc')
             .limit(limit)
         )

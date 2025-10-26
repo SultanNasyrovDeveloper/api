@@ -1,6 +1,6 @@
 from typing import TypedDict
 
-from minager.surorm.query import Alias, ArrayFirst, Expression, Record, Select, Traverse
+from minager.surorm import Alias, ArrayFirst, Expression, Record, Select, Traverse
 
 from .abstract import AbstractRequest
 
@@ -14,14 +14,14 @@ class GetNodeDetailRequest(AbstractRequest[GetNodeDetailConfig]):
         return await self._db.query(self.make_query())
 
     def make_query(self) -> Expression:
-        return Select(Record('node', self._config['id']), only=True).columns(
+        return Select(
             Alias(
                 'parent_id',
-                ArrayFirst(Traverse('@').depth(1).relation('->child->node').columns('id')),
+                ArrayFirst(Traverse('@', 'id').depth(1).relation('->child->node')),
             ),
             Alias(
                 'parent',
-                Traverse('@').columns('id', 'title').relation('->child->node').alias('parent'),
+                Traverse('@', 'id', 'title').relation('->child->node').alias('parent'),
             ),
             all_=True,
-        )
+        ).from_(Record('node', self._config['id']), only=True)

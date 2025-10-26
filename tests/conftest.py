@@ -3,7 +3,6 @@ from faker import Faker
 from fastapi.testclient import TestClient
 from jwt import encode
 from surorm.manager import SurrealDBManager
-from surorm.migrations import PerformMigrationCommand
 from surorm.query import (
     DefineDatabase,
     DefineNamespace,
@@ -12,6 +11,7 @@ from surorm.query import (
     Remove,
     Transaction,
 )
+from surorm.surorm.migrations import PerformMigrationCommand
 
 from minager.app import app
 from minager.settings import config

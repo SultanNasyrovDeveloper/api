@@ -1,5 +1,5 @@
-from datetime import datetime
+from .types import Expression
 
 
-def to_surreal_datetime_string(dt: datetime) -> str:
-    return f'd"{dt.strftime('%Y-%m-%dT%H:%M:%SZ')}"'
+def render(value: Expression):
+    return str(value)

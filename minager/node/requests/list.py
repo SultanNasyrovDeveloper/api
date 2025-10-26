@@ -1,7 +1,6 @@
 from typing import TypedDict
 
-from minager.surorm import Response
-from minager.surorm.query import Alias, Select, String, Traverse
+from minager.surorm import Alias, Response, Select, String, Traverse
 
 from .abstract import AbstractRequest
 

@@ -3,8 +3,8 @@ import asyncio
 
 from minager.app import config
 from minager.logger import get_logger
-from minager.surorm.manager import SurrealDBManager
-from minager.surorm.migrations import PerformMigrationCommand
+from minager.surorm.orm.manager import SurrealDBManager
+from minager.surorm.orm.migrations import PerformMigrationCommand
 
 logger = get_logger(__name__)
 

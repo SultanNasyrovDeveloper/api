@@ -3,7 +3,8 @@ import logging
 from minager.settings import config
 
 logging.basicConfig(**config.logging.to_basic_config())
-logging.getLogger('websockets').setLevel(logging.DEBUG)
+logging.getLogger('websockets').setLevel(logging.INFO)
+logging.getLogger('uvicorn').handlers.clear()
 
 
 def get_logger(name: str, service: str = 'Minager') -> logging.Logger:

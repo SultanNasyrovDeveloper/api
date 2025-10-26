@@ -1,5 +1,4 @@
-from minager.surorm.migrations import MigrationOperation
-from minager.surorm.query import (
+from minager.surorm import (
     DefineField,
     DefineTable,
     DurationFromDays,
@@ -7,6 +6,7 @@ from minager.surorm.query import (
     String,
     TimeNow,
 )
+from minager.surorm.migrations import MigrationOperation
 
 operations = [
     MigrationOperation(

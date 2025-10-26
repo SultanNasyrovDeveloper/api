@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from minager.core.settings.amqp import AMQPConfig
 from minager.core.settings.db import DBConnectionConfig
 from minager.core.settings.logging import LoggingConfig
-from minager.surorm.settings import SurrealConfig
+from minager.surorm.core.settings import SurrealConfig
 
 
 class ApplicationConfig(BaseSettings):

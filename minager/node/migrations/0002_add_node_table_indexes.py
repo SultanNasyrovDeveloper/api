@@ -1,5 +1,5 @@
+from minager.surorm import DefineAnalyzer, DefineIndex
 from minager.surorm.migrations import MigrationOperation
-from minager.surorm.query import DefineAnalyzer, DefineIndex
 
 operations = [
     MigrationOperation(query=DefineAnalyzer('autocomplete').filters('lowercase', 'ngram(1, 10)')),

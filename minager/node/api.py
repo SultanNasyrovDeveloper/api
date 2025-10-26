@@ -32,34 +32,47 @@ async def search(
     user: RequestUser,
     app: App,
     page: int,
-    per_page: int,
+    size: int,
     query: str,
 ) -> PaginatedResult[schemas.NodeListItemSchema]:
     nodes = await app.state.nodes.search(
         user_id=user.get('id'),
         page=page,
-        per_page=per_page,
+        per_page=size,
         query=query,
     )
     return PaginatedResult(page=page, results=nodes)
 
 
 @router.get('/{uid}')
-async def get(uid: str, app: App) -> schemas.NodeDetailSchema:
+async def get(uid: str, app: App, user: RequestUser) -> schemas.NodeDetailSchema:
     node = await app.state.nodes.get(uid)
     if not node:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    if node.owner_id == user.get('id', None):
+        node = await app.state.nodes.patch(node.id.id, {'owner_views': node.owner_views + 1})
     return node
 
 
-@router.get('/{uid}/subtree-ids')
-async def get_subtree_ids(uid: str, app: App, limit: int = 50) -> list[str]:
-    return await app.state.nodes.get_subtree_ids(uid, limit=limit)
+@router.get('/{uid}/children')
+async def get_children(uid: str, app: App, page: int = 1, size: int = 30):
+    children = await app.state.nodes.get_children(uid)
+    return PaginatedResult(page=page, results=[child.model_dump() for child in children])
 
 
 @router.get('/{uid}/subtree')
-async def subtree(uid: str, app: App) -> schemas.TreeNodeItemSchema:
+async def get_subtree(uid: str, app: App) -> schemas.TreeNodeItemSchema:
     return await app.state.nodes.get_subtree(uid)
+
+
+@router.get('/{uid}/subtree/statistics')
+async def get_statistics(uid: str, app: App) -> schemas.TreeNodeItemSchema:
+    return await app.state.nodes.get_subtree_statistics(uid)
+
+
+@router.get('/{uid}/subtree/ids')
+async def get_subtree_ids(uid: str, app: App, limit: int = 50) -> list[str]:
+    return await app.state.nodes.get_subtree_ids(uid, limit=limit)
 
 
 @router.post('/{uid}/move')

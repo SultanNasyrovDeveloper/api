@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime, timedelta
-from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
-from minager.core.utils import flatten_ancestors
-from minager.surorm.serializers import SurrealSerializer
+from minager.surorm.orm.serializers import SurrealSerializer
 
 from . import enums
 from .utils import get_content_size
@@ -34,6 +32,9 @@ class PalaceStatistics(BaseModel):
     total_size: int = 0
     outdated: int = 0
     empty_nodes: int = 0
+
+    # average_node_size: int = 0
+    # depth: int = 0
 
 
 class IdMixin:
@@ -80,6 +81,7 @@ class CreateRootSchema(NodeStatisticsMixin, NodeContentMixin, SurrealSerializer)
 
 class NodeListItemSchema(BaseModel, IdMixin):
     title: str
+    order: str | None = Field(default=None)
 
 
 class TreeNodeItemSchema(BaseModel, IdMixin, ParentIdMixin):
@@ -102,11 +104,6 @@ class NodeDetailSchema(NodeStatisticsMixin, IdMixin, ParentIdMixin):
     ancestors: list[NodeListItemSchema] = Field(default_factory=list)
     children: list[NodeListItemSchema] = Field(default_factory=list)
 
-    @classmethod
-    def from_db_response(cls, db_response: dict) -> Self:
-        db_response['ancestors'] = flatten_ancestors(db_response['parent'], 'parent')
-        return cls.model_validate(db_response)
-
 
 class UpdatedNodeSchema(NodeStatisticsMixin):
     title: str = ''
@@ -123,7 +120,7 @@ class UpdatedNodeSchema(NodeStatisticsMixin):
     model_config = ConfigDict(extra='ignore')
 
 
-class NodeEditSchema(NodeContentMixin, SurrealSerializer):
+class NodeEditSchema(NodeContentMixin, NodeStatisticsMixin, SurrealSerializer):
     title: str = ''
     questions: str = ''
     is_learn: bool = True
