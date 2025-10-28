@@ -26,7 +26,7 @@ class RecordID(BaseModel):
         return {'type': 'string'}
 
 
-class PalaceStatistics(BaseModel):
+class SubtreeStatistics(BaseModel):
     total_nodes: int = 1
     total_repetitions: int = 0
     total_size: int = 0

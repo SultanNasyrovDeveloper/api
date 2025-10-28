@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from minager.auth.managers import UserManager
 from minager.core.clients.palace.client import PalaceNodeServiceClient
-from minager.learning_session.db import LearningSessionClient
+from minager.learning_session.managers import LearningSessionManager
 from minager.node.managers import PalaceNodeManager
 from minager.surorm.core.tester import SurrealConnectionTester
 from minager.user_profile.managers import UserProfileManager
@@ -23,14 +23,17 @@ async def lifespan(app: FastAPI):
     app.state.user_profiles = UserProfileManager()
     palace_service_client = PalaceNodeServiceClient(config=config.palace_node_db)
     await palace_service_client.__aenter__()
-    app.state.learning_session = LearningSessionClient(
-        config=config.learning_session_db, palace_client=palace_service_client
+    app.state.learning_session = LearningSessionManager(
+        config=config.learning_session_db,
+        palace_client=palace_service_client,
     )
     await app.state.nodes.__aenter__()
     await app.state.users.__aenter__()
     await app.state.user_profiles.__aenter__()
+    await app.state.learning_session.__aenter__()
     yield
     await palace_service_client.__aexit__(None, None, None)
     await app.state.nodes.__aexit__(None, None, None)
     await app.state.users.__aexit__(None, None, None)
     await app.state.user_profiles.__aexit__(None, None, None)
+    await app.state.learning_session.__aexit__(None, None, None)

@@ -1,6 +1,6 @@
 from minager import surorm
 
-from . import dto, enums, queries, schemas, utils
+from . import dto, queries, schemas, utils
 from .requests.create_child import CreateChildConfig, CreateChildRequest
 from .requests.get_palace_root import GetPalaceRootConfig, GetPalaceRootRequest
 from .requests.list import ListNodesRequest, ListNodesRequestConfig
@@ -138,18 +138,15 @@ class PalaceNodeManager(surorm.Manager):
         self,
         root_id: str,
         limit: int = 30,
-        ordering: enums.NodeOrdering = enums.NodeOrdering.outdated,
+        _strategy: str = None,  # Add later
     ) -> list[str]:
         self._check_connection()
         query = (
-            surorm.Select()
-            .from_('node')
-            .columns('id', 'next_optimal_repetition')
-            .where(
-                'is_learn = true',
-                surorm.Operation('in', 'id', surorm.GetSubtreeIds(Record('node', root_id))),
+            surorm.Select('id', 'title', 'next_optimal_repetition')
+            .from_(
+                f'{surorm.F.type.thing('node_id', root_id)}.{{..+collect+inclusive}}<-child<-node'
             )
-            .order_by('next_optimal_repetition', direction='asc')
+            .order_by('next_optimal_repetition')
             .limit(limit)
         )
         response = await self.query(query.sql())
