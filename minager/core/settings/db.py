@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Literal
 
 from pydantic import BaseModel, SecretStr
@@ -10,7 +12,7 @@ class DBConnectionConfig(BaseModel):
 
     driver: DBDriver = 'postgresql+asyncpg'
     name: str
-    test_name: str = 'test'
+    test_name: str | None = None
     namespace: str | None = None
     host: str | None = None
     port: int | None = None

@@ -1,21 +1,21 @@
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 
 class UserCreateDataSchema(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 
 class UserDetailSchema(BaseModel):
     id: UUID
-    email: EmailStr
+    email: str
     is_email_verified: bool
 
 
 class LoginData(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 

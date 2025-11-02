@@ -111,8 +111,7 @@ class PalaceNodeManager(surorm.Manager):
         self, uid: str, data: dict | schemas.NodeEditSchema
     ) -> schemas.NodeDetailSchema:
         self._check_connection()
-        if isinstance(data, dict):
-            data = schemas.NodeEditSchema.model_validate(data)
+        data = schemas.NodeEditSchema.model_validate(data)
         query = surorm.Update(surorm.Record('node', uid)).merge(
             data.model_dump_surreal(exclude_unset=True)
         )
@@ -131,8 +130,21 @@ class PalaceNodeManager(surorm.Manager):
 
     async def delete(self, uid: str):
         self._check_connection()
-        query = surorm.Transaction().perform(surorm.DeleteSubtree(f'node:{uid}'))
-        await self.query(query.sql())
+        query = surorm.Transaction(
+            surorm.DefineVariable('root', surorm.F.type.thing('node', uid)),
+            surorm.DefineVariable(
+                'nodes', f'{surorm.Variable('root')}.{{..+collect+inclusive}}->child->node.id'
+            ),
+            surorm.Delete('child').where(
+                surorm.Or(
+                    surorm.In('in', surorm.Variable('nodes')),
+                    surorm.In('out', surorm.Variable('nodes')),
+                )
+            ),
+            surorm.Delete('node').where(surorm.In('in', surorm.Variable('nodes'))),
+        )
+        # response = await self.query(query.sql())
+        # print(response)
 
     async def get_subtree_ids(
         self,

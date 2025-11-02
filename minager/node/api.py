@@ -86,7 +86,8 @@ async def move_node(
 async def update(
     uid: str, app: App, update_data: schemas.NodeEditSchema
 ) -> schemas.NodeDetailSchema:
-    return await app.state.nodes.patch(uid, update_data)
+    response = await app.state.nodes.patch(uid, update_data.model_dump(exclude_unset=True))
+    return response
 
 
 @router.delete('/{uid}')

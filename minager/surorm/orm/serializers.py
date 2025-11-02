@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 from pydantic import BaseModel
@@ -48,7 +49,7 @@ class SurrealSerializer(BaseModel):
                 continue
             surreal_value = self.serialize_field(value, field_schema)
             output.append(f'{key}: {surreal_value.sql()}')
-        return f'{{{', '.join(output)}}}'
+        return json.dumps(f'{{{', '.join(output)}}}')
 
     def serialize_field(self, value: Any, schema: dict) -> statements.Expression:
         schema = dict(schema)

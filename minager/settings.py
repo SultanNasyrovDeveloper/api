@@ -19,14 +19,15 @@ class ApplicationConfig(BaseSettings):
     # security
     jwt_hashing_algorithm: str = 'HS256'
     secret_key: SecretStr
-    access_token_expire: int = 60 * 4  # minutes
+    access_token_expire: int = 60  # minutes
     refresh_token_expire: int = 7  # days
 
     logging: LoggingConfig = LoggingConfig()
 
+    main_db: DBConnectionConfig
+
     palace_node_db: SurrealConfig
     learning_session_db: DBConnectionConfig
-    main_db: DBConnectionConfig
     user_events_routing_key: str
     user_events: AMQPConfig
 
@@ -34,11 +35,12 @@ class ApplicationConfig(BaseSettings):
 
 
 config = ApplicationConfig()
-user_profile_db_engine = create_async_engine(config.main_db.to_str(), echo=True)
-user_profile_db = async_sessionmaker(user_profile_db_engine, expire_on_commit=False)
 
 main_db_engine = create_async_engine(config.main_db.to_str(), echo=True)
 main_db = async_sessionmaker(main_db_engine, expire_on_commit=False)
+
+user_profile_db_engine = create_async_engine(config.main_db.to_str(), echo=True)
+user_profile_db = async_sessionmaker(user_profile_db_engine, expire_on_commit=False)
 
 crypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 AuthBearerToken = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/token')

@@ -15,14 +15,114 @@ poetry run migrate upgrade
 # Run the FastAPI development server
 poetry run fastapi dev minager/app.py
 Testing
+
+## Running Tests
+
+```bash
 # Run all tests
 poetry run pytest
 
+# Run specific test module
+poetry run pytest tests/auth/
+
 # Run specific test file
-poetry run pytest tests/node/test_node_api.py
+poetry run pytest tests/auth/test_managers.py
 
 # Run with verbose output
 poetry run pytest -v
+
+# Run with coverage report
+poetry run pytest --cov=minager --cov-report=html
+```
+
+## Test Infrastructure
+
+The test suite uses pytest with automatic database setup and teardown for both PostgreSQL and SurrealDB.
+
+### Test Database Setup
+
+**PostgreSQL (`main_db`):**
+- Automatically creates `test_<db_name>` database before tests
+- Runs Alembic migrations to set up schema
+- Each test gets an isolated session with automatic rollback
+- Database is dropped after test session completes
+- Fixture: `main_db` (session-level)
+
+**SurrealDB (`palace_node_db`):**
+- Creates `test_palace` database namespace
+- Runs SurORM migrations automatically
+- Data is cleaned between tests
+- Fixture: `db_client` (session-level)
+
+### Available Test Fixtures
+
+**Database Fixtures** (`tests/conftest.py`):
+- `main_db_engine`: PostgreSQL test database engine (session-scoped)
+- `main_db_session_factory`: Async session factory for PostgreSQL
+- `main_db`: Async database session with automatic rollback per test
+- `db_client`: SurrealDB manager for palace nodes
+- `app_config`: Test configuration with modified database names
+
+**Auth Fixtures** (`tests/conftest.py`):
+- `test_user`: Pre-created user with plain password stored for auth tests
+- `api_user`: Mock user data dict for JWT tokens
+- `api_client`: TestClient with bearer token authentication
+- `unauthorized_api_client`: TestClient without authentication
+
+**Utility Fixtures**:
+- `fake`: Faker instance for generating test data
+- `monkeypatch_session`: Session-scoped monkeypatch for config modifications
+
+### Test Organization
+
+Tests are organized by application module:
+```
+tests/
+├── conftest.py              # Global fixtures (DB setup, auth)
+├── auth/                    # Auth application tests
+│   ├── conftest.py         # Auth-specific fixtures
+│   ├── test_utils.py       # Utility function tests
+│   ├── test_managers.py    # UserManager business logic tests
+│   └── test_api.py         # Auth API endpoint tests
+└── node/                    # Node application tests (existing)
+```
+
+### Test Workflow
+
+1. **Session Setup** (once per test session):
+   - Create test databases (`test_minager` for PostgreSQL, `test_palace` for SurrealDB)
+   - Run migrations (Alembic for PostgreSQL, SurORM for SurrealDB)
+   - Set up database engines and session factories
+
+2. **Per-Test Execution**:
+   - Create isolated database session via `main_db` fixture
+   - Run test (can use fixtures like `test_user` to create test data)
+   - Automatic rollback ensures no data persists between tests
+   - SurrealDB data cleaned via DELETE statements
+
+3. **Session Teardown** (after all tests):
+   - Close all database connections
+   - Drop test databases
+   - Clean up resources
+
+### Writing Tests
+
+Example test structure:
+```python
+async def test_add_user(user_manager, user_data, main_db):
+    """Test user creation with password hashing"""
+    user = await user_manager.add_user(user_data, session=main_db)
+
+    assert user.email == user_data['email']
+    assert user.password != user_data['password']  # Should be hashed
+    assert user.password.startswith('$2b$')  # Bcrypt hash
+```
+
+**Best Practices**:
+- Use fixtures for test data creation (`user_data`, `test_user`)
+- Tests are automatically isolated via database rollback
+- Mock external dependencies (other services) when testing specific modules
+- Use descriptive test names that explain what is being tested
 Code quality
 # Run pre-commit hooks manually
 pre-commit run --all-files

@@ -59,7 +59,7 @@ class NodeStatisticsMixin(BaseModel):
 
 
 class NodeContentMixin(BaseModel):
-    content: str = Field(default_factory=str, format='json')
+    content: str = Field(default_factory=str)
     size: int = 0
 
     # noinspection PyNestedDecorators
