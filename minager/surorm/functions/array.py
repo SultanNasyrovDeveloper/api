@@ -1,4 +1,5 @@
 from ..base import Function
+from .base import FunctionMap
 
 
 class Append(Function):
@@ -11,3 +12,9 @@ class Concat(Function):
 
 class First(Function):
     name = 'array::first'
+
+
+class ArrayFunctionMap(FunctionMap):
+    append = Append
+    concat = Concat
+    first = First

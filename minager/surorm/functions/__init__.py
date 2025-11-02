@@ -15,10 +15,10 @@ class Count(Function):
     name = 'count'
 
 
-class F:
+class FunctionManager:
     count = Count
-    array = dotdict({'append': array.Append, 'concat': array.Concat, 'first': array.First})
-    math = dotdict({'mean': math.Mean, 'sum': math.Sum})
+    array: array.ArrayFunctionMap = array.ArrayFunctionMap()
+    math: math.MathFunctionMap = math.MathFunctionMap()
     object = dotdict(
         {
             'entries': surreal_object_functions.Entries,
@@ -37,3 +37,6 @@ class F:
         }
     )
     type = dotdict({'thing': surreal_type_functions.Thing})
+
+
+F = FunctionManager()

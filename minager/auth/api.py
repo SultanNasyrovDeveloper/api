@@ -9,9 +9,10 @@ user_router = APIRouter(prefix='/users')
 auth_router = APIRouter()
 
 
-@user_router.post('/')
-async def create_user(app: App, data: schemas.UserCreateDataSchema) -> schemas.UserDetailSchema:
+@user_router.post('/signup')
+async def singup(app: App, data: schemas.UserCreateDataSchema) -> schemas.UserDetailSchema:
     user_manager = app.state.users
+    # raise UserAlreadyExists
     user_profile_manager = app.state.user_profiles
     palace_manager = app.state.nodes
     async with user_manager, user_profile_manager, palace_manager:
