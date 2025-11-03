@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from minager.surorm import Manager, Response
+from minager.core.surorm import Manager, Response
 
 
 class AbstractRequest[ConfigType](ABC):

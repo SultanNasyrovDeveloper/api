@@ -1,7 +1,7 @@
 from typing import TypedDict
 
-from minager.surorm import Response
-from minager.surorm.statements import Select
+from minager.core.surorm import Response
+from minager.core.surorm.statements import Select
 
 from .abstract import AbstractRequest
 

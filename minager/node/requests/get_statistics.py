@@ -1,6 +1,15 @@
 from typing import TypedDict
 
-from minager.surorm import Alias, Count, Equals, F, Greater, Response, Select, String
+from minager.core.surorm import (
+    Alias,
+    Count,
+    Equals,
+    F,
+    Greater,
+    Response,
+    Select,
+    String,
+)
 
 from .abstract import AbstractRequest
 

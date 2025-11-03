@@ -1,29 +1,18 @@
-from uuid import UUID
+from typing import Optional
 
-from pydantic import BaseModel
-
-
-class UserCreateDataSchema(BaseModel):
-    email: str
-    password: str
+from pydantic import BaseModel, ConfigDict
 
 
-class UserDetailSchema(BaseModel):
-    id: UUID
-    email: str
-    is_email_verified: bool
+class UserProfileSchema(BaseModel):
+    user_id: str
+    name: str
+    bio: str
+    experience: int
+    palace_root_id: str
+
+    model_config = ConfigDict()
 
 
-class LoginData(BaseModel):
-    email: str
-    password: str
-
-
-class Tokens(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = 'bearer'
-
-
-class TokenRefreshDataSchema(BaseModel):
-    refresh: str
+class UserProfileEditSchema(BaseModel):
+    name: Optional[str] = None
+    bio: Optional[str] = None

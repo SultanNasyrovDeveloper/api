@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from minager.surorm import data_model
-from minager.surorm.orm import models
+from minager.core.surorm import data_model
+from minager.core.surorm.orm import models
 
 
 # noinspection PyTypeChecker

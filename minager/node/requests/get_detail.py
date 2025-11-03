@@ -1,6 +1,6 @@
 from typing import TypedDict
 
-from minager.surorm import Alias, ArrayFirst, Expression, Record, Select, Traverse
+from minager.core.surorm import Alias, Expression, F, Record, Select, Traverse
 
 from .abstract import AbstractRequest
 
@@ -17,7 +17,7 @@ class GetNodeDetailRequest(AbstractRequest[GetNodeDetailConfig]):
         return Select(
             Alias(
                 'parent_id',
-                ArrayFirst(Traverse('@', 'id').depth(1).relation('->child->node')),
+                F.array.first(Traverse('@', 'id').depth(1).relation('->child->node')),
             ),
             Alias(
                 'parent',

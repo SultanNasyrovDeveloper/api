@@ -1,7 +1,10 @@
 from pathlib import Path
 
-from fastapi.security import OAuth2PasswordBearer
-from passlib.context import CryptContext
+from fastapi_users.authentication import (
+    AuthenticationBackend,
+    BearerTransport,
+    JWTStrategy,
+)
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -10,7 +13,7 @@ from minager.core.settings import SMTPServerConfiguration
 from minager.core.settings.amqp import AMQPConfig
 from minager.core.settings.db import DBConnectionConfig
 from minager.core.settings.logging import LoggingConfig
-from minager.surorm.core.settings import SurrealConfig
+from minager.core.surorm.core.settings import SurrealConfig
 
 
 class ApplicationConfig(BaseSettings):
@@ -46,5 +49,20 @@ main_db = async_sessionmaker(main_db_engine, expire_on_commit=False)
 user_profile_db_engine = create_async_engine(config.main_db.to_str(), echo=True)
 user_profile_db = async_sessionmaker(user_profile_db_engine, expire_on_commit=False)
 
-crypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
-AuthBearerToken = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/token')
+# AUTHENTICATION
+transport = BearerTransport(tokenUrl='/api/v1/auth/users/token')
+
+
+def get_jwt_strategy() -> JWTStrategy:
+    return JWTStrategy(
+        secret=config.secret_key,
+        lifetime_seconds=config.access_token_expire * 60,
+        algorithm=config.jwt_hashing_algorithm,
+    )
+
+
+auth_backend = AuthenticationBackend(
+    name='jwt',
+    transport=transport,
+    get_strategy=get_jwt_strategy,
+)

@@ -1,6 +1,6 @@
+from minager.core.surorm.migrations import MigrationOperation
 from minager.node import functions
 from minager.surorm import DefineFunction
-from minager.surorm.migrations import MigrationOperation
 
 operations = [
     MigrationOperation(

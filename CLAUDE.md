@@ -95,8 +95,10 @@ SurORM is a custom query builder for SurrealDB located in `minager/surorm/`. Key
 - **data_model/**: Type definitions for SurrealDB fields
 
 Example usage in `minager/node/managers.py`:
+
 ```python
-from minager import surorm
+
+from minager.core import surorm
 from minager.node.queries import parent_id_query
 
 uid = 'node_id'

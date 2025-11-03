@@ -1,8 +1,9 @@
-from typing import Any, Callable, ClassVar, Dict, Type
+from typing import Any, Callable, ClassVar, Dict, Type, TypedDict
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 from pydantic import Field as PydanticField
 from sqlalchemy.sql import operators
+from sqlalchemy.sql.expression import ColumnElement
 from sqlmodel import SQLModel
 
 LOOKUP_MAP: Dict[str, Callable[[Any, Any], Any]] = {
@@ -34,18 +35,21 @@ def Field(
     return PydanticField(json_schema_extra=json_schema, **kwargs)
 
 
-class FilterSetConfiguration(ConfigDict):
+class FilterSetConfiguration(TypedDict):
     model: Type[SQLModel]
 
 
 class FilterSet(BaseModel):
     configuration: ClassVar[FilterSetConfiguration] = None
 
-    def get_filters(self) -> list:
+    def get_filters(self) -> list[ColumnElement[bool]]:
         data = self.model_dump(exclude_unset=True)
         expressions = []
         if not self.configuration:
-            # TODO: Warn or event raise an error
+            raise ValueError(
+                f"{self.__class__.__name__} must define a 'configuration' ClassVar "
+                f"with a 'model' key pointing to a SQLModel class"
+            )
             return []
         model = self.configuration['model']
         for field_name, field_def in self.model_fields.items():

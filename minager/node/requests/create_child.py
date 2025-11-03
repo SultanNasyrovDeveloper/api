@@ -1,8 +1,8 @@
 from typing import TypedDict
 
 from minager.core.lexorank import Lexorank
-from minager.surorm import Record
-from minager.surorm.statements import (
+from minager.core.surorm import Record
+from minager.core.surorm.statements import (
     Create,
     DefineVariable,
     Relate,

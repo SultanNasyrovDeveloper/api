@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
-from minager.surorm.orm.serializers import SurrealSerializer
+from minager.core.surorm.orm.serializers import SurrealSerializer
 
 from . import enums
 from .utils import get_content_size

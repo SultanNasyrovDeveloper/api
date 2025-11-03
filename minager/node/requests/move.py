@@ -3,7 +3,7 @@ from typing import TypedDict
 
 from minager import surorm
 from minager.core.lexorank import Lexorank
-from minager.surorm import (
+from minager.core.surorm import (
     Alias,
     DefineVariable,
     Manager,

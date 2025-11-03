@@ -1,5 +1,4 @@
-from minager import surorm
-
+from ..core import surorm
 from . import dto, queries, schemas, utils
 from .requests.create_child import CreateChildConfig, CreateChildRequest
 from .requests.get_palace_root import GetPalaceRootConfig, GetPalaceRootRequest

@@ -1,5 +1,5 @@
-from minager import surorm
-from minager.surorm import Record, Select
+from minager.core import surorm
+from minager.core.surorm import Record, Select
 
 parent_id_query = surorm.F.array.first('->child.out')
 ancestors_query = surorm.Select('id', 'title').from_('$this.{..+collect}->child->node')
