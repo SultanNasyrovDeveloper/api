@@ -1,26 +1,28 @@
 from datetime import datetime
 
 from minager.core.surorm import data_model
-from minager.core.surorm.orm import models
+from minager.core.surorm.orm.field import Field
+from minager.core.surorm.orm.models import Model
 
 
-# noinspection PyTypeChecker
-class Node(models.Model):
-    is_learn: bool = models.Field(data_model.Boolean)
-    title: str = models.Field(data_model.String)
-    order: str = models.Field(data_model.String)
-    owner_id: str = models.Field(data_model.String)
-    questions: str = models.Field(data_model.String)
+class Node(Model):
+    __tablename__ = 'knowledge_tree.node'
 
-    cpr: int = models.Field(data_model.Number, default=0)
-    owner_views: int = models.Field(data_model.Number, default=0)
-    difficulty: float = models.Field(data_model.Number, default=2.6)
-    last_rating: float = models.Field(data_model.Number, default=0)
-    size: int = models.Field(data_model.Number, default=0)
-    repetitions: int = models.Field(data_model.Number, default=0)
+    is_learn: bool = Field(data_model.Boolean)
+    title: str = Field(data_model.String)
+    order: str = Field(data_model.String)
+    owner_id: str = Field(data_model.String)
+    questions: str = Field(data_model.String)
 
-    last_interval: int = models.Field(data_model.Number)
-    last_repetition: datetime = models.Field(data_model.Datetime)
-    next_optimal_repetition: datetime = models.Field(data_model.Datetime)
+    cpr: int = Field(data_model.Number, default=0)
+    owner_views: int = Field(data_model.Number, default=0)
+    difficulty: float = Field(data_model.Number, default=2.6)
+    last_rating: float = Field(data_model.Number, default=0)
+    size: int = Field(data_model.Number, default=0)
+    repetitions: int = Field(data_model.Number, default=0)
 
-    content: dict = models.Field(data_model.Json)
+    last_interval: int = Field(data_model.Number)
+    last_repetition: datetime = Field(data_model.Datetime)
+    next_optimal_repetition: datetime = Field(data_model.Datetime)
+
+    content: dict = Field(data_model.Json)

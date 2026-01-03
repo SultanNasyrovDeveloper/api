@@ -1,13 +1,30 @@
 from pydantic import BaseModel
 
+from .schemas import NodeStatisticsMixin
 
-class SubtreeStatistics(BaseModel):
-    total_nodes: int
+
+class NodeSubtreeStatistics(BaseModel):
+    count: int
     average_rating: float
-    total_owner_view: int
-    total_repetitions: int
-    total_size: int
+    owner_views: int
+    repetitions: int
+    size: int
 
-    total_outdated: int
-    total_not_visited: int
-    total_empty: int
+    outdated: int
+    not_visited: int
+    empty: int
+
+
+class NodeIndexesInfo(BaseModel):
+    overall_index: float
+    node_index: float
+    subtree_index: float
+    weights: dict[str, float]
+    node_components: dict[str, float]
+    subtree_components: dict[str, float]
+
+
+class NodeOverallStatistics(BaseModel):
+    indexes: NodeIndexesInfo
+    subtree: NodeSubtreeStatistics
+    node: NodeStatisticsMixin

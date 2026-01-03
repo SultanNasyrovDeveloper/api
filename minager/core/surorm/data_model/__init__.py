@@ -58,7 +58,11 @@ class String(DataType):
         self._value = value
 
     def sql(self) -> str:
-        return f'"{self._value}"'
+        value = self._value
+        if not isinstance(value, str):
+            value = str(value)
+        escaped = value.replace('\\', '\\\\').replace('"', '\\"')
+        return f'"{escaped}"'
 
 
 class Datetime(DataType):

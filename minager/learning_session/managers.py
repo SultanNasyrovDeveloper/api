@@ -6,7 +6,7 @@ from bson import ObjectId
 from motor import motor_asyncio as motor
 from pymongo import ReturnDocument
 
-from minager.core.clients.palace.client import PalaceNodeServiceClient
+from minager.core.clients.knowledge_tree.client import PalaceNodeServiceClient
 from minager.core.settings.db import DBConnectionConfig
 
 from .models import LearningSession

@@ -93,7 +93,7 @@ class Select(Statement, Filterable):
         return self
 
     def sql(self) -> str:
-        q = ['select', ','.join(map(render, self._columns))]
+        q = ['select', ', '.join(map(render, self._columns))]
         if self._omit:
             q.append('omit')
             q.append(','.join(self._omit))

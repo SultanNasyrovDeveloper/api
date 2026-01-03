@@ -3,7 +3,16 @@ from typing import Type
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import ScalarResult, delete, func, insert, select, update
+from sqlalchemy import (
+    ColumnExpressionArgument,
+    ScalarResult,
+    Select,
+    delete,
+    func,
+    insert,
+    select,
+    update,
+)
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -12,8 +21,10 @@ from minager.settings import main_db
 
 from .models import Model
 
+type Identifier = int | str
 
-class BaseManager[ModelT: Model]:
+
+class BaseDatabaseManager[ModelT: Model]:
     id_field_name: str = 'id'
     model_class: Type[ModelT]
     _session_factory: async_sessionmaker[AsyncSession]
@@ -36,15 +47,15 @@ class BaseManager[ModelT: Model]:
         await self.session.__aexit__(exc_type, exc_val, exc_tb)
         self.session = None
 
-    async def select_one(self, stmt: select, session: AsyncSession = None) -> ModelT:
-        self._check_active_session(session)
-        session = self.get_session(session)
-        return await session.scalar(stmt)
-
-    async def select(self, stmt: select, session: AsyncSession = None) -> ScalarResult[ModelT]:
+    async def select(self, stmt: Select, session: AsyncSession = None) -> ScalarResult[ModelT]:
         self._check_active_session(session)
         session = self.get_session(session)
         return await session.scalars(stmt)
+
+    async def select_one(self, stmt: Select, session: AsyncSession = None) -> ModelT:
+        self._check_active_session(session)
+        session = self.get_session(session)
+        return await session.scalar(stmt)
 
     def _check_active_session(self, session: AsyncSession | None = None):
         assert session or self.session
@@ -52,18 +63,37 @@ class BaseManager[ModelT: Model]:
     def get_session(self, session: AsyncSession | None) -> AsyncSession:
         return session or self.session
 
-    def get_query(self) -> select:
+    def get_query(self) -> Select:
         return select(self.model_class)
 
+    def get_item_id(self, item: ModelT) -> int | str | None:
+        return getattr(item, self.id_field_name)
 
-class DatabaseManager[ModelT](BaseManager[ModelT]):
-    async def count(self, *positional_query, session: AsyncSession = None, **keyword_query) -> int:
-        stmt = select(func.count(getattr(self.model_class, self.id_field_name))).where(
-            *positional_query, **keyword_query
+
+class DatabaseManager[ModelT](BaseDatabaseManager[ModelT]):
+    async def count(
+        self,
+        *positional_query: ColumnExpressionArgument,
+        session: AsyncSession = None,
+        **keyword_query: ColumnExpressionArgument,
+    ) -> int:
+        return await self.select_one(
+            select(func.count(getattr(self.model_class, self.id_field_name))).where(
+                *positional_query, **keyword_query
+            ),
+            session=session,
         )
-        return await self.select_one(stmt, session)
 
-    async def get(self, id_: int | str, session: AsyncSession = None) -> ModelT:
+    async def exists(
+        self,
+        *positional_query: ColumnExpressionArgument,
+        session: AsyncSession = None,
+        **filters: ColumnExpressionArgument,
+    ) -> bool:
+        # TODO: Research EXISTS vs COUNT > 0 apprach performance
+        return await self.count(*positional_query, session=session, **filters) > 0
+
+    async def get(self, id_: Identifier, session: AsyncSession = None) -> ModelT:
         id_field = getattr(self.model_class, self.id_field_name)
         return await self.select_one(self.get_query().where(id_field == id_), session)
 
@@ -80,15 +110,17 @@ class DatabaseManager[ModelT](BaseManager[ModelT]):
             stmt.limit(per_page).offset(per_page * (page - 1))
         return list(await self.select(stmt, session))
 
-    async def create(self, data: dict, session: AsyncSession = None) -> ModelT:
+    async def create(self, data: dict | ModelT, session: AsyncSession = None) -> ModelT:
         self._check_active_session(session)
-        item = self.model_class(**data)
+        item = data
+        if not isinstance(data, self.model_class):
+            item = self.model_class(**data)
         session = self.get_session(session)
         try:
             session.add(item)
         except IntegrityError:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT)
-        item_id = getattr(item, self.id_field_name)
+        item_id = self.get_item_id(item)
         created = await self.get(item_id, session)
         return created
 
@@ -108,7 +140,7 @@ class DatabaseManager[ModelT](BaseManager[ModelT]):
             created_items = await session.scalars(stmt, create_data)
         return list(created_items)
 
-    async def update(self, id_: int, data: dict, session: AsyncSession = None) -> ModelT:
+    async def update(self, id_: Identifier, data: dict, session: AsyncSession = None) -> ModelT:
         self._check_active_session(session)
         stmt = (
             update(self.model_class)
@@ -137,7 +169,7 @@ class DatabaseManager[ModelT](BaseManager[ModelT]):
             await self.session.commit()
         return updated
 
-    async def delete(self, id_: int, session: AsyncSession = None) -> None:
+    async def delete(self, id_: Identifier, session: AsyncSession = None) -> None:
         self._check_active_session(session)
         # TODO: Raise not found error if there is no item?
         stmt = delete(self.model_class).where(self.model_class.id.expression == id_)

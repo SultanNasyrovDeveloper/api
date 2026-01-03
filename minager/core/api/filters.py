@@ -1,6 +1,6 @@
-from typing import Any, Callable, ClassVar, Dict, Type, TypedDict
+from typing import Any, Callable, ClassVar, Dict, Type
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from pydantic import Field as PydanticField
 from sqlalchemy.sql import operators
 from sqlalchemy.sql.expression import ColumnElement
@@ -35,12 +35,12 @@ def Field(
     return PydanticField(json_schema_extra=json_schema, **kwargs)
 
 
-class FilterSetConfiguration(TypedDict):
+class FilterSetConfiguration(ConfigDict):
     model: Type[SQLModel]
 
 
 class FilterSet(BaseModel):
-    configuration: ClassVar[FilterSetConfiguration] = None
+    configuration: ClassVar[FilterSetConfiguration]
 
     def get_filters(self) -> list[ColumnElement[bool]]:
         data = self.model_dump(exclude_unset=True)
@@ -50,7 +50,6 @@ class FilterSet(BaseModel):
                 f"{self.__class__.__name__} must define a 'configuration' ClassVar "
                 f"with a 'model' key pointing to a SQLModel class"
             )
-            return []
         model = self.configuration['model']
         for field_name, field_def in self.model_fields.items():
             if field_name not in data:

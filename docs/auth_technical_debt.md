@@ -502,7 +502,7 @@ async def create_user(app: App, data: schemas.UserCreateDataSchema) -> schemas.U
             user = await user_manager.add_user(data)
 
             try:
-                # Step 2: Create palace node
+                # Step 2: Create knowledge_tree node
                 node = await palace_manager.create(
                     owner_id=str(user.id),
                     title='Mind Palace'

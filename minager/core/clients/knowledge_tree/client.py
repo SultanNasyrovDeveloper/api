@@ -5,3 +5,6 @@ from .base import AbstractPalaceClient
 
 class PalaceNodeServiceClient(PalaceNodeManager, AbstractPalaceClient):
     pass
+
+
+KnowledgeTreeClient = PalaceNodeServiceClient

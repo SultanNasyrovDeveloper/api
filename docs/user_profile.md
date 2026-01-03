@@ -140,7 +140,7 @@ GET /user-profiles/550e8400-e29b-41d4-a716-446655440000
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "name": "Jane Smith",
-  "bio": "Memory palace builder",
+  "bio": "Memory knowledge_tree builder",
   "experience": 2300,
   "palace_root_id": "node:xyz789"
 }

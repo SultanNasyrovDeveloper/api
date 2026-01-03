@@ -1,15 +1,15 @@
+import jwt
 import pytest
 from faker import Faker
 from fastapi.testclient import TestClient
-from jwt import encode
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from alembic import command
 from alembic.config import Config
 from minager.app import app
-from minager.auth.managers import UserManager
-from minager.auth.schemas import UserCreateDataSchema
+from minager.auth.managers import UserManager, UserProfileManager
+from minager.settings import config
 
 
 @pytest.fixture
@@ -17,26 +17,14 @@ def fake():
     return Faker()
 
 
-@pytest.fixture(scope='session')
-def mock_session_scope():
-    with pytest.MonkeyPatch.context() as mp:
-        yield mp
-
-
-@pytest.fixture(scope='session', autouse=True)
-def app_config(session_mocker):
-    with session_mocker.patch('minager.settings.config') as test_config:
-        yield test_config
-
-
 # ============================================================================
 # PostgreSQL Test Database Setup
 # ============================================================================
 @pytest.fixture(scope='session')
-async def main_db_test_engine(app_config):
-    default_db_url = app_config.main_db.to_str(path='/postgres')
+async def main_db_test_engine():
+    default_db_url = config.main_db.to_str(path='/postgres')
     default_engine = create_async_engine(default_db_url, isolation_level='AUTOCOMMIT')
-    test_db_name = app_config.main_db.name
+    test_db_name = config.main_db.name
     async with default_engine.connect() as conn:
         result = await conn.execute(
             text(f"SELECT 1 FROM pg_database WHERE datname = '{test_db_name}'")
@@ -45,11 +33,11 @@ async def main_db_test_engine(app_config):
         if not exists:
             await conn.execute(text(f'CREATE DATABASE {test_db_name}'))
     await default_engine.dispose()
-    test_db_url = app_config.main_db.to_str()
-    test_engine = create_async_engine(test_db_url, echo=True)
+    test_db_url = config.main_db.to_str()
+    test_engine = create_async_engine(test_db_url, echo=False)
     alembic_cfg = Config('alembic.ini')
     alembic_cfg.set_main_option(
-        'sqlalchemy.url', app_config.main_db.to_str(scheme='postgresql+asyncpg')
+        'sqlalchemy.url', config.main_db.to_str(scheme='postgresql+asyncpg')
     )
     command.upgrade(alembic_cfg, 'head')
     yield test_engine
@@ -88,13 +76,22 @@ async def main_db(main_db_test_session_factory):
 # Auth Fixtures
 # ============================================================================
 @pytest.fixture
-async def test_user(test_main_db, fake):
-    """Creates a test user in the database"""
+async def test_user(main_db, fake):
+    """Creates a test user in the database with profile"""
     user_manager = UserManager()
-    user_data = UserCreateDataSchema(email=fake.email(), password='TestPassword123!')
-    user = await user_manager.add_user(user_data, session=test_main_db)
-    await test_main_db.commit()
+    username = fake.user_name()
+    user_data = UserCreate(email=fake.email(), password='TestPassword123!', username=username)
+    user = await user_manager.create_user(user_data, session=main_db)
+    await main_db.commit()
+
+    # Create user profile
+    profile_manager = UserProfileManager()
+    profile_data = UserProfileCreate(user_id=user.id, username=username)
+    await profile_manager.create_profile(profile_data, session=main_db)
+    await main_db.commit()
+
     user.plain_password = 'TestPassword123!'
+    user.username = username
     return user
 
 
@@ -114,5 +111,8 @@ def unauthorized_api_client(api_user):
 @pytest.fixture
 def api_client(api_user):
     """Test client with bearer token authentication"""
-    with TestClient(app, headers={'Authorization': f'Bearer: {encode(api_user, '')}'}) as client:
+    token = jwt.encode(
+        api_user, config.secret_key.get_secret_value(), algorithm=config.jwt_hashing_algorithm
+    )
+    with TestClient(app, headers={'Authorization': f'Bearer {token}'}) as client:
         yield client

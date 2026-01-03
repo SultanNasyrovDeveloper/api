@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, status
 
-from minager.core.api.dependencies import App, RequestUser
+from minager.dependencies import App, RequestUser
 
 from . import schemas
 
@@ -17,7 +17,7 @@ router = APIRouter(prefix='/learning-sessions')
 async def get_my_active_session(
     user: RequestUser, app: App
 ) -> Optional[schemas.LearningSessionSchema]:
-    return await app.state.learning_session.get_my_active_session(user['id'])
+    return await app.state.learning_session.get_my_active_session(str(user.sub))
 
 
 @router.post(
@@ -30,7 +30,7 @@ async def start(
     learning_session: schemas.StartLearningSessionSchema, app: App, user: RequestUser
 ) -> schemas.LearningSessionSchema:
     return await app.state.learning_session.start(
-        user_id=user['id'], data=learning_session.model_dump(mode='json')
+        user_id=str(user.sub), data=learning_session.model_dump(mode='json')
     )
 
 
@@ -56,7 +56,7 @@ async def perform_repetition(
 ) -> schemas.LearningSessionSchema:
     # TODO: Consider returning only new current node cause only this value actually changes
     return await app.state.learning_session.perform_repetition(
-        session_id=id_, user_id=user['id'], **repetition_data.model_dump()
+        session_id=id_, user_id=str(user.sub), **repetition_data.model_dump()
     )
 
 

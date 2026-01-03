@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import TypedDict
 
-from minager import surorm
+from minager.core import surorm
 from minager.core.lexorank import Lexorank
 from minager.core.surorm import (
     Alias,

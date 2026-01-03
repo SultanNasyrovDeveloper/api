@@ -5,10 +5,10 @@ class BaseLearningStrategy:
 
     def study_node(self, node_learning_stats, repetition_rating):
         """
-        Handle user mind palace node repetition.
+        Handle user mind knowledge_tree node repetition.
 
         Args:
-            node_learning_stats: Mind palace node learning statistics.
+            node_learning_stats: Mind knowledge_tree node learning statistics.
             repetition_rating: New repetition rating.
         """
         raise NotImplementedError

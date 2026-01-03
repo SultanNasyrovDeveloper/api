@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from minager.core.clients.palace.client import PalaceNodeServiceClient
+from minager.core.clients.knowledge_tree.client import PalaceNodeServiceClient
 from minager.core.surorm.core.tester import SurrealConnectionTester
 from minager.learning_session.managers import LearningSessionManager
 from minager.node.managers import PalaceNodeManager
@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI):
     tester = SurrealConnectionTester(config.palace_node_db)
     is_connected = tester.wait()
     if not is_connected:
-        raise ValueError('Unable to establish connection with palace db.')
+        raise ValueError('Unable to establish connection with knowledge_tree db.')
     app.state.nodes = PalaceNodeManager(config.palace_node_db)
     palace_service_client = PalaceNodeServiceClient(config=config.palace_node_db)
     await palace_service_client.__aenter__()

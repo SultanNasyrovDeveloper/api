@@ -1,14 +1,15 @@
 from fastapi import APIRouter, HTTPException, status
 
-from minager.core.api.dependencies import App, RequestUser
+from minager.core.api.dependencies import App
 from minager.core.types import PaginatedResult
+from minager.dependencies import RequestUser
 
-from . import schemas
+from . import dto, schemas
 
 router = APIRouter(prefix='/nodes')
 
 
-@router.get('/my-palace-root')
+@router.get('/my-knowledge_tree-root')
 async def get_my_palace_root(user: RequestUser, app: App) -> str | None:
     node_id = await app.state.nodes.get_my_palace_root(user['id'])
     if not node_id:
@@ -23,7 +24,7 @@ async def add_child(
     user: RequestUser,
     app: App,
 ) -> schemas.NodeDetailSchema:
-    data.owner_id = user.get('id')
+    data.owner_id = user.sub
     return await app.state.nodes.create_child(parent_uid=uid, data=data)
 
 
@@ -49,7 +50,7 @@ async def get(uid: str, app: App, user: RequestUser) -> schemas.NodeDetailSchema
     node = await app.state.nodes.get(uid)
     if not node:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    if node.owner_id == user.get('id', None):
+    if node.owner_id == str(user.sub):
         node = await app.state.nodes.patch(node.id.id, {'owner_views': node.owner_views + 1})
     return node
 
@@ -60,13 +61,18 @@ async def get_children(uid: str, app: App, page: int = 1, size: int = 30):
     return PaginatedResult(page=page, results=[child.model_dump() for child in children])
 
 
+@router.get('/{uid}/statistics')
+async def get_statistics(uid: str, app: App) -> dto.NodeOverallStatistics:
+    return await app.state.nodes.get_statistics(uid)
+
+
 @router.get('/{uid}/subtree')
 async def get_subtree(uid: str, app: App) -> schemas.TreeNodeItemSchema:
     return await app.state.nodes.get_subtree(uid)
 
 
 @router.get('/{uid}/subtree/statistics')
-async def get_statistics(uid: str, app: App) -> schemas.TreeNodeItemSchema:
+async def get_subtree_statistics(uid: str, app: App) -> dto.NodeSubtreeStatistics:
     return await app.state.nodes.get_subtree_statistics(uid)
 
 

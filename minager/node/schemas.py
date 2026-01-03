@@ -1,3 +1,4 @@
+# TODO: Refactor this file
 from __future__ import annotations
 
 import json
@@ -24,17 +25,6 @@ class RecordID(BaseModel):
     @classmethod
     def __get_pydantic_json_schema__(cls, core_schema, handler):
         return {'type': 'string'}
-
-
-class SubtreeStatistics(BaseModel):
-    total_nodes: int = 1
-    total_repetitions: int = 0
-    total_size: int = 0
-    outdated: int = 0
-    empty_nodes: int = 0
-
-    # average_node_size: int = 0
-    # depth: int = 0
 
 
 class IdMixin:

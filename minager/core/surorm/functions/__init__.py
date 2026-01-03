@@ -28,5 +28,8 @@ class FunctionManager:
     )
     type = dotdict({'thing': surreal_type_functions.Thing})
 
+    def __call__(self, *args, **kwargs) -> Function:
+        pass
+
 
 F = FunctionManager()

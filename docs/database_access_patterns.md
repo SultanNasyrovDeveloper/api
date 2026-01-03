@@ -458,7 +458,7 @@ async def lifespan(app: FastAPI):
     tester = SurrealConnectionTester(config.palace_node_db)
     is_connected = tester.wait()
     if not is_connected:
-        raise ValueError('Unable to establish connection with palace db.')
+        raise ValueError('Unable to establish connection with knowledge_tree db.')
 
     # Initialize managers
     app.state.nodes = PalaceNodeManager(config.palace_node_db)
@@ -708,7 +708,7 @@ async def create_user(app: App, data: schemas.UserCreateDataSchema):
         # Step 1: Create user in PostgreSQL
         user = await user_manager.add_user(data)
 
-        # Step 2: Create palace node in SurrealDB
+        # Step 2: Create knowledge_tree node in SurrealDB
         node = await palace_manager.create(owner_id=str(user.id), title='Mind Palace')
 
         # Step 3: Create user profile in PostgreSQL
