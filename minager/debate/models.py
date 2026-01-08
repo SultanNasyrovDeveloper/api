@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from minager.core.db.mixins import IdentifierMixin
 from minager.core.db.models import Field, Model
 
@@ -13,3 +15,4 @@ class DebateMove(Model, IdentifierMixin):
 
     debate: int = Field(foreign_key='')
     content: str = Field()
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

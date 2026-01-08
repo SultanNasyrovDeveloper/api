@@ -31,7 +31,13 @@ def geometric_mean(weights_and_values: list[tuple[float, float]]) -> float:
     return product ** (1 / total_weight)
 
 
+class BaseIndexComponent(metaclass=ABCMeta):
+    name: str
+
+
 class BaseNodeIndex(metaclass=ABCMeta):
+
+    components: list[BaseIndexComponent]
 
     @abstractmethod
     def calculate(self):
