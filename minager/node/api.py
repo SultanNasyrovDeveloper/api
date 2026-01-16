@@ -5,6 +5,7 @@ from minager.core.types import PaginatedResult
 from minager.dependencies import RequestUser
 
 from . import dto, schemas
+from .services.content_generation import HuggingFaceNodeContentGenerator
 
 router = APIRouter(prefix='/nodes')
 
@@ -15,17 +16,6 @@ async def get_my_palace_root(user: RequestUser, app: App) -> str | None:
     if not node_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return node_id
-
-
-@router.post('/{uid}/add-child', status_code=status.HTTP_201_CREATED)
-async def add_child(
-    uid: str,
-    data: schemas.NodeCreateSchema,
-    user: RequestUser,
-    app: App,
-) -> schemas.NodeDetailSchema:
-    data.owner_id = user.sub
-    return await app.state.nodes.create_child(parent_uid=uid, data=data)
 
 
 @router.get('/search')
@@ -45,6 +35,17 @@ async def search(
     return PaginatedResult(page=page, results=nodes)
 
 
+@router.post('/{uid}/add-child', status_code=status.HTTP_201_CREATED)
+async def add_child(
+    uid: str,
+    data: schemas.NodeCreateSchema,
+    user: RequestUser,
+    app: App,
+) -> schemas.NodeDetailSchema:
+    data.owner_id = user.sub
+    return await app.state.nodes.create_child(parent_uid=uid, data=data)
+
+
 @router.get('/{uid}')
 async def get(uid: str, app: App, user: RequestUser) -> schemas.NodeDetailSchema:
     node = await app.state.nodes.get(uid)
@@ -53,6 +54,15 @@ async def get(uid: str, app: App, user: RequestUser) -> schemas.NodeDetailSchema
     if node.owner_id == str(user.sub):
         node = await app.state.nodes.patch(node.id.id, {'owner_views': node.owner_views + 1})
     return node
+
+
+@router.get('/{uid}/generate-content')
+async def generate_content(uid: str, app: App) -> str:
+    node = await app.state.nodes.get(uid)
+    if not node:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    generator = HuggingFaceNodeContentGenerator.from_config()
+    return await generator.generate(node)
 
 
 @router.get('/{uid}/children')

@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -16,6 +16,8 @@ from minager.core.surorm.core.settings import SurrealConfig
 class ApplicationConfig(BaseSettings):
     debug: bool = False
     base_path: str = str(Path(__file__).parent)
+    huggingface_api_token: str | None = Field(default=None)
+    huggingface_llm_model: str = 'meta-llama/Llama-3.1-8B-Instruct'
 
     # Security
     jwt_hashing_algorithm: str = 'HS256'

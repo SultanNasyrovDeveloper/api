@@ -1,8 +1,8 @@
 import math
 from abc import ABCMeta, abstractmethod
 
-from .dto import NodeSubtreeStatistics
-from .models import Node
+from minager.node.dto import NodeSubtreeStatistics
+from minager.node.models import Node
 
 
 def clamp(v: float, lo: float = 0.0, hi: float = 1.0) -> float:

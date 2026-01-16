@@ -3,7 +3,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from minager.node.node_indexes import NodeIndex, NodeOverallIndex, NodeSubtreeIndex
+from minager.node.services.node_index.node_indexes import (
+    NodeIndex,
+    NodeOverallIndex,
+    NodeSubtreeIndex,
+)
 
 
 def make_node(

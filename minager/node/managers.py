@@ -1,10 +1,10 @@
 from ..core import surorm
 from . import dto, queries, schemas, utils
-from .node_indexes import NodeOverallIndex
 from .requests.create_child import CreateChildConfig, CreateChildRequest
 from .requests.get_palace_root import GetPalaceRootConfig, GetPalaceRootRequest
 from .requests.list import ListNodesRequest, ListNodesRequestConfig
 from .requests.move import MoveNodeConfig, MoveNodeRequest
+from .services.node_index.node_indexes import NodeOverallIndex
 
 
 class PalaceNodeManager(surorm.Manager):
