@@ -25,9 +25,7 @@ class Transaction(Statement):
         return self
 
     def return_(self, value: Expression) -> Self:
-        if isinstance(value, TransactionReturn):
-            self._return = value
-        self._return = TransactionReturn(value)
+        self._return = value if isinstance(value, TransactionReturn) else TransactionReturn(value)
         return self
 
     def sql(self) -> str:

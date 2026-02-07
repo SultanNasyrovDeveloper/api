@@ -148,12 +148,13 @@ class Lexorank:
     def middle(cls, previous: str = '', next_: str = '') -> str:
         if not previous and not next_:
             return 'dddeeeff'
+        # Insert at end
         if previous and not next_:
-            try:
-                next_ = cls.increment_rank(previous, 10)
-            except ValueError:
-                next_ = cls.get_lexorank_in_between(previous)
-        if next_ and not previous and (not next_.startswith('a') and not next_.startswith('b')):
-            for _ in range(2):
-                previous = cls.get_lexorank_in_between(previous, next_)
+            return cls.get_lexorank_in_between(previous, None)
+
+        # Insert at beginning
+        if next_ and not previous:
+            return cls.get_lexorank_in_between(None, next_)
+
+        # Insert between
         return cls.get_lexorank_in_between(previous, next_)
