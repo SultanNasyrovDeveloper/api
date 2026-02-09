@@ -1,7 +1,6 @@
 from ..core import surorm
 from . import dto, queries, schemas, utils
 from .requests.create_child import CreateChildConfig, CreateChildRequest
-from .requests.get_palace_root import GetPalaceRootConfig, GetPalaceRootRequest
 from .requests.list import ListNodesRequest, ListNodesRequestConfig
 from .requests.move import MoveNodeConfig, MoveNodeRequest
 from .services.node_index.node_indexes import NodeOverallIndex
@@ -10,8 +9,12 @@ from .services.node_index.node_indexes import NodeOverallIndex
 class PalaceNodeManager(surorm.Manager):
     async def get_my_palace_root(self, owner_id: str) -> str | None:
         self._check_connection()
-        config = GetPalaceRootConfig(owner_id=owner_id)
-        response = await GetPalaceRootRequest(db=self, config=config).perform()
+        query = (
+            surorm.Select('value id')
+            .from_('node')
+            .where(surorm.F.array.is_empty('->child->node'), surorm.Equals('owner_id', owner_id))
+        )
+        response = await self.query(query.sql())
         palace_root_id: str = response.raw(many=False)
         return palace_root_id.lstrip('node:') if palace_root_id else None
 
@@ -121,6 +124,14 @@ class PalaceNodeManager(surorm.Manager):
     async def move(
         self, node_id: str, target_id: str, move_position: int
     ) -> schemas.UpdatedNodeSchema | None:
+        """
+        TODO: add validation for:
+          - Node exists
+          - Target exists
+          - Not moving node to itself
+          - Not creating cycles in the tree
+          - Not moving node to be its own descendant
+        """
         config = MoveNodeConfig(node_id=node_id, target_id=target_id, move_position=move_position)
         request = MoveNodeRequest(db=self, config=config)
         response = await request.perform()

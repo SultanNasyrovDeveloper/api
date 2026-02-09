@@ -45,8 +45,5 @@ config = ApplicationConfig()
 main_db_engine = create_async_engine(config.main_db.to_str(), echo=True)
 main_db = async_sessionmaker(main_db_engine, expire_on_commit=False)
 
-user_profile_db_engine = create_async_engine(config.main_db.to_str(), echo=True)
-user_profile_db = async_sessionmaker(user_profile_db_engine, expire_on_commit=False)
-
 crypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 AuthBearerToken = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/users/token')

@@ -26,7 +26,7 @@ async def search(
     size: int,
     query: str,
 ) -> PaginatedResult[schemas.NodeListItemSchema]:
-    nodes = await app.state.nodes.search(
+    nodes = await app.state.nodes.list_(
         user_id=user.get('id'),
         page=page,
         per_page=size,

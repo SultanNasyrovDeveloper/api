@@ -116,3 +116,163 @@ def api_client(api_user):
     )
     with TestClient(app, headers={'Authorization': f'Bearer {token}'}) as client:
         yield client
+
+
+# ============================================================================
+# SurrealDB Test Database Setup
+# ============================================================================
+@pytest.fixture(scope='session')
+def surrealdb_test_config():
+    """Creates test configuration for SurrealDB"""
+    from minager.core.surorm.core.settings import SurrealConfig
+
+    # Use separate namespace for tests
+    test_config = SurrealConfig(
+        driver='surreal',
+        name=f'{config.palace_node_db.name}_test',
+        namespace=f'{config.palace_node_db.namespace}_test',
+        host=config.palace_node_db.host or 'localhost',
+        port=config.palace_node_db.port or 8000,
+        username=config.palace_node_db.username or 'root',
+        password=config.palace_node_db.password,
+    )
+    return test_config
+
+
+@pytest.fixture(scope='session')
+async def surrealdb_test_manager(surrealdb_test_config):
+    """Creates a SurrealDB manager for the test database with migrations"""
+    from minager.node.managers import PalaceNodeManager
+
+    manager = PalaceNodeManager(surrealdb_test_config)
+
+    # Initialize connection and run migrations
+    async with manager:
+        # Test connection
+        await manager.query('INFO FOR DB;')
+
+        # Run migrations
+        from scripts.migrate import run_migrations_for_app
+
+        await run_migrations_for_app(manager, 'node')
+
+        yield manager
+
+
+@pytest.fixture
+async def palace_node_db(surrealdb_test_manager):
+    """
+    Provides a clean SurrealDB instance for each test.
+    Clears all data after each test.
+    """
+    # Yield the manager for the test
+    yield surrealdb_test_manager
+
+    # Cleanup: Remove all nodes and relations
+    await surrealdb_test_manager.query('DELETE node;')
+    await surrealdb_test_manager.query('DELETE child;')
+
+
+@pytest.fixture
+async def node_factory(palace_node_db, fake):
+    """
+    Factory fixture for creating test nodes with relationships.
+
+    Usage:
+        node = await node_factory()
+        child = await node_factory(parent_id=node.id)
+        sibling = await node_factory(parent_id=node.parent_id, order='zzz')
+    """
+
+    async def _create_node(
+        owner_id: str = 'test_owner',
+        title: str | None = None,
+        parent_id: str | None = None,
+        order: str | None = None,
+        content: str | None = None,
+        **kwargs,
+    ):
+        pass
+
+        # Generate defaults
+        node_data = {
+            'owner_id': owner_id,
+            'title': title or fake.sentence(nb_words=3),
+            'content': content or fake.text(),
+            'order': order or 'mmm',  # Middle lexorank
+            **kwargs,
+        }
+
+        if parent_id:
+            # Create as child
+            node = await palace_node_db.create_child(parent_id, node_data)
+        else:
+            # Create as root
+            node = await palace_node_db.create(node_data)
+
+        return node
+
+    return _create_node
+
+
+@pytest.fixture
+async def node_tree_factory(node_factory):
+    """
+    Factory for creating node trees for testing.
+
+    Usage:
+        tree = await node_tree_factory(depth=3, children_per_level=2)
+        # Creates:
+        # root
+        #   ├── child1
+        #   │   ├── grandchild1
+        #   │   └── grandchild2
+        #   └── child2
+        #       ├── grandchild3
+        #       └── grandchild4
+    """
+
+    async def _create_tree(
+        depth: int = 2, children_per_level: int = 2, owner_id: str = 'test_owner'
+    ):
+        from minager.core.lexorank import Lexorank
+
+        async def build_subtree(parent_id: str | None, current_depth: int):
+            if current_depth > depth:
+                return []
+
+            nodes = []
+            prev_order = None
+
+            for i in range(children_per_level):
+                # Calculate lexorank order
+                if prev_order is None:
+                    order = Lexorank.middle()
+                else:
+                    order = Lexorank.middle(previous=prev_order)
+
+                node = await node_factory(
+                    parent_id=parent_id,
+                    owner_id=owner_id,
+                    title=f'Node L{current_depth} #{i + 1}',
+                    order=order,
+                )
+                nodes.append(node)
+                prev_order = order
+
+                # Recursively create children
+                children = await build_subtree(node.id, current_depth + 1)
+                if children:
+                    node.children = children
+
+            return nodes
+
+        # Create root
+        root = await node_factory(owner_id=owner_id, title='Root')
+
+        # Build tree
+        root.children = await build_subtree(root.id, 1)
+
+        return root
+
+    return _create_tree

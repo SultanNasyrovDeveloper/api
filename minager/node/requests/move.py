@@ -35,6 +35,14 @@ class MoveNodeStrategy(ABC):
         pass
 
 
+class MoveNode(MoveNodeStrategy):
+    async def perform(self) -> Response:
+        self.get_related_node()
+        self.get_node_rank()
+        self.perform()
+        self.test()
+
+
 # TODO: Return queried with children node only when config parameter provided.
 class MoveNodeAsFirstChild(MoveNodeStrategy):
 
