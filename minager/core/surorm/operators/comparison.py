@@ -2,11 +2,11 @@ from .base import MultiOperandOperator, TwoOperandOperator
 
 
 class Or(MultiOperandOperator):
-    operator = 'OR'
+    operation = 'OR'
 
 
 class And(MultiOperandOperator):
-    operator = 'AND'
+    operation = 'AND'
 
 
 class Greater(TwoOperandOperator):

@@ -2,7 +2,8 @@ import argparse
 import asyncio
 
 from minager.app import config
-from minager.core.surorm.orm import PerformMigrationCommand, SurrealDBManager
+from minager.core.surorm import Manager
+from minager.core.surorm.migrations import PerformMigrationCommand
 from minager.logger import get_logger
 
 logger = get_logger(__name__)
@@ -14,11 +15,13 @@ async def migrate():
     parser.add_argument('--app', type=str, required=False, default=None)
     parser.add_argument('--number', type=str, required=False, default=None)
     arguments = parser.parse_args()
-    client = SurrealDBManager(config=config.palace_node_db)
+    client = Manager(config=config.palace_node_db)
     async with client as session:
         command = PerformMigrationCommand(session, config.base_path)
         if arguments.operation == 'upgrade':
             await command.upgrade(app=arguments.app, migration_number=arguments.number)
+        elif arguments.operation == 'downgrade':
+            await command.downgrade(app=arguments.app, migration_number=arguments.number)
 
 
 def run():

@@ -494,6 +494,162 @@ minager/surorm/
 
 **No intermediate compilation phase:** Queries go directly from objects → strings. This is simple but limits introspection and validation.
 
+## Architecture & Design Assessment
+
+### What the library actually is
+
+SurORM sits at an identity problem: it presents itself as an ORM but is architecturally a **query builder
+with an incomplete ORM layer bolted on**. These are different things with different design requirements,
+and blending them without clear boundaries creates confusion throughout.
+
+---
+
+### Core Pattern: Renderable Protocol + Builder
+
+The foundation is sound. Every component implements `sql() -> str` (Renderable), and queries are composed
+by nesting Renderable objects — this is the **Composite pattern**. The fluent API (method chaining
+returning `Self`) is the standard **Builder pattern** for query builders.
+
+**The problem** is that the Renderable protocol terminates at a raw string. There is no intermediate
+representation — no AST, no compiled query object. The data flow is:
+
+```
+Objects → strings
+```
+
+In a mature query builder it should be:
+
+```
+Objects → compiled query (typed) → dialect-specific string
+```
+
+Without an intermediate representation you get:
+- No query introspection
+- No query transformation or optimization
+- No validation before execution — invalid queries fail silently at the string level
+- No way to serialize/cache query plans
+
+---
+
+### The `Expression` type undermines the whole design
+
+```python
+type Expression = int | float | str | Renderable
+```
+
+Raw strings are valid anywhere in the query graph. This means a user can pass `"DROP TABLE node"` as a
+field name and it will render cleanly. The type-safe builder is not actually type-safe — `str` is an
+escape hatch that bypasses every abstraction the library provides. A stricter design would limit raw
+strings to values (parameterized via variables) and require all structural parts of a query to be
+`Renderable`.
+
+---
+
+### Mixin design: behavior isolation is good, state management is not
+
+The mixin approach (`Filterable`, `Returnable`, `Overridable`, etc.) is the right choice for composing
+behaviors in Python. The isolation of each concern is clean.
+
+The problem is **mutable shared state**. Mixins store state directly on `self` as instance attributes
+(`_where`, `_return`, etc.). This means:
+
+1. Queries are not reusable. If you build a base query and hand it to two callers, mutations in one
+   affect the other.
+2. There is no clone/copy API, so query composition requires rebuilding from scratch.
+3. The `_where: set` bug (non-determinism) is a direct consequence of choosing mutable state over
+   immutable query values.
+
+The standard solution is **immutable query objects**: every builder method returns a new instance with
+the change applied, not a mutated `self`. This also makes the fluent API thread-safe.
+
+---
+
+### The ORM layer is vestigial
+
+`Model`, `Relation`, and `Field` exist but do nothing beyond naming:
+
+```python
+class Model(Table):
+    pass  # semantic marker
+
+class Relation(Table):
+    pass  # semantic marker
+```
+
+`Field()` wraps a Pydantic `FieldInfo` with surreal type metadata in `json_schema_extra`, but nothing in
+the query builder reads that metadata. There is no `Node.select()`, no `manager.get(Node, id)`, no
+result-to-model mapping through the query path.
+
+An ORM implies: **model → query generation → result → model instance**. SurORM has the first and last
+pieces as independent concepts that never connect. What exists is a Pydantic model with surreal
+annotations, but queries still have to be written by hand. This is closer to a schema-validated data
+class than an ORM.
+
+---
+
+### `Manager` and `Response` are disconnected
+
+`Manager.query()` returns raw driver output (`Any`). `Response` is a separate class that wraps the raw
+driver format and provides typed access. But `Manager` never produces a `Response` — the caller receives
+raw data and must construct `Response` manually if they want it.
+
+This is a **broken pipeline**. The natural design is:
+
+```
+Manager.query() → Response  (always)
+```
+
+Instead there are two systems designed independently that require manual bridging.
+
+---
+
+### Functions as class factories
+
+`surorm.F.array.first` is the `First` class. Calling it creates an instance. This is a
+**class-as-factory** pattern that works at runtime but is invisible to type checkers and IDEs —
+`surorm.F.array` returns `Any`. The `FunctionManager` using `dotdict` (dict with attribute access)
+loses all static type information.
+
+A typed dataclass namespace would give full autocomplete:
+
+```python
+@dataclass(frozen=True)
+class ArrayFunctions:
+    first: type[First] = First
+    append: type[Append] = Append
+```
+
+---
+
+### Migration system: correct isolation, wrong coupling
+
+The discovery-based migration runner is architecturally correct — convention over configuration,
+auto-discovery, forward/reverse operations. The design mirrors Django's migration system appropriately.
+
+The issue is that `_import_module_from_path` uses `''` as the module name for every file it loads. All
+migration modules share the same slot in the module registry. The last one loaded silently overwrites
+all previous ones in `sys.modules['']`. This is a latent correctness bug that manifests with multiple
+migration files.
+
+---
+
+### Summary: what the architecture looks like vs. what it could be
+
+| Concern | Current state | Better direction |
+|---|---|---|
+| Query representation | Mutable objects → strings | Immutable query values → compiled IR → strings |
+| Type safety | `Expression = str \| Renderable` (strings escape the system) | Structural parts require `Renderable`; values use parameters |
+| ORM layer | Disconnected Pydantic annotations | Model metadata drives query generation and result mapping |
+| Result handling | Raw `Any` from Manager | `Manager.query()` always returns typed `Response` |
+| Function namespace | `dotdict` (no types) | Typed frozen dataclass namespaces |
+| Query reuse | Impossible without rebuilding | Immutable builders support safe composition |
+
+The **Renderable + Builder foundation is the right call** for a SurrealDB query builder. The path
+forward is: immutable query objects, a compiled intermediate representation, and connecting the ORM
+layer to actually generate and consume queries.
+
+---
+
 ## Future Improvements
 
 Consider these enhancements:

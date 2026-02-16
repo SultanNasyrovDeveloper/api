@@ -7,7 +7,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from minager.core.settings import SMTPServerConfiguration
-from minager.core.settings.amqp import AMQPConfig
 from minager.core.settings.db import DBConnectionConfig
 from minager.core.settings.logging import LoggingConfig
 from minager.core.surorm.core.settings import SurrealConfig
@@ -34,8 +33,6 @@ class ApplicationConfig(BaseSettings):
     main_db: DBConnectionConfig
     palace_node_db: SurrealConfig
     learning_session_db: DBConnectionConfig
-    user_events_routing_key: str
-    user_events: AMQPConfig
 
     model_config = SettingsConfigDict(env_nested_delimiter='__', env_file=('.env.local', '.env'))
 

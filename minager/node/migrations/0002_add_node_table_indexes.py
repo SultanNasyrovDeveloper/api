@@ -1,11 +1,12 @@
-from minager.core.surorm import DefineAnalyzer, DefineIndex
-from minager.core.surorm.migrations import MigrationOperation
+from minager.core import surorm
 
 operations = [
-    MigrationOperation(query=DefineAnalyzer('autocomplete').filters('lowercase', 'ngram(1, 10)')),
-    MigrationOperation(
+    surorm.MigrationOperation(
+        query=surorm.DefineAnalyzer('autocomplete').filters('lowercase', 'ngram(1, 10)')
+    ),
+    surorm.MigrationOperation(
         query=(
-            DefineIndex('node_title_idx')
+            surorm.DefineIndex('node_title_idx')
             .on('node')
             .columns('title')
             .search('autocomplete', 'bm25', is_highlighted=True)

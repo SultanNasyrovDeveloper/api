@@ -24,26 +24,32 @@ operations = [
         query=surorm.DefineField('questions', 'string')
         .on('node')
         .if_not_exists(True)
-        .default(String(''))
+        .default(surorm.String(''))
     ),
     MigrationOperation(query=surorm.DefineField('order', 'string').on('node').if_not_exists(True)),
     MigrationOperation(
         query=surorm.DefineField('content', 'string')
         .on('node')
         .if_not_exists(True)
-        .default(String(''))
+        .default(surorm.String(''))
     ),
     MigrationOperation(
-        query=surorm.DefineField('size', 'number').on('node').if_not_exists(True).default(Number(0))
+        query=surorm.DefineField('size', 'number')
+        .on('node')
+        .if_not_exists(True)
+        .default(surorm.Number(0))
     ),
     MigrationOperation(
-        query=surorm.DefineField('cpr', 'number').on('node').if_not_exists(True).default(Number(0))
+        query=surorm.DefineField('cpr', 'number')
+        .on('node')
+        .if_not_exists(True)
+        .default(surorm.Number(0))
     ),
     MigrationOperation(
         query=surorm.DefineField('last_rating', 'number')
         .on('node')
         .if_not_exists(True)
-        .default(Number(0))
+        .default(surorm.Number(0))
     ),
     MigrationOperation(
         query=surorm.DefineField('difficulty', 'number')
@@ -55,13 +61,13 @@ operations = [
         query=surorm.DefineField('owner_views', 'number')
         .on('node')
         .if_not_exists(True)
-        .default(Number(0))
+        .default(surorm.Number(0))
     ),
     MigrationOperation(
         query=surorm.DefineField('repetitions', 'number')
         .on('node')
         .if_not_exists(True)
-        .default(Number(0))
+        .default(surorm.Number(0))
     ),
     MigrationOperation(
         query=surorm.DefineField('last_interval', 'number')
@@ -80,7 +86,7 @@ operations = [
             surorm.DefineField('next_optimal_repetition', 'datetime')
             .on('node')
             .if_not_exists(True)
-            .default(surorm.F.time.now() + DurationFromDays(1))
+            .default(surorm.Add(surorm.F.time.now(), surorm.F.duration.from_days(1)))
         )
     ),
 ]

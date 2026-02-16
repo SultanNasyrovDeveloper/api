@@ -1,5 +1,5 @@
 from ..base import Function
-from . import array, math
+from . import array, duration, math
 from . import object as surreal_object_functions
 from . import time
 from . import type as surreal_type_functions
@@ -18,6 +18,7 @@ class Count(Function):
 class FunctionManager:
     count = Count
     array: array.ArrayFunctionMap = array.ArrayFunctionMap()
+    duration = duration.DurationFunctionMap()
     math: math.MathFunctionMap = math.MathFunctionMap()
     object: surreal_object_functions.ObjectFunctionMap = surreal_object_functions.ObjectFunctionMap
     time = dotdict(
