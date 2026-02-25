@@ -17,7 +17,7 @@ from sqlalchemy.dialects.postgresql import insert as postgres_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from minager.settings import main_db
+from minager import settings as _settings
 
 from .models import Model
 
@@ -32,13 +32,14 @@ class BaseDatabaseManager[ModelT: Model]:
     def __init__(
         self,
         session: AsyncSession = None,
-        session_factory: async_sessionmaker[AsyncSession] = main_db,
+        session_factory: async_sessionmaker[AsyncSession] | None = None,
     ):
         self.session = session
         self._session_factory = session_factory
 
     async def __aenter__(self):
-        self.session = self._session_factory()
+        factory = self._session_factory or _settings.main_db
+        self.session = factory()
         await self.session.__aenter__()
         return self
 

@@ -30,6 +30,10 @@ class RecordID(BaseModel):
 class IdMixin:
     id: RecordID | None = None
 
+    @property
+    def pk(self) -> str:
+        return self.id.id
+
 
 class ParentIdMixin:
     parent_id: RecordID | None = Field(default=None, validate_default=True)

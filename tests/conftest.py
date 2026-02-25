@@ -1,98 +1,77 @@
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator
+from dataclasses import dataclass
+from uuid import UUID, uuid4
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from minager import settings
 from minager.app import app
-from minager.core import surorm
+from minager.auth.jwt import jwt_service
+from minager.auth.managers import UserManager, UserProfileManager
+from minager.auth.schemas import UserCreateDataSchema, UserProfileCreateSchema
 from minager.node.managers import PalaceNodeManager
 
-
-@pytest.fixture(scope='session')
-def original_config() -> settings.ApplicationConfig:
-    """Returns the production SurrealDB config before any test patching."""
-    return settings.config
-
-
-@pytest.fixture(scope='session', autouse=True)
-def test_config(
-    original_config: settings.ApplicationConfig,
-) -> Generator[settings.ApplicationConfig]:
-    """
-    Patches the global config singleton so the app lifespan boots with the
-    test database. Must run before the app is started (i.e. before app_client).
-    """
-    settings.config.palace_node_db = original_config.palace_node_db.test
-    yield settings.config
-    settings.config.palace_node_db = original_config.palace_node_db
+pytest_plugins = [
+    'tests.fixtures.surreal_db',
+    'tests.fixtures.postgres_db',
+]
 
 
-@pytest_asyncio.fixture(scope='session')
-async def setup_manager(
-    test_config: settings.ApplicationConfig,
-) -> AsyncGenerator[PalaceNodeManager, None]:
-    """
-    A dedicated manager used ONLY for session-scoped setup/teardown.
-    This runs in the session's event loop.
-    """
-    async with PalaceNodeManager(settings.config.palace_node_db) as manager:
-        yield manager
-
-
-@pytest_asyncio.fixture(scope='session', autouse=True)
-async def palace_node_db_setup(
-    setup_manager: PalaceNodeManager,
-    original_config: settings.ApplicationConfig,
-    test_config: settings.ApplicationConfig,
-) -> AsyncGenerator[None]:
-    """
-    Session-scoped setup. Ensures the test namespace and database exist,
-    then runs all pending migrations once for the whole session.
-    Drops the test database on teardown, and the test namespace too if it
-    differs from the production namespace.
-    """
-    production_config = original_config.palace_node_db
-    config = test_config.palace_node_db
-    await setup_manager.query(surorm.DefineNamespace(config.namespace).if_not_exists(True))
-    await setup_manager.query(surorm.DefineDatabase(config.name).if_not_exists(True))
-    await surorm.PerformMigrationCommand(setup_manager, settings.config.base_path).upgrade()
-    yield
-    await setup_manager.query(surorm.Remove('database', config.name).if_exists(True))
-    if config.namespace != production_config.namespace:
-        await setup_manager.query(surorm.Remove('namespace', config.namespace).if_exists(True))
-
-
-@pytest_asyncio.fixture()
-async def test_palace_node_manager(
-    palace_node_db_setup: None,
-) -> AsyncGenerator[PalaceNodeManager, None]:
-    """
-    A dedicated manager used ONLY for session-scoped setup/teardown.
-    This runs in the session's event loop.
-    """
-    async with PalaceNodeManager(settings.config.palace_node_db) as manager:
-        yield manager
-
-
-@pytest_asyncio.fixture(autouse=True)
-async def palace_node_db(test_palace_node_manager: PalaceNodeManager) -> AsyncGenerator[None]:
-    """
-    Function-scoped fixture. Yields the shared manager and wipes all test
-    data after each test so every test starts with a clean state.
-    """
-    yield
-    await test_palace_node_manager.query(surorm.Delete('node'))
-    await test_palace_node_manager.query(surorm.Delete('child'))
+@dataclass
+class UserTestContext:
+    sub: UUID  # user UUID — used in JWT and as owner_id in SurrealDB
+    root_node_id: str  # bare SurrealDB node ID of the user's palace root
 
 
 @pytest_asyncio.fixture(scope='session')
 async def app_client(palace_node_db_setup: None) -> AsyncGenerator[AsyncClient, None]:
-    """
-    Session-scoped httpx client using ASGI transport against the full FastAPI app.
-    Depends on palace_node_db_setup to guarantee that the test database and all
-    migrations are in place before the app lifespan starts.
-    """
-    async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
-        yield client
+    async with app.router.lifespan_context(app):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
+            yield client
+
+
+@pytest_asyncio.fixture()
+async def test_user(
+    test_palace_node_manager: PalaceNodeManager,
+) -> AsyncGenerator[UserTestContext, None]:
+    suffix = uuid4().hex[:8]
+    async with UserManager() as user_mgr:
+        user = await user_mgr.create_user(
+            UserCreateDataSchema(
+                email=f'test_{suffix}@test.example.com',  # type: ignore[arg-type]
+                username=f'testuser_{suffix}',
+                password='TestPassword123!',
+            )
+        )
+    root_node = await test_palace_node_manager.create(
+        {
+            'owner_id': str(user.id),
+            'title': 'Mind Palace',
+            'questions': 'What is Mind Palace?',
+            'content': '{"root": {}}',
+        }
+    )
+    async with UserProfileManager() as profile_mgr:
+        await profile_mgr.create_profile(
+            UserProfileCreateSchema(
+                user_id=user.id,
+                knowledge_tree_root_id=root_node.id.id,
+            )
+        )
+
+    yield UserTestContext(sub=user.id, root_node_id=root_node.id.id)
+
+    async with UserProfileManager() as profile_mgr:
+        profile = await profile_mgr.get_by_user_id(user.id)
+        if profile:
+            await profile_mgr.delete(profile.id)
+
+    async with UserManager() as user_mgr:
+        await user_mgr.delete(user.id)
+
+
+@pytest.fixture()
+def auth_headers(test_user: UserTestContext) -> dict[str, str]:
+    token = jwt_service.create_access_token(test_user.sub)
+    return {'Authorization': f'Bearer {token}'}

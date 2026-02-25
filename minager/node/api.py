@@ -10,14 +10,6 @@ from .services.content_generation import HuggingFaceNodeContentGenerator
 router = APIRouter(prefix='/nodes')
 
 
-@router.get('/my-knowledge_tree-root')
-async def get_my_palace_root(user: RequestUser, app: App) -> str | None:
-    node_id = await app.state.nodes.get_my_palace_root(user['id'])
-    if not node_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    return node_id
-
-
 @router.get('/search')
 async def search(
     user: RequestUser,

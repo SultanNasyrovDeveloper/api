@@ -12,10 +12,14 @@ if alembic_config.config_file_name is not None:
     fileConfig(alembic_config.config_file_name)
 
 
-app_settings = ApplicationConfig()
-alembic_config.set_main_option(
-    'sqlalchemy.url', app_settings.main_db.to_str(scheme='postgresql+psycopg')
-)
+# Allow test fixtures (or CI) to inject a URL by setting it programmatically
+# on the config object before calling alembic.command.upgrade().
+# If no URL has been set yet, fall back to the application settings.
+if not alembic_config.get_main_option('sqlalchemy.url'):
+    app_settings = ApplicationConfig()
+    alembic_config.set_main_option(
+        'sqlalchemy.url', app_settings.main_db.to_str(scheme='postgresql+psycopg')
+    )
 target_metadata = [Model.metadata]
 
 

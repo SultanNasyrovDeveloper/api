@@ -1,7 +1,8 @@
 from pathlib import Path
 
 from fastapi.security import OAuth2PasswordBearer
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
+from pwdlib.hashers.bcrypt import BcryptHasher
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -42,5 +43,5 @@ config = ApplicationConfig()
 main_db_engine = create_async_engine(config.main_db.to_str(), echo=True)
 main_db = async_sessionmaker(main_db_engine, expire_on_commit=False)
 
-crypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+crypt_context = PasswordHash((BcryptHasher(),))
 AuthBearerToken = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/users/token')

@@ -1,5 +1,3 @@
-"""FastAPI dependencies for authentication and authorization"""
-
 from typing import Annotated
 from uuid import UUID
 
