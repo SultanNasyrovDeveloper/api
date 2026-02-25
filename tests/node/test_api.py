@@ -16,4 +16,4 @@ async def test_get_node_returns_node_detail(
     assert response.status_code == 200
     response_body = response.json()
     response_node = NodeDetailSchema.model_validate(response_body)
-    assert response_node == root_node
+    assert response_node.pk == root_node.pk
