@@ -14,9 +14,22 @@ from .utils import get_content_size
 
 class RecordID(BaseModel):
     id: str
-    table_name: str
+    table_name: str = 'node'  # Default table name
 
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode='before')
+    @classmethod
+    def parse_string_id(cls, data):
+        """Allow RecordID to be created from a plain string."""
+        if isinstance(data, str):
+            # Extract table name and id from "table:id" format or use just the id
+            if ':' in data:
+                table_name, id_part = data.split(':', 1)
+                return {'id': id_part, 'table_name': table_name}
+            else:
+                return {'id': data, 'table_name': 'node'}
+        return data
 
     @model_serializer(mode='plain')
     def serialize_as_string(self) -> str:
@@ -91,9 +104,9 @@ class NodeDetailSchema(NodeStatisticsMixin, IdMixin, ParentIdMixin):
     size: int
     content: str
     is_learn: bool = True
-    created: datetime = None
+    created: datetime | None = None
     order: str
-    owner_id: str = None
+    owner_id: str | None = None
     tags: list[int] = Field(default_factory=list)
     ancestors: list[NodeListItemSchema] = Field(default_factory=list)
     children: list[NodeListItemSchema] = Field(default_factory=list)

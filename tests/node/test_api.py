@@ -15,5 +15,5 @@ async def test_get_node_returns_node_detail(
     response = await app_client.get(url, headers=auth_headers)
     assert response.status_code == 200
     response_body = response.json()
-    assert response_body['id'] == root_node.id.id
-    assert response_body['title'] == root_node.title
+    response_node = NodeDetailSchema.model_validate(response_body)
+    assert response_node == root_node
