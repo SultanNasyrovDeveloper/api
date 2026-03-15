@@ -1,10 +1,14 @@
 from fastapi import APIRouter, HTTPException, status
 
+from minager.settings import main_db
+
 from . import dependencies, jwt, managers, models, schemas, services
 
 auth_router = APIRouter(tags=['Authentication'])
 users_router = APIRouter(prefix='/users', tags=['Users'])
 user_profile_router = APIRouter(prefix='/user-profiles', tags=['User Profile'])
+user_manager = managers.UserManager(session_factory=main_db)
+user_profile_manager = managers.UserProfileManager(session_factory=main_db)
 
 
 @users_router.post(
@@ -18,7 +22,7 @@ async def signup(user_data: schemas.UserCreateDataSchema) -> models.User:
 
 @auth_router.post('/token', response_model=schemas.TokenPairSchema)
 async def get_token(credentials: schemas.LoginCredentialsSchema) -> schemas.TokenPairSchema:
-    async with managers.UserManager() as manager:
+    async with user_manager as manager:
         user = await manager.authenticate(credentials.username, credentials.password)
     if not user:
         raise HTTPException(
@@ -27,7 +31,7 @@ async def get_token(credentials: schemas.LoginCredentialsSchema) -> schemas.Toke
             headers={'WWW-Authenticate': 'Bearer'},
         )
     # TODO!: Can we retrieve and update in one transaction?
-    async with managers.UserManager() as manager:
+    async with user_manager as manager:
         await manager.update_last_login(user.id)
     return jwt.jwt_service.create_token_pair(user.id)
 
@@ -67,7 +71,7 @@ async def update_me(
 ) -> models.User:
     """Update current user's authentication fields (email, password)."""
     try:
-        async with managers.UserManager() as manager:
+        async with user_manager as manager:
             updated_user = await manager.update_user(user.id, user_data)
         return updated_user
     except ValueError as e:
@@ -87,7 +91,7 @@ async def update_my_profile(
 ) -> models.UserProfile:
     """Update current user's profile (display name, bio)."""
     try:
-        async with managers.UserProfileManager() as manager:
+        async with user_profile_manager as manager:
             updated_profile = await manager.update_profile(user.id, profile_data)
         return updated_profile
     except ValueError as e:

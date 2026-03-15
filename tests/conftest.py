@@ -9,6 +9,7 @@ from httpx import ASGITransport, AsyncClient
 from minager.app import app
 from minager.auth.jwt import jwt_service
 from minager.auth.managers import UserManager, UserProfileManager
+from minager.auth.models import User
 from minager.auth.schemas import UserCreateDataSchema, UserProfileCreateSchema
 from minager.node.managers import PalaceNodeManager
 
@@ -39,7 +40,7 @@ async def test_user(
     async with UserManager() as user_mgr:
         user = await user_mgr.create_user(
             UserCreateDataSchema(
-                email=f'test_{suffix}@test.example.com',  # type: ignore[arg-type]
+                email=f'test_{suffix}@test.example.com',
                 username=f'testuser_{suffix}',
                 password='TestPassword123!',
             )
@@ -60,7 +61,7 @@ async def test_user(
             )
         )
 
-    yield UserTestContext(sub=user.id, root_node_id=root_node.id.id)
+    yield user
 
     async with UserProfileManager() as profile_mgr:
         profile = await profile_mgr.get_by_user_id(user.id)
@@ -72,6 +73,11 @@ async def test_user(
 
 
 @pytest.fixture()
-def auth_headers(test_user: UserTestContext) -> dict[str, str]:
+def test_user_context(user: User) -> UserTestContext:
+    return UserTestContext(sub=user.id, root_node_id=str(user.id))
+
+
+@pytest.fixture()
+def auth_headers(test_user_context: UserTestContext) -> dict[str, str]:
     token = jwt_service.create_access_token(test_user.sub)
     return {'Authorization': f'Bearer {token}'}
