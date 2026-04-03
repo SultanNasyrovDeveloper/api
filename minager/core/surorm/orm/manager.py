@@ -42,19 +42,6 @@ class Manager:
     def _check_connection(self):
         assert self._connection
 
-    async def select(self, sql: Expression, variables: dict[str, Any] | None = None) -> list[Any]:
-        response = await self._connection.query(query=str(sql), vars=variables)
-        if isinstance(response, list) and len(response) == 1:
-            response = response[0]
-        return response
-
-    async def select_one(self, sql: Expression, variables: dict[str, Any] | None = None) -> Any:
-        response = await self._connection.query(query=str(sql), vars=variables)
-        if isinstance(response, list):
-            return response[0] if len(response) == 1 else None
-        else:
-            return response
-
     async def query(
         self, sql: Expression, variables: dict[str, Any] | None = None
     ) -> Any | list[Any]:
@@ -62,3 +49,16 @@ class Manager:
         if isinstance(response, list) and len(response) == 1:
             response = response[0]
         return response
+
+    async def select(self, sql: Expression, variables: dict[str, Any] | None = None) -> list[Any]:
+        response = await self.query(sql, variables)
+        if isinstance(response, list) and len(response) == 1:
+            response = response[0]
+        return response
+
+    async def select_one(self, sql: Expression, variables: dict[str, Any] | None = None) -> Any:
+        response = await self.query(sql, variables)
+        if isinstance(response, list):
+            return response[0] if len(response) == 1 else None
+        else:
+            return response

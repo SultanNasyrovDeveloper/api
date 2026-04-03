@@ -13,8 +13,9 @@ from .services.node_index.node_indexes import NodeOverallIndex
 class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
     model: models.Node = models.Node
 
-    # @abstractmethod
-    # async def create(self, data: dict | BaseModel) -> models.Node: pass
+    @abstractmethod
+    async def create(self, data: dict | BaseModel) -> models.Node:
+        pass
 
     @abstractmethod
     async def get(self, id_: str) -> models.Node:
@@ -52,7 +53,7 @@ class PalaceNodeManager(BaseNodeManager):
         palace_root_id: str = response.raw(many=False)
         return palace_root_id.lstrip('node:') if palace_root_id else None
 
-    async def create(self, data: dict | BaseModel) -> schemas.NodeDetailSchema | None:
+    async def create(self, data: dict | BaseModel) -> models.Node | None:
         """
         Create node with input data validation.
         """
@@ -64,7 +65,17 @@ class PalaceNodeManager(BaseNodeManager):
         )
         query = surorm.Create('node').content(root_schema.model_dump_surreal()).return_('after')
         response = await self.query(query)
-        return schemas.NodeDetailSchema.model_validate(response)
+        return models.Node.model_validate(response)
+
+    async def get(self, node_id: str) -> models.Node | None:
+        self._check_connection()
+        query = surorm.Select(
+            surorm.Alias('parent_id', surorm.F.array.first('->child.out')),
+            surorm.Alias('ancestors', queries.ancestors_query),
+            all_=True,
+        ).from_(surorm.F.type.thing('node', node_id))
+        node_data: dict | None = await self.select_one(query)
+        return models.Node.model_validate(node_data) if node_data else None
 
     async def create_child(
         self, parent_uid: str, data: dict | schemas.NodeCreateSchema
@@ -76,16 +87,6 @@ class PalaceNodeManager(BaseNodeManager):
         if not new_node:
             return None
         return await self.get(new_node.get('id').id)
-
-    async def get(self, node_id: str) -> models.Node | None:
-        self._check_connection()
-        query = surorm.Select(
-            surorm.Alias('parent_id', surorm.F.array.first('->child.out')),
-            surorm.Alias('ancestors', queries.ancestors_query),
-            all_=True,
-        ).from_(surorm.F.type.thing('node', node_id))
-        node_data: dict | None = await self.select_one(query)
-        return models.Node.model_validate(node_data) if node_data else None
 
     async def list_(
         self,
