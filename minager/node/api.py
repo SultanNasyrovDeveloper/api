@@ -10,8 +10,8 @@ from .services.content_generation import HuggingFaceNodeContentGenerator
 router = APIRouter(prefix='/nodes')
 
 
-@router.get('/search')
-async def search(
+@router.get('/')
+async def list_(
     user: RequestUser,
     app: App,
     page: int,
@@ -38,9 +38,9 @@ async def add_child(
     return await app.state.nodes.create_child(parent_uid=uid, data=data)
 
 
-@router.get('/{uid}')
-async def get(uid: str, app: App, user: RequestUser) -> schemas.NodeDetailSchema:
-    node = await app.state.nodes.get(uid)
+@router.get('/{id_}')
+async def get(id_: str, app: App, user: RequestUser) -> schemas.NodeDetailSchema:
+    node = await app.state.nodes.get(id_)
     if not node:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     if node.owner_id == str(user.sub):

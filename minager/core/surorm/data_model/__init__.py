@@ -117,3 +117,14 @@ class Json(DataType):
 
     def sql(self) -> str:
         return json.dumps(self._value)
+
+
+class RecordID(DataType):
+    name = 'record_id'
+
+    def __init__(self, value: dict, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._value = value
+
+    def sql(self) -> str:
+        return json.dumps(self._value)

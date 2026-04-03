@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from .schemas import NodeStatisticsMixin
+from .mixins import NodeStatisticsMixin
 
 
 class NodeSubtreeStatistics(BaseModel):

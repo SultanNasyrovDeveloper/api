@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class Table(BaseModel):
-    tablename: str
+    pass
 
 
 class Model(Table):

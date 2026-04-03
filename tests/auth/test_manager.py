@@ -141,9 +141,6 @@ async def test_authenticate_inactive_user(user_manager: UserManager, test_user: 
     assert user is None
 
 
-#
-
-
 async def test_authenticate_deleted_user(user_manager: UserManager, test_user: User):
     await user_manager.update(str(test_user.id), data={'is_deleted': True})
     user = await user_manager.authenticate(

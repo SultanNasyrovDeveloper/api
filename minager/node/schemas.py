@@ -1,104 +1,35 @@
 # TODO: Refactor this file
 from __future__ import annotations
 
-import json
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 from minager.core.surorm.orm.serializers import SurrealSerializer
 
-from . import enums
-from .utils import get_content_size
+from . import enums, mixins
 
 
-class RecordID(BaseModel):
-    id: str
-    table_name: str = 'node'  # Default table name
-
-    model_config = ConfigDict(from_attributes=True)
-
-    @model_validator(mode='before')
-    @classmethod
-    def parse_string_id(cls, data):
-        """Allow RecordID to be created from a plain string."""
-        if isinstance(data, str):
-            # Extract table name and id from "table:id" format or use just the id
-            if ':' in data:
-                table_name, id_part = data.split(':', 1)
-                return {'id': id_part, 'table_name': table_name}
-            else:
-                return {'id': data, 'table_name': 'node'}
-        return data
-
-    @model_serializer(mode='plain')
-    def serialize_as_string(self) -> str:
-        return self.id
-
-    @classmethod
-    def __get_pydantic_json_schema__(cls, core_schema, handler):
-        return {'type': 'string'}
-
-
-class IdMixin:
-    id: RecordID | None = None
-
-    @property
-    def pk(self) -> str:
-        return self.id.id
-
-
-class ParentIdMixin:
-    parent_id: RecordID | None = Field(default=None, validate_default=True)
-
-
-class NodeStatisticsMixin(BaseModel):
-    last_rating: int = 0
-    repetitions: int = 0
-    difficulty: float = 2.4
-    owner_views: int = 0
-    last_interval: float = 0
-    last_repetition: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    next_optimal_repetition: datetime = Field(
-        default_factory=lambda: datetime.now(UTC) + timedelta(days=1)
-    )
-    cpr: int = 0  # consecutive positive repetitions
-
-
-class NodeContentMixin(BaseModel):
-    content: str = Field(default_factory=str)
-    size: int = 0
-
-    # noinspection PyNestedDecorators
-    @model_validator(mode='before')
-    @classmethod
-    def calculate_content_size(cls, data: dict) -> dict:
-        if 'content' in data:
-            content = json.loads(data.get('content'))
-            data['size'] = get_content_size(content.get('root', {}))
-        return data
-
-
-class CreateRootSchema(NodeStatisticsMixin, NodeContentMixin, SurrealSerializer):
+class CreateRootSchema(mixins.NodeStatisticsMixin, mixins.NodeContentMixin, SurrealSerializer):
     owner_id: str
     title: str = 'Mind Palace'
     questions: str = 'What is Mind Palace'
     order: str = 'aaaaaa'
 
 
-class NodeListItemSchema(BaseModel, IdMixin):
+class NodeListItemSchema(BaseModel, mixins.IdMixin):
     title: str
     order: str | None = Field(default=None)
 
 
-class TreeNodeItemSchema(BaseModel, IdMixin, ParentIdMixin):
+class TreeNodeItemSchema(BaseModel, mixins.IdMixin, mixins.ParentIdMixin):
     title: str
     order: str | None = ''
     ancestors: list[NodeListItemSchema] = Field(default_factory=list)
     children: list[TreeNodeItemSchema] = Field(default_factory=list)
 
 
-class NodeDetailSchema(NodeStatisticsMixin, IdMixin, ParentIdMixin):
+class NodeDetailSchema(mixins.NodeStatisticsMixin, mixins.IdMixin, mixins.ParentIdMixin):
     title: str
     questions: str
     size: int
@@ -112,7 +43,7 @@ class NodeDetailSchema(NodeStatisticsMixin, IdMixin, ParentIdMixin):
     children: list[NodeListItemSchema] = Field(default_factory=list)
 
 
-class UpdatedNodeSchema(NodeStatisticsMixin):
+class UpdatedNodeSchema(mixins.NodeStatisticsMixin):
     title: str = ''
     questions: str = ''
     size: int = 0
@@ -127,7 +58,7 @@ class UpdatedNodeSchema(NodeStatisticsMixin):
     model_config = ConfigDict(extra='ignore')
 
 
-class NodeEditSchema(NodeContentMixin, NodeStatisticsMixin, SurrealSerializer):
+class NodeEditSchema(mixins.NodeContentMixin, mixins.NodeStatisticsMixin, SurrealSerializer):
     title: str = ''
     questions: str = ''
     is_learn: bool = True

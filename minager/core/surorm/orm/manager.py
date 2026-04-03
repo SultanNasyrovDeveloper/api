@@ -1,3 +1,4 @@
+from abc import ABCMeta
 from logging import Logger, getLogger
 from typing import Any
 
@@ -5,10 +6,13 @@ from surrealdb import AsyncSurreal
 
 from ..core.settings import SurrealConfig
 from ..statements import Expression
-from .models import Model
 
 
-class Manager[ModelT: Model]:
+class BaseManager(metaclass=ABCMeta):
+    pass
+
+
+class Manager:
     def __init__(self, config: SurrealConfig, logger: Logger = None):
         assert config.driver == 'surreal'
         self._config = config
@@ -37,6 +41,19 @@ class Manager[ModelT: Model]:
 
     def _check_connection(self):
         assert self._connection
+
+    async def select(self, sql: Expression, variables: dict[str, Any] | None = None) -> list[Any]:
+        response = await self._connection.query(query=str(sql), vars=variables)
+        if isinstance(response, list) and len(response) == 1:
+            response = response[0]
+        return response
+
+    async def select_one(self, sql: Expression, variables: dict[str, Any] | None = None) -> Any:
+        response = await self._connection.query(query=str(sql), vars=variables)
+        if isinstance(response, list):
+            return response[0] if len(response) == 1 else None
+        else:
+            return response
 
     async def query(
         self, sql: Expression, variables: dict[str, Any] | None = None

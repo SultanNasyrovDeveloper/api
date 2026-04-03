@@ -37,7 +37,7 @@ def get_array_item_schema(field_schema: dict):
 
 class SurrealSerializer(BaseModel):
 
-    def model_dump_surreal(self, **kwargs):
+    def model_dump_surreal(self, **kwargs) -> str:
         schema = self.model_json_schema()
         field_types = schema.get('properties')
         data = self.model_dump(**kwargs)

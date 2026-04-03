@@ -1,12 +1,17 @@
 from datetime import datetime
+from typing import ClassVar
 
 from minager.core.surorm import data_model
 from minager.core.surorm.orm.field import Field
 from minager.core.surorm.orm.models import Model
 
+from .mixins import RecordID
+
 
 class Node(Model):
-    __tablename__ = 'knowledge_tree.node'
+    __tablename__: ClassVar[str] = 'knowledge_tree.node'
+
+    id: RecordID = Field(data_model.RecordID)
 
     is_learn: bool = Field(data_model.Boolean)
     title: str = Field(data_model.String)
@@ -25,4 +30,8 @@ class Node(Model):
     last_repetition: datetime = Field(data_model.Datetime)
     next_optimal_repetition: datetime = Field(data_model.Datetime)
 
-    content: dict = Field(data_model.Json)
+    content: str = Field(data_model.Json)
+
+    @property
+    def pk(self) -> str | None:
+        return self.id.id

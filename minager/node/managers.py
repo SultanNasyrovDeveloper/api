@@ -1,12 +1,46 @@
+from abc import ABCMeta, abstractmethod
+
+from pydantic import BaseModel
+
 from ..core import surorm
-from . import dto, queries, schemas, utils
+from . import dto, models, queries, schemas, utils
 from .requests.create_child import CreateChildConfig, CreateChildRequest
 from .requests.list import ListNodesRequest, ListNodesRequestConfig
 from .requests.move import MoveNodeConfig, MoveNodeRequest
 from .services.node_index.node_indexes import NodeOverallIndex
 
 
-class PalaceNodeManager(surorm.Manager):
+class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
+    model: models.Node = models.Node
+
+    # @abstractmethod
+    # async def create(self, data: dict | BaseModel) -> models.Node: pass
+
+    @abstractmethod
+    async def get(self, id_: str) -> models.Node:
+        pass
+
+    #
+    # @abstractmethod
+    # async def add_child(self): pass
+    #
+    # @abstractmethod
+    # async def search(self): pass
+    #
+    # @abstractmethod
+    # async def get_subtree(self): pass
+    #
+    # @abstractmethod
+    # async def get_children(self): pass
+    #
+    # @abstractmethod
+    # async def patch(self): pass
+    #
+    # @abstractmethod
+    # async def delete(self): pass
+
+
+class PalaceNodeManager(BaseNodeManager):
     async def get_my_palace_root(self, owner_id: str) -> str | None:
         self._check_connection()
         query = (
@@ -18,8 +52,16 @@ class PalaceNodeManager(surorm.Manager):
         palace_root_id: str = response.raw(many=False)
         return palace_root_id.lstrip('node:') if palace_root_id else None
 
-    async def create(self, data: dict) -> schemas.NodeDetailSchema | None:
-        root_schema = schemas.NodeCreateSchema.model_validate(data)
+    async def create(self, data: dict | BaseModel) -> schemas.NodeDetailSchema | None:
+        """
+        Create node with input data validation.
+        """
+        self._check_connection()
+        root_schema = (
+            schemas.NodeCreateSchema.model_validate(data)
+            if not isinstance(data, schemas.NodeCreateSchema)
+            else data
+        )
         query = surorm.Create('node').content(root_schema.model_dump_surreal()).return_('after')
         response = await self.query(query)
         return schemas.NodeDetailSchema.model_validate(response)
@@ -35,15 +77,15 @@ class PalaceNodeManager(surorm.Manager):
             return None
         return await self.get(new_node.get('id').id)
 
-    async def get(self, node_id: str) -> schemas.NodeDetailSchema | None:
+    async def get(self, node_id: str) -> models.Node | None:
         self._check_connection()
         query = surorm.Select(
             surorm.Alias('parent_id', surorm.F.array.first('->child.out')),
             surorm.Alias('ancestors', queries.ancestors_query),
             all_=True,
         ).from_(surorm.F.type.thing('node', node_id))
-        node_data: dict | None = await self.query(query)
-        return schemas.NodeDetailSchema.model_validate(node_data) if node_data else None
+        node_data: dict | None = await self.select_one(query)
+        return models.Node.model_validate(node_data) if node_data else None
 
     async def list_(
         self,
