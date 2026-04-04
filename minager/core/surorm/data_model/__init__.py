@@ -1,10 +1,7 @@
 import json
-from datetime import datetime
-from decimal import Decimal
 from typing import Any
 
 from ..base import DataType
-from ..constants import DATETIME_FORMAT
 from ..types import Expression
 from ..utils import render
 
@@ -39,17 +36,6 @@ class Record(DataType):
         return f'{self._table}:{self._id}'
 
 
-class Number(DataType):
-    name = 'number'
-
-    def __init__(self, value: int | float | complex | Decimal, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._value = value
-
-    def sql(self) -> str:
-        return str(self._value)
-
-
 class String(DataType):
     name = 'string'
 
@@ -63,17 +49,6 @@ class String(DataType):
             value = str(value)
         escaped = value.replace('\\', '\\\\').replace('"', '\\"')
         return f'"{escaped}"'
-
-
-class Datetime(DataType):
-    name = 'datetime'
-
-    def __init__(self, value: datetime, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._value = value
-
-    def sql(self) -> str:
-        return f'd"{self._value.strftime(DATETIME_FORMAT)}"'
 
 
 class Array[InnerType: Any](DataType):
@@ -110,17 +85,6 @@ class Sequence[InnerType: Any](DataType):
 
 class Json(DataType):
     name = 'json'
-
-    def __init__(self, value: dict, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._value = value
-
-    def sql(self) -> str:
-        return json.dumps(self._value)
-
-
-class RecordID(DataType):
-    name = 'record_id'
 
     def __init__(self, value: dict, *args, **kwargs):
         super().__init__(*args, **kwargs)

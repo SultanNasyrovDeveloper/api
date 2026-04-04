@@ -7,9 +7,8 @@ from ..statements.define import DefineField, DefineTable
 from ..statements.delete import Delete
 from ..statements.select import Select
 from ..statements.transaction import Transaction
+from .models import Migration
 from .operations import MigrationOperation
-
-_HISTORY_TABLE = 'migration_history'
 
 
 class PerformMigrationCommand:
@@ -102,23 +101,22 @@ class PerformMigrationCommand:
     async def _ensure_history_table(self):
         """Create migration_history table and fields if they do not exist."""
         query = Transaction().perform(
-            DefineTable(_HISTORY_TABLE).schemafull(True).if_not_exists(True),
-            DefineField('app', 'string').on(_HISTORY_TABLE).if_not_exists(True),
-            DefineField('migration', 'string').on(_HISTORY_TABLE).if_not_exists(True),
-            DefineField('applied_at', 'datetime')
-            .on(_HISTORY_TABLE)
-            .if_not_exists(True)
-            .default('time::now()'),
+            DefineTable(Migration).schemafull(True).if_not_exists(True),
+            DefineField('app', 'string').on(Migration).if_not_exists(True),
+            DefineField('migration', 'string').on(Migration).if_not_exists(True),
+            (
+                DefineField('applied_at', 'datetime')
+                .on(Migration)
+                .if_not_exists(True)
+                .default('time::now()')
+            ),
         )
         await self.session.query(query.sql())
 
     async def _is_migration_applied(self, app: str, migration_name: str) -> bool:
         """Return True if the given migration is recorded in migration_history."""
         result = await self.session.query(
-            Select('id')
-            .from_(_HISTORY_TABLE)
-            .where('app = $app AND migration = $migration')
-            .limit(1),
+            Select('id').from_(Migration).where('app = $app AND migration = $migration').limit(1),
             {'app': app, 'migration': migration_name},
         )
         if result is None:
@@ -129,14 +127,11 @@ class PerformMigrationCommand:
 
     async def _record_migration(self, app: str, migration_name: str):
         """Insert a record into migration_history after a successful upgrade."""
-        await self.session.query(
-            Create(_HISTORY_TABLE).set('app = $app', 'migration = $migration'),
-            {'app': app, 'migration': migration_name},
-        )
+        await self.session.query(Create(Migration).set(app=app, migration=migration_name))
 
     async def _remove_migration_record(self, app: str, migration_name: str):
         """Delete the history record for a migration after a successful downgrade."""
         await self.session.query(
-            Delete(_HISTORY_TABLE).where('app = $app AND migration = $migration'),
+            Delete(Migration).where('app = $app AND migration = $migration'),
             {'app': app, 'migration': migration_name},
         )

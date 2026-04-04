@@ -1,11 +1,13 @@
 from typing import Self
 
 from ..mixins import Filterable, Returnable
+from ..orm.models import Table
+from ..orm.utils import get_table_name
 from ..types import Expression, Renderable
 
 
 class Delete(Filterable, Returnable, Renderable):
-    def __init__(self, from_: Expression, only: bool = False, *args, **kwargs):
+    def __init__(self, from_: Expression | type[Table], only: bool = False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._from = from_
         self._only = only
@@ -19,7 +21,7 @@ class Delete(Filterable, Returnable, Renderable):
         q = ['delete']
         if self._only:
             q.append('only')
-        q.append(self._from)
+        q.append(get_table_name(self._from))
         if filter_expr := self.get_filter_sql():
             q.append(filter_expr)
         if return_expr := self.get_return_sql():

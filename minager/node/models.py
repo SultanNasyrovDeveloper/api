@@ -1,17 +1,17 @@
 from datetime import datetime
 from typing import ClassVar
 
+from surrealdb import RecordID
+
 from minager.core.surorm import data_model
 from minager.core.surorm.orm.field import Field
 from minager.core.surorm.orm.models import Model
 
-from .mixins import RecordID
-
 
 class Node(Model):
-    __tablename__: ClassVar[str] = 'knowledge_tree.node'
+    __table_name__: ClassVar[str] = 'node'
 
-    id: RecordID = Field(data_model.RecordID)
+    id: RecordID = Field(data_model.Record)
 
     is_learn: bool = Field(data_model.Boolean)
     title: str = Field(data_model.String)

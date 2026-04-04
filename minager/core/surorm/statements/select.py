@@ -2,6 +2,8 @@ from typing import Literal, Self
 
 from ..base import Statement
 from ..mixins import Filterable
+from ..orm.models import Table
+from ..orm.utils import get_table_name
 from ..types import Expression
 from ..utils import render
 
@@ -30,11 +32,11 @@ class Select(Statement, Filterable):
     def __str__(self) -> str:
         return self.sql()
 
-    def from_(self, name: Expression, only: bool = False) -> Self:
+    def from_(self, name: Expression | type[Table], only: bool = False) -> Self:
         sql = ['from']
         if only:
             sql.append('only')
-        sql.append(render(name))
+        sql.append(get_table_name(name))
         self._from = ' '.join(sql)
         return self
 

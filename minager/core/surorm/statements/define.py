@@ -1,6 +1,8 @@
 from typing import Self
 
 from ..mixins import Commentable, IfNotExists, Overridable
+from ..orm.models import Table
+from ..orm.utils import get_table_name
 from ..types import Expression, Renderable, TableType
 from ..utils import render
 
@@ -40,12 +42,12 @@ class DefineDatabase(Overridable, IfNotExists, Commentable, Renderable):
 
 
 class DefineTable(Overridable, IfNotExists, Commentable, Renderable):
-    def __init__(self, name: Expression, *args, **kwargs):
+    def __init__(self, table: str | type[Table], *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._name = name
+        self._table = table
         self._type: TableType = 'normal'
-        self._from: str | None = None
-        self._to: str | None = None
+        self._from: Expression | None = None
+        self._to: Expression | None = None
         self._schemafull: bool = False
 
     def type(
@@ -71,7 +73,7 @@ class DefineTable(Overridable, IfNotExists, Commentable, Renderable):
             stmt.append(overwrite_sql)
         if if_not_exists_sql := self.get_if_not_exists_sql():
             stmt.append(if_not_exists_sql)
-        stmt.append(render(self._name))
+        stmt.append(get_table_name(self._table))
         stmt.append('schemafull' if self._schemafull else 'schemaless')
         stmt.append(self._get_type_sql())
         if comment_sql := self.get_comment_sql():
@@ -90,14 +92,14 @@ class DefineField(Overridable, IfNotExists, Commentable, Renderable):
         super().__init__(*args, **kwargs)
         self._name: Expression = name
         self._type: Expression = type_
-        self._table: Expression | None = None
+        self._table: str | type[Table] | None = None
         self._is_optional: bool = False
         self._is_flexible: bool = False
         self._default: Expression | None = None
         self._assert: Expression | None = None
         self._is_read_only: bool = False
 
-    def on(self, table: Expression) -> Self:
+    def on(self, table: str | type[Table]) -> Self:
         self._table = table
         return self
 
@@ -112,13 +114,14 @@ class DefineField(Overridable, IfNotExists, Commentable, Renderable):
         return self
 
     def sql(self) -> str:
+        assert self._table, 'You must define table before building this query.'
         stmt = ['define field']
         if overwrite_sql := self.get_overwrite_sql():
             stmt.append(overwrite_sql)
         if if_not_exists_sql := self.get_if_not_exists_sql():
             stmt.append(if_not_exists_sql)
         stmt.append(render(self._name))
-        stmt.append(f'on table {render(self._table)}')
+        stmt.append(f'on table {get_table_name(self._table)}')
         if self._is_flexible:
             stmt.append('flexible')
         stmt.append(f'type {render(self._type)}')

@@ -23,6 +23,11 @@ class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
 
     #
     # @abstractmethod
+    # async def move_node(self):
+    #     pass
+
+    #
+    # @abstractmethod
     # async def add_child(self): pass
     #
     # @abstractmethod
@@ -53,17 +58,12 @@ class PalaceNodeManager(BaseNodeManager):
         palace_root_id: str = response.raw(many=False)
         return palace_root_id.lstrip('node:') if palace_root_id else None
 
-    async def create(self, data: dict | BaseModel) -> models.Node | None:
+    async def create(self, data: dict) -> models.Node | None:
         """
         Create node with input data validation.
         """
         self._check_connection()
-        root_schema = (
-            schemas.NodeCreateSchema.model_validate(data)
-            if not isinstance(data, schemas.NodeCreateSchema)
-            else data
-        )
-        query = surorm.Create('node').content(root_schema.model_dump_surreal()).return_('after')
+        query = surorm.Create(self.model).content(data).return_('after')
         response = await self.query(query)
         return models.Node.model_validate(response)
 

@@ -1,45 +1,46 @@
-from typing import Self
+from typing import Any, Self
 
 from ..base import Statement
-from ..data_model.object import Object
 from ..mixins import Returnable
-from ..types import Expression, RecordDataSetMode
+from ..orm.models import Table
+from ..orm.serializer_v2 import Serializer
+from ..types import RecordDataSetMode
 from ..utils import render
 
 
 class Create(Statement, Returnable):
-    def __init__(self, target: str, only: bool = False, *args, **kwargs):
+    def __init__(self, target: str | type[Table], only: bool = False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._target = target
         self._only = only
         self._data_strategy: RecordDataSetMode = 'content'
-        self._content = None
-        self._set = None
+        self._data = None
 
-    def content(self, data: Expression) -> Self:
+    def content(self, data: dict) -> Self:
         self._data_strategy = 'content'
-        self._content = data
+        self._data = data
         return self
 
-    def set(self, *set_expressions: Expression) -> Self:
+    def set(self, **field_values: Any) -> Self:
         self._data_strategy = 'set'
-        self._set = set_expressions
+        self._data = field_values
         return self
 
     def sql(self) -> str:
-        assert not self._content or not self._set
         q = ['create']
         if self._only:
             q.append('only')
-        q.append(self._target)
-        if self._data_strategy == 'content':
-            content = self._content
-            if isinstance(content, Object):
-                content = content.sql(mode='content')
-            q.extend(['content', content])
-        if self._data_strategy == 'set':
-            q.append('set')
-            q.append(','.join(map(render, self._set)))
+        table_name = self._target if isinstance(self._target, str) else self._target.__table_name__
+        q.append(table_name)
+        q.append(self._data_strategy)
+        q.append(self.serialize_data())
         if return_expr := self.get_return_sql():
             q.append(return_expr)
         return ' '.join(q)
+
+    def serialize_data(self) -> str:
+        if isinstance(self._target, str):
+            return render(self._data)
+        serializer_class = type('DataSerializer', (Serializer,), {'model': self._target})
+        serializer = serializer_class()
+        return serializer.serialize(self._data, mode=self._data_strategy)
