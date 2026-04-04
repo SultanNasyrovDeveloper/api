@@ -79,7 +79,7 @@ class PalaceNodeManager(BaseNodeManager):
 
     async def create_child(
         self, parent_uid: str, data: dict | schemas.NodeCreateSchema
-    ) -> schemas.NodeDetailSchema | None:
+    ) -> models.Node | None:
         self._check_connection()
         config = CreateChildConfig(parent_id=parent_uid, data=data)
         request = CreateChildRequest(db=self, config=config)
@@ -151,9 +151,7 @@ class PalaceNodeManager(BaseNodeManager):
             }
         )
 
-    async def patch(
-        self, uid: str, data: dict | schemas.NodeEditSchema
-    ) -> schemas.NodeDetailSchema:
+    async def patch(self, uid: str, data: dict | schemas.NodeEditSchema) -> models.Node:
         self._check_connection()
         data = schemas.NodeEditSchema.model_validate(data)
         query = surorm.Update(surorm.Record('node', uid)).merge(

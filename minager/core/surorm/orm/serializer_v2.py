@@ -45,7 +45,7 @@ class Serializer(BaseSerializer):
                     [f'{field_name} = {value}' for field_name, value in serialized_object.items()]
                 )
             )
-        return str(serialized_object)
+        return f'{{{', '.join([f'{field_name}: {value}' for field_name, value in serialized_object.items()])}}}'
 
     def serialize_field(self, name: str, value: Any) -> str | None:
         field_metadata = self.model.model_fields.get(name, None)

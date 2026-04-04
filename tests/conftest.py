@@ -51,10 +51,11 @@ async def test_user(
             'title': 'Mind Palace',
             'questions': 'What is Mind Palace?',
             'content': '{"root": {}}',
+            'order': 'aaaaaa',
         }
     )
     async with UserProfileManager() as profile_mgr:
-        await profile_mgr.create_profile(
+        user_profile = await profile_mgr.create_profile(
             UserProfileCreateSchema(
                 user_id=user.id,
                 knowledge_tree_root_id=root_node.id.id,

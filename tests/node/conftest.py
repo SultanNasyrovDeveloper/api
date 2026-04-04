@@ -28,6 +28,7 @@ def node_create_data_factory(faker: Faker) -> Callable:
             'questions': faker.sentence(),
             'owner_id': faker.pystr(max_chars=20),
             'content': '{"root": {}}',
+            'order': 'aaaaa',
             **kwargs,
         }
 
