@@ -1,6 +1,6 @@
 from typing import Literal
 
-from ..types import Renderable
+from ..base import Renderable
 
 type InfoTarget = Literal['root', 'namespace', 'database', 'table']
 

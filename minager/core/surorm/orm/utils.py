@@ -1,7 +1,7 @@
 from functools import singledispatch
 from typing import Any
 
-from ..types import Renderable
+from ..base import Renderable
 from ..utils import render
 from .models import Table
 

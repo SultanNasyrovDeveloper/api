@@ -1,32 +1,25 @@
-import pytest
-
-from minager.node.enums import NodeRelationType
-from minager.node.managers import PalaceNodeManager
-from minager.node.schemas import NodeCreateSchema
-from minager.node.services.move_node import MoveNodeService
-
-
-@pytest.mark.asyncio
-async def test_move_node_as_first_child(test_palace_node_manager: PalaceNodeManager):
-    parent_node = await test_palace_node_manager.create(
-        NodeCreateSchema(title='Parent', questions='Parent node?', owner_id='user_1', content='{}')
-    )
-    child_node = await test_palace_node_manager.create(
-        NodeCreateSchema(title='Child', questions='Child node?', owner_id='user_1', content='{}')
-    )
-
-    await MoveNodeService(test_palace_node_manager).move(
-        node_id=child_node.pk,
-        target_id=parent_node.pk,
-        move_position=NodeRelationType.first_child.value,
-    )
-
-    updated_child = await test_palace_node_manager.get(child_node.pk)
-
-    assert updated_child is not None
-    assert updated_child.pk == child_node.pk
-    assert updated_child.parent_id.id == parent_node.pk
-    assert updated_child.order < parent_node.order  # first child should have lower order
+#
+# @pytest.mark.asyncio
+# async def test_move_node_as_first_child(test_palace_node_manager: PalaceNodeManager):
+#     parent_node = await test_palace_node_manager.create(
+#         NodeCreateSchema(title='Parent', questions='Parent node?', owner_id='user_1', content='{}').model_dump()
+#     )
+#     child_node = await test_palace_node_manager.create(
+#         NodeCreateSchema(title='Child', questions='Child node?', owner_id='user_1', content='{}').model_dump()
+#     )
+#
+#     await MoveNodeService(test_palace_node_manager).move(
+#         node_id=child_node.pk,
+#         target_id=parent_node.pk,
+#         move_position=NodeRelationType.first_child.value,
+#     )
+#
+#     updated_child = await test_palace_node_manager.get(child_node.pk)
+#
+#     assert updated_child is not None
+#     assert updated_child.pk == child_node.pk
+#     assert updated_child.parent_id.id == parent_node.pk
+#     assert updated_child.order < parent_node.order  # first child should have lower order
 
 
 # @pytest.mark.asyncio

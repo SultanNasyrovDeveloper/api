@@ -1,7 +1,8 @@
 from typing import Self
 
+from ..base import Renderable
 from ..mixins import Returnable
-from ..types import Expression, Renderable
+from ..types import Expression
 from ..utils import render
 
 

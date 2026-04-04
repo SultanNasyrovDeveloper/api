@@ -1,5 +1,4 @@
-from minager.core.surorm import Expression
-
+from ..types import Expression
 from .alias import Alias
 from .create import Create
 from .define import *

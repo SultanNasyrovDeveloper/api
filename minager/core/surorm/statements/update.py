@@ -1,8 +1,9 @@
 import json
 from typing import Literal, Self
 
+from ..base import Renderable
 from ..mixins import Filterable, Returnable
-from ..types import Expression, Renderable
+from ..types import Expression
 from ..utils import render
 
 

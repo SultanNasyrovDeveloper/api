@@ -12,7 +12,7 @@ async def test_get_node_returns_node(test_palace_node_manager: PalaceNodeManager
     node_data = NodeCreateSchema(
         title='Test Node', questions='What is a test node?', owner_id='user_123', content='{}'
     )
-    created_node = await test_palace_node_manager.create(node_data)
+    created_node = await test_palace_node_manager.create(node_data.model_dump())
     retrieved_node = await test_palace_node_manager.get(str(created_node.pk))
 
     assert isinstance(retrieved_node, Node)

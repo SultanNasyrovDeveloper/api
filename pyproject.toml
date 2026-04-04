@@ -12,6 +12,11 @@ skip-string-normalization = true
 [tool.isort]
 profile = "black"
 
+[mypy]
+strict_optional = true
+check_untyped_defs = true
+disable_error_code = "type-arg"
+
 [tool.pytest.ini_options]
 pythonpath = "."
 addopts = [

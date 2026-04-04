@@ -1,4 +1,5 @@
-from ..types import Expression, Renderable
+from ..base import Renderable
+from ..types import Expression
 from ..utils import render
 
 

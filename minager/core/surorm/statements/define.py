@@ -1,9 +1,10 @@
 from typing import Self
 
+from ..base import Renderable
 from ..mixins import Commentable, IfNotExists, Overridable
 from ..orm.models import Table
 from ..orm.utils import get_table_name
-from ..types import Expression, Renderable, TableType
+from ..types import Expression, TableType
 from ..utils import render
 
 
