@@ -3,7 +3,7 @@ from typing import Any, Self
 from ..base import Statement
 from ..mixins import Returnable
 from ..orm.models import Table
-from ..orm.serializer_v2 import Serializer
+from ..orm.serializer import Serializer
 from ..types import RecordDataSetMode
 from ..utils import render
 

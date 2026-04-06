@@ -5,12 +5,10 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from minager.core.surorm.orm.serializers import SurrealSerializer
-
 from . import enums, mixins
 
 
-class CreateRootSchema(mixins.NodeStatisticsMixin, mixins.NodeContentMixin, SurrealSerializer):
+class CreateRootSchema(mixins.NodeStatisticsMixin, mixins.NodeContentMixin):
     owner_id: str
     title: str = 'Mind Palace'
     questions: str = 'What is Mind Palace'
@@ -65,7 +63,7 @@ class NodeEditSchema(mixins.NodeContentMixin, mixins.NodeStatisticsMixin, BaseMo
     tags: list[int] = []
 
 
-class NodeCreateSchema(NodeEditSchema, SurrealSerializer):
+class NodeCreateSchema(NodeEditSchema, BaseModel):
     owner_id: str = None
     order: str = Field(default='aaaaaa')
 

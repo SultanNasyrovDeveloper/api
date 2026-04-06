@@ -13,6 +13,10 @@ class Node(Model):
 
     id: RecordID = Field(data_model.Record)
 
+    parent_id: RecordID | None = Field(data_model.Record, default=None, exclude=True)
+    ancestors: list[dict] = Field(type_=data_model.Object, default_factory=list, exclude=True)
+    children: list[dict] = Field(type_=data_model.Object, default_factory=list, exclude=True)
+
     is_learn: bool = Field(data_model.Boolean)
     title: str = Field(data_model.String)
     order: str = Field(data_model.String)

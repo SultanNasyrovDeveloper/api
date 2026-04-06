@@ -4,8 +4,11 @@ import pytest
 from faker import Faker
 
 from minager.auth.managers import UserManager
-from minager.auth.models import User
-from minager.auth.schemas import UserCreateDataSchema, UserUpdateDataSchema
+from minager.auth.schemas import (
+    UserCreateDataSchema,
+    UserUpdateDataSchema,
+    UserWithProfileSchema,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -33,7 +36,9 @@ async def test_create_user_success(user_manager: UserManager, faker: Faker):
     assert user.updated_at is not None
 
 
-async def test_create_user_duplicate_email(user_manager: UserManager, test_user: User):
+async def test_create_user_duplicate_email(
+    user_manager: UserManager, test_user: UserWithProfileSchema
+):
     schema = UserCreateDataSchema(
         email=test_user.email, username='different_username', password='TestPassword123!'
     )
@@ -41,7 +46,9 @@ async def test_create_user_duplicate_email(user_manager: UserManager, test_user:
         await user_manager.create_user(schema)
 
 
-async def test_create_user_duplicate_username(user_manager: UserManager, test_user: User):
+async def test_create_user_duplicate_username(
+    user_manager: UserManager, test_user: UserWithProfileSchema
+):
     schema = UserCreateDataSchema(
         email='different@example.com', username=test_user.username, password='TestPassword123!'
     )
@@ -49,7 +56,7 @@ async def test_create_user_duplicate_username(user_manager: UserManager, test_us
         await user_manager.create_user(schema)
 
 
-async def test_get_by_email_success(user_manager: UserManager, test_user: User):
+async def test_get_by_email_success(user_manager: UserManager, test_user: UserWithProfileSchema):
     user = await user_manager.get_by_email(test_user.email)
     assert user is not None
     assert user.id == test_user.id
@@ -61,13 +68,15 @@ async def test_get_by_email_not_found(user_manager: UserManager):
     assert user is None
 
 
-async def test_get_by_email_deleted_user(user_manager: UserManager, test_user: User):
+async def test_get_by_email_deleted_user(
+    user_manager: UserManager, test_user: UserWithProfileSchema
+):
     await user_manager.update(str(test_user.id), data={'is_deleted': True})
     user = await user_manager.get_by_email(test_user.email)
     assert user is None
 
 
-async def test_get_by_username_success(user_manager: UserManager, test_user: User):
+async def test_get_by_username_success(user_manager: UserManager, test_user: UserWithProfileSchema):
     user = await user_manager.get_by_username(test_user.username)
 
     assert user is not None
@@ -80,13 +89,15 @@ async def test_get_by_username_not_found(user_manager: UserManager):
     assert user is None
 
 
-async def test_get_by_username_deleted_user(user_manager: UserManager, test_user: User):
+async def test_get_by_username_deleted_user(
+    user_manager: UserManager, test_user: UserWithProfileSchema
+):
     await user_manager.update(str(test_user.id), data={'is_deleted': True})
     user = await user_manager.get_by_username(test_user.username)
     assert user is None
 
 
-async def test_get_active_user_success(user_manager: UserManager, test_user: User):
+async def test_get_active_user_success(user_manager: UserManager, test_user: UserWithProfileSchema):
     user = await user_manager.get_active_user(test_user.id)
     assert user is not None
     assert user.id == test_user.id
@@ -94,13 +105,15 @@ async def test_get_active_user_success(user_manager: UserManager, test_user: Use
     assert user.is_deleted is False
 
 
-async def test_get_active_user_inactive(user_manager: UserManager, test_user: User):
+async def test_get_active_user_inactive(
+    user_manager: UserManager, test_user: UserWithProfileSchema
+):
     await user_manager.update(str(test_user.id), data={'is_active': False})
     user = await user_manager.get_active_user(test_user.id)
     assert user is None
 
 
-async def test_get_active_user_deleted(user_manager: UserManager, test_user: User):
+async def test_get_active_user_deleted(user_manager: UserManager, test_user: UserWithProfileSchema):
     await user_manager.update(str(test_user.id), data={'is_deleted': True})
     user = await user_manager.get_active_user(test_user.id)
     assert user is None
@@ -111,7 +124,7 @@ async def test_get_active_user_not_found(user_manager: UserManager):
     assert user is None
 
 
-async def test_authenticate_success(user_manager: UserManager, test_user: User):
+async def test_authenticate_success(user_manager: UserManager, test_user: UserWithProfileSchema):
     user = await user_manager.authenticate(
         email=test_user.email, password='TestPassword123!'  # TODO: Refactor - do not use raw value
     )
@@ -119,7 +132,9 @@ async def test_authenticate_success(user_manager: UserManager, test_user: User):
     assert user.id == test_user.id
 
 
-async def test_authenticate_wrong_password(user_manager: UserManager, test_user: User):
+async def test_authenticate_wrong_password(
+    user_manager: UserManager, test_user: UserWithProfileSchema
+):
     user = await user_manager.authenticate(email=test_user.email, password='WrongPassword123!')
     assert user is None
 
@@ -133,7 +148,9 @@ async def test_authenticate_wrong_email(user_manager: UserManager):
     assert user is None
 
 
-async def test_authenticate_inactive_user(user_manager: UserManager, test_user: User):
+async def test_authenticate_inactive_user(
+    user_manager: UserManager, test_user: UserWithProfileSchema
+):
     await user_manager.update(str(test_user.id), data={'is_active': False})
     user = await user_manager.authenticate(
         email=test_user.email, password='TestPassword123!'  # TODO: Refactor - do not use raw value
@@ -141,7 +158,9 @@ async def test_authenticate_inactive_user(user_manager: UserManager, test_user: 
     assert user is None
 
 
-async def test_authenticate_deleted_user(user_manager: UserManager, test_user: User):
+async def test_authenticate_deleted_user(
+    user_manager: UserManager, test_user: UserWithProfileSchema
+):
     await user_manager.update(str(test_user.id), data={'is_deleted': True})
     user = await user_manager.authenticate(
         email=test_user.email, password='TestPassword123!'  # TODO: Refactor - do not use raw value
@@ -149,7 +168,7 @@ async def test_authenticate_deleted_user(user_manager: UserManager, test_user: U
     assert user is None
 
 
-async def test_update_last_login(user_manager: UserManager, test_user: User):
+async def test_update_last_login(user_manager: UserManager, test_user: UserWithProfileSchema):
     original_last_login = test_user.last_login
     original_updated_at = test_user.updated_at
 
@@ -171,7 +190,9 @@ async def test_update_last_login_nonexistent_user(user_manager: UserManager):
 
 
 @pytest.mark.xfail()
-async def test_update_user_email_success(user_manager: UserManager, test_user: User):
+async def test_update_user_email_success(
+    user_manager: UserManager, test_user: UserWithProfileSchema
+):
     new_email = f'updated_{uuid4().hex[:8]}@example.com'
     update_data = UserUpdateDataSchema(email=new_email)
 
@@ -183,7 +204,9 @@ async def test_update_user_email_success(user_manager: UserManager, test_user: U
 
 
 @pytest.mark.xfail()
-async def test_update_user_password_success(user_manager: UserManager, test_user: User):
+async def test_update_user_password_success(
+    user_manager: UserManager, test_user: UserWithProfileSchema
+):
     new_password = 'NewPassword123!'
     update_data = UserUpdateDataSchema(password=new_password)
 

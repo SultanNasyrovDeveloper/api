@@ -4,9 +4,10 @@ from ..base import Renderable
 from ..data_model import Record
 from ..mixins import Filterable, Returnable
 from ..orm.models import Table
-from ..orm.serializer_v2 import Serializer
+from ..orm.serializer import Serializer
 from ..orm.utils import get_table_name
 from ..types import Expression
+from ..utils import render
 
 
 class Update(Filterable, Returnable, Renderable):
@@ -41,14 +42,17 @@ class Update(Filterable, Returnable, Renderable):
         q = [f'update']
         if self.only:
             q.append('only')
-        q.append(
-            get_table_name(self.target.table if isinstance(self.target, Record) else self.target)
-        )
+        q.append(self.get_update_target())
         q.append(self.strategy)
         q.append(self.serialize_data())
         if return_expr := self.get_return_sql():
             q.append(return_expr)
         return ' '.join(q)
+
+    def get_update_target(self) -> str:
+        if isinstance(self.target, type) and issubclass(self.target, Table):
+            return get_table_name(self.target)
+        return render(self.target)
 
     def serialize_data(self) -> str:
         # TODO: Refactor when serializer and orm implemented
@@ -60,7 +64,7 @@ class Update(Filterable, Returnable, Renderable):
                 return str(self.data)
             if issubclass(self.target.table, Table):
                 table = self.target.table
-        elif issubclass(self.target, Table):  # TODO: Fix this warning
+        if isinstance(self.target, type) and issubclass(self.target, Table):
             table = self.target
         if table:
             serializer_class = type('DataSerializer', (Serializer,), {'model': table})

@@ -4,7 +4,7 @@ from typing import Any, ClassVar
 from minager.core.surorm import data_model
 from minager.core.surorm.orm.field import Field
 from minager.core.surorm.orm.models import Model
-from minager.core.surorm.orm.serializer_v2 import Serializer
+from minager.core.surorm.orm.serializer import Serializer
 
 
 class TestModel(Model):

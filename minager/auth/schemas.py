@@ -105,6 +105,7 @@ class UserWithProfileSchema(BaseModel):
     is_active: bool
     is_verified: bool
     is_superuser: bool
+    updated_at: datetime
     created_at: datetime
     last_login: datetime | None
 
