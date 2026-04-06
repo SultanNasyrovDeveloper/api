@@ -14,21 +14,18 @@ class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
     model: models.Node = models.Node
 
     @abstractmethod
-    async def create(self, data: dict | BaseModel) -> models.Node:
-        pass
+    async def create(self, data: dict | BaseModel) -> models.Node: ...
 
     @abstractmethod
-    async def get(self, id_: str) -> models.Node:
-        pass
+    async def get(self, id_: str) -> models.Node: ...
 
-    #
+    @abstractmethod
+    async def add_child(self): ...
+
     # @abstractmethod
     # async def move_node(self):
     #     pass
 
-    #
-    # @abstractmethod
-    # async def add_child(self): pass
     #
     # @abstractmethod
     # async def search(self): pass

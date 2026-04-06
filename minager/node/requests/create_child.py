@@ -38,7 +38,7 @@ class CreateChildRequest(AbstractRequest[CreateChildConfig]):
             DefineVariable(
                 'child',
                 Create('node', only=True).content(
-                    create_data.model_dump_surreal(exclude_unset=True, exclude_defaults=True)
+                    create_data.model_dump(exclude_unset=True, exclude_defaults=True)
                 ),
             ),
             Relate('child').from_(child_var).to(Record('node', self._config['parent_id'])),
