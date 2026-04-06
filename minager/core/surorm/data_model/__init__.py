@@ -7,6 +7,7 @@ from ..utils import render
 from .datetime import Datetime
 from .number import Number
 from .object import Object
+from .record import Record
 
 
 class Null(DataType):
@@ -25,18 +26,6 @@ class Boolean(DataType):
 
     def sql(self) -> str:
         return 'true' if self._value else 'false'
-
-
-class Record(DataType):
-    name = 'record'
-
-    def __init__(self, table: str, id_: str, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._table = table
-        self._id = id_
-
-    def sql(self) -> str:
-        return f'{self._table}:{self._id}'
 
 
 class String(DataType):
@@ -108,4 +97,5 @@ __all__ = [
     'Sequence',
     'Json',
     'Boolean',
+    'Record',
 ]  # TODO: Move all types into separate files

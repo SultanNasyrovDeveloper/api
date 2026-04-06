@@ -1,63 +1,69 @@
-import json
-from typing import Literal, Self
+from typing import Any, Literal, Self
 
 from ..base import Renderable
+from ..data_model import Record
 from ..mixins import Filterable, Returnable
+from ..orm.models import Table
+from ..orm.serializer_v2 import Serializer
+from ..orm.utils import get_table_name
 from ..types import Expression
-from ..utils import render
 
 
 class Update(Filterable, Returnable, Renderable):
-    def __init__(self, target: Expression, only: bool = False, *args, **kwargs):
+    def __init__(self, target: Expression | type[Table], only: bool = False, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._target = render(target)
-        self._only = only
-        self._strategy: Literal['set', 'content', 'merge', 'patch'] = 'set'
-        self._set = []
-        self._content = {}
-        self._merge = {}
+        self.target = target
+        self.only = only
+        self.strategy: Literal['set', 'content', 'merge', 'patch'] = 'set'
+        self.data = {}
         self._patch = {}
         self._timeout = None
 
-    def set(self, *set_expressions: str) -> Self:
-        self._strategy = 'set'
-        self._set = set_expressions
+    def set(self, **set_expressions: Any) -> Self:
+        self.strategy = 'set'
+        self.data = set_expressions
         return self
 
     def content(self, update_content: dict) -> Self:
-        self._strategy = 'content'
-        self._content = update_content
+        self.strategy = 'content'
+        self.data = update_content
         return self
 
     def merge(self, merge_content: dict | Expression) -> Self:
-        self._strategy = 'merge'
-        self._merge = merge_content
+        self.strategy = 'merge'
+        self.data = merge_content
         return self
 
     def patch(self, patch_content: dict) -> Self:
-        self._strategy = 'patch'
-        self._patch = patch_content
-        return self
+        raise NotImplementedError
 
     def sql(self):
         q = [f'update']
-        if self._only:
+        if self.only:
             q.append('only')
-        q.append(self._target)
-        if self._strategy == 'set':
-            q.append('set')
-            q.extend(self._set)
-        if self._strategy == 'content':
-            q.append('content')
-            q.append(json.dumps(self._content))
-        if self._strategy == 'merge':
-            q.append('merge')
-            q.append(str(self._merge))
-        if self._strategy == 'patch':
-            q.append('patch')
-            q.append(json.dumps(self._patch))
-        if filter_expr := self.get_filter_sql():
-            q.append(filter_expr)
+        q.append(
+            get_table_name(self.target.table if isinstance(self.target, Record) else self.target)
+        )
+        q.append(self.strategy)
+        q.append(self.serialize_data())
         if return_expr := self.get_return_sql():
             q.append(return_expr)
         return ' '.join(q)
+
+    def serialize_data(self) -> str:
+        # TODO: Refactor when serializer and orm implemented
+        if isinstance(self.target, (int, float, str)):
+            return str(self.data)
+        table = None
+        if isinstance(self.target, Record):
+            if isinstance(self.target, (int, float, str)):
+                return str(self.data)
+            if issubclass(self.target.table, Table):
+                table = self.target.table
+        elif issubclass(self.target, Table):  # TODO: Fix this warning
+            table = self.target
+        if table:
+            serializer_class = type('DataSerializer', (Serializer,), {'model': table})
+            serializer = serializer_class()
+            return serializer.serialize(self.data, self.strategy)
+        return str(self.data)

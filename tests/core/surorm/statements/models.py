@@ -7,12 +7,12 @@ from minager.core.surorm.orm.field import Field
 from minager.core.surorm.orm.models import Model
 
 
-class Node(Model):
-    __table_name__: ClassVar[str] = 'model'
+class DummyModel(Model):
+    __table_name__: ClassVar[str] = 'dummy_table_name'
 
     # Record types
     record_field: str = Field(data_model.Record)
-    record_id_field: dict = Field(data_model.RecordID)
+    record_id_field: dict = Field(data_model.Record)
 
     # Primitive types
     null_field: None = Field(data_model.Null)

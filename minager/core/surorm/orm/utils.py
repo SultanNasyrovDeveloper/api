@@ -11,19 +11,14 @@ def get_table_name(table: Any) -> str:
     raise TypeError(f"Unsupported type: {type(table)}")
 
 
-@get_table_name.register(str)
-def _(table: str) -> str:
-    return table
-
-
 @get_table_name.register(type)
-def _(table: type[Table]) -> str:
+def _(table: type) -> str:
     if issubclass(table, Table):
         return table.__table_name__
     raise TypeError(f"Expected Table class, got {table}")
 
 
-@get_table_name.register(Table)
+@get_table_name.register(type)
 def _(table: Table) -> str:
     return table.__table_name__
 
@@ -35,5 +30,6 @@ def _(table: Renderable) -> str:
 
 @get_table_name.register(int)
 @get_table_name.register(float)
-def _(table: int | float) -> str:
-    raise render(table)
+@get_table_name.register(str)
+def _(table: int | float | str) -> str:
+    return render(table)

@@ -151,7 +151,7 @@ class PalaceNodeManager(BaseNodeManager):
             }
         )
 
-    async def patch(self, uid: str, data: dict | schemas.NodeEditSchema) -> models.Node:
+    async def patch(self, uid: str, data: dict | schemas.NodeEditSchema) -> models.Node | None:
         self._check_connection()
         data = schemas.NodeEditSchema.model_validate(data)
         query = surorm.Update(surorm.Record('node', uid)).merge(
