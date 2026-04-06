@@ -151,14 +151,11 @@ class PalaceNodeManager(BaseNodeManager):
             }
         )
 
-    async def patch(self, uid: str, data: dict | schemas.NodeEditSchema) -> models.Node | None:
+    async def patch(self, id_: str, data: dict) -> models.Node | None:
         self._check_connection()
-        data = schemas.NodeEditSchema.model_validate(data)
-        query = surorm.Update(surorm.Record('node', uid)).merge(
-            data.model_dump_surreal(exclude_unset=True)
-        )
+        query = surorm.Update(surorm.Record(models.Node, id_)).merge(data)
         await self.query(query.sql())
-        return await self.get(uid)
+        return await self.get(id_)
 
     update = patch
 

@@ -58,7 +58,7 @@ class UpdatedNodeSchema(mixins.NodeStatisticsMixin):
     model_config = ConfigDict(extra='ignore')
 
 
-class NodeEditSchema(mixins.NodeContentMixin, mixins.NodeStatisticsMixin, SurrealSerializer):
+class NodeEditSchema(mixins.NodeContentMixin, mixins.NodeStatisticsMixin, BaseModel):
     title: str = ''
     questions: str = ''
     is_learn: bool = True
