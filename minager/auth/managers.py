@@ -149,7 +149,8 @@ class UserProfileManager(PostgresDatabaseManager[models.UserProfile]):
             user_id=profile_data.user_id,
             knowledge_tree_root_id=profile_data.knowledge_tree_root_id,
         )
-        return await self.create(profile, session=session)
+        new_profile = await self.create(profile, session=session)
+        return new_profile
 
     async def get_by_user_id(
         self, user_id: UUID, session: AsyncSession | None = None

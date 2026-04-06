@@ -121,6 +121,7 @@ class DatabaseManager[ModelT](BaseDatabaseManager[ModelT]):
             session.add(item)
         except IntegrityError:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT)
+        await session.commit()
         item_id = self.get_item_id(item)
         created = await self.get(item_id, session)
         return created

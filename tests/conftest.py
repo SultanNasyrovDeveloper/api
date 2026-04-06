@@ -9,8 +9,11 @@ from httpx import ASGITransport, AsyncClient
 from minager.app import app
 from minager.auth.jwt import jwt_service
 from minager.auth.managers import UserManager, UserProfileManager
-from minager.auth.models import User
-from minager.auth.schemas import UserCreateDataSchema, UserProfileCreateSchema
+from minager.auth.schemas import (
+    UserCreateDataSchema,
+    UserProfileCreateSchema,
+    UserWithProfileSchema,
+)
 from minager.node.managers import PalaceNodeManager
 
 pytest_plugins = [
@@ -22,7 +25,7 @@ pytest_plugins = [
 @dataclass
 class UserTestContext:
     sub: UUID  # user UUID — used in JWT and as owner_id in SurrealDB
-    root_node_id: str  # bare SurrealDB node ID of the user's palace root
+    root_node_id: str | None  # bare SurrealDB node ID of the user's palace root
 
 
 @pytest_asyncio.fixture(scope='session')
@@ -35,7 +38,7 @@ async def app_client(palace_node_db_setup: None) -> AsyncGenerator[AsyncClient, 
 @pytest_asyncio.fixture()
 async def test_user(
     test_palace_node_manager: PalaceNodeManager,
-) -> AsyncGenerator[UserTestContext, None]:
+) -> AsyncGenerator[UserWithProfileSchema, None]:
     suffix = uuid4().hex[:8]
     async with UserManager() as user_mgr:
         user = await user_mgr.create_user(
@@ -62,7 +65,7 @@ async def test_user(
             )
         )
 
-    yield user
+    yield UserWithProfileSchema.build(user, user_profile)
 
     async with UserProfileManager() as profile_mgr:
         profile = await profile_mgr.get_by_user_id(user.id)
@@ -74,11 +77,11 @@ async def test_user(
 
 
 @pytest.fixture()
-def test_user_context(user: User) -> UserTestContext:
-    return UserTestContext(sub=user.id, root_node_id=str(user.id))
+def test_user_context(test_user: UserWithProfileSchema) -> UserTestContext:
+    return UserTestContext(sub=test_user.id, root_node_id=test_user.knowledge_tree_root_id)
 
 
 @pytest.fixture()
 def auth_headers(test_user_context: UserTestContext) -> dict[str, str]:
-    token = jwt_service.create_access_token(test_user.sub)
+    token = jwt_service.create_access_token(test_user_context.sub)
     return {'Authorization': f'Bearer {token}'}

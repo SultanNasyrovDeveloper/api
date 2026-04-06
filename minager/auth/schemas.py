@@ -1,7 +1,10 @@
 from datetime import UTC, datetime
+from typing import Self
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+from . import models
 
 
 class TokenPayloadSchema(BaseModel):
@@ -109,6 +112,14 @@ class UserWithProfileSchema(BaseModel):
     bio: str
     knowledge_tree_root_id: str | None
     experience: int
+
+    @classmethod
+    def build(cls, user: models.User, profile: models.UserProfile) -> Self:
+        return cls(
+            id=user.id,
+            **user.model_dump(exclude={'id'}),
+            **profile.model_dump(exclude={'id', 'user_id', 'created_at', 'updated_at'})
+        )
 
 
 class LoginCredentialsSchema(BaseModel):

@@ -19,8 +19,8 @@ class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
     @abstractmethod
     async def get(self, id_: str) -> models.Node: ...
 
-    @abstractmethod
-    async def add_child(self): ...
+    # @abstractmethod
+    # async def add_child(self): ...
 
     # @abstractmethod
     # async def move_node(self):
