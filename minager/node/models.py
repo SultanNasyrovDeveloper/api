@@ -39,3 +39,7 @@ class Node(Model):
     @property
     def pk(self) -> str | None:
         return self.id.id
+
+    @property
+    def parent_pk(self) -> str | None:
+        return self.parent_id.id

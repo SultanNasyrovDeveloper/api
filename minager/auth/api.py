@@ -46,22 +46,7 @@ async def get_me(
     user: dependencies.CurrentActiveUser,
     profile: dependencies.CurrentUserProfile,
 ) -> schemas.UserWithProfileSchema:
-    return schemas.UserWithProfileSchema(
-        # User fields
-        id=user.id,
-        email=user.email,
-        username=user.username,
-        is_active=user.is_active,
-        is_verified=user.is_verified,
-        is_superuser=user.is_superuser,
-        created_at=user.created_at,
-        last_login=user.last_login,
-        # Profile fields
-        display_name=profile.display_name,
-        bio=profile.bio,
-        knowledge_tree_root_id=profile.knowledge_tree_root_id,
-        experience=profile.experience,
-    )
+    return schemas.UserWithProfileSchema.build(user, profile)
 
 
 @users_router.patch('/me', response_model=schemas.UserDetailSchema)

@@ -27,15 +27,15 @@ async def list_(
     return PaginatedResult(page=page, results=nodes)
 
 
-@router.post('/{uid}/add-child', status_code=status.HTTP_201_CREATED)
+@router.post('/{id_}/add-child', status_code=status.HTTP_201_CREATED)
 async def add_child(
-    uid: str,
+    id_: str,
     data: schemas.NodeCreateSchema,
     user: RequestUser,
     app: App,
 ) -> schemas.NodeDetailSchema:
     data.owner_id = user.sub
-    return await app.state.nodes.create_child(parent_uid=uid, data=data)
+    return await app.state.nodes.add_child(id_, data=data.model_dump())
 
 
 @router.get('/{id_}')

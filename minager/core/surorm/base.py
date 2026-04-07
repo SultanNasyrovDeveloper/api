@@ -35,9 +35,9 @@ class Operator(Renderable):
 
 class Function(Renderable, metaclass=ABCMeta):
     name: str
-    arguments: list[Renderable]
+    arguments: list[str]
 
-    def __init__(self, *arguments: Renderable, **kwargs):
+    def __init__(self, *arguments: str, **kwargs):
         super().__init__(**kwargs)
         self.arguments = list(arguments)
 

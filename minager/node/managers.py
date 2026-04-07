@@ -2,9 +2,10 @@ from abc import ABCMeta, abstractmethod
 
 from pydantic import BaseModel
 
-from ..core import surorm
+from minager.core import surorm
+from minager.core.lexorank import Lexorank
+
 from . import dto, models, queries, schemas, utils
-from .requests.create_child import CreateChildConfig, CreateChildRequest
 from .requests.list import ListNodesRequest, ListNodesRequestConfig
 from .requests.move import MoveNodeConfig, MoveNodeRequest
 from .services.node_index.node_indexes import NodeOverallIndex
@@ -19,8 +20,8 @@ class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
     @abstractmethod
     async def get(self, id_: str) -> models.Node: ...
 
-    # @abstractmethod
-    # async def add_child(self): ...
+    @abstractmethod
+    async def add_child(self, id_: str, data: dict): ...
 
     # @abstractmethod
     # async def move_node(self):
@@ -44,21 +45,7 @@ class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
 
 
 class PalaceNodeManager(BaseNodeManager):
-    async def get_my_palace_root(self, owner_id: str) -> str | None:
-        self._check_connection()
-        query = (
-            surorm.Select('value id')
-            .from_('node')
-            .where(surorm.F.array.is_empty('->child->node'), surorm.Equals('owner_id', owner_id))
-        )
-        response = await self.query(query.sql())
-        palace_root_id: str = response.raw(many=False)
-        return palace_root_id.lstrip('node:') if palace_root_id else None
-
     async def create(self, data: dict) -> models.Node | None:
-        """
-        Create node with input data validation.
-        """
         self._check_connection()
         query = surorm.Create(self.model).content(data).return_('after')
         response = await self.query(query)
@@ -74,16 +61,35 @@ class PalaceNodeManager(BaseNodeManager):
         node_data: dict | None = await self.select_one(query)
         return models.Node.model_validate(node_data) if node_data else None
 
-    async def create_child(
-        self, parent_uid: str, data: dict | schemas.NodeCreateSchema
-    ) -> models.Node | None:
+    async def get_my_palace_root(self, owner_id: str) -> str | None:
         self._check_connection()
-        config = CreateChildConfig(parent_id=parent_uid, data=data)
-        request = CreateChildRequest(db=self, config=config)
-        new_node = await request.perform()
-        if not new_node:
-            return None
-        return await self.get(new_node.get('id').id)
+        query = (
+            surorm.Select('value id')
+            .from_('node')
+            .where(surorm.F.array.is_empty('->child->node'), surorm.Equals('owner_id', owner_id))
+        )
+        response = await self.query(query.sql())
+        palace_root_id: str = response.raw(many=False)
+        return palace_root_id.lstrip('node:') if palace_root_id else None
+
+    async def add_child(self, parent_id: str, data: dict) -> models.Node | None:
+        self._check_connection()
+        last_child_order_query = queries.get_last_child_order_query(parent_id)
+        last_child_order: str = await self.select_one(last_child_order_query)
+        data['order'] = Lexorank.middle(previous=last_child_order)
+        child_variable_name = 'child'
+        query = surorm.Transaction(
+            surorm.DefineVariable(
+                child_variable_name, surorm.Create(models.Node, only=True).content(data)
+            ),
+            (
+                surorm.Relate('child')
+                .from_(surorm.Variable(child_variable_name))
+                .to(surorm.Record(models.Node, parent_id))
+            ),
+        ).return_(surorm.Variable(child_variable_name))
+        new_node = await self.query(query)
+        return await self.get(new_node.get('id').id) if new_node else None
 
     async def list_(
         self,
@@ -120,9 +126,9 @@ class PalaceNodeManager(BaseNodeManager):
     async def get_children(self, uid: str) -> list[schemas.NodeListItemSchema]:
         self._check_connection()
         query = surorm.Select('VALUE <-child<-node.{id, title, order}').from_(
-            surorm.F.type.thing('node', uid), only=True
+            surorm.F.type.thing(models.Node, uid), only=True
         )
-        children: list[dict] = await self.query(query)
+        children: list[dict] = await self.select(query)
         return [
             schemas.NodeListItemSchema.model_validate(node_data)
             for node_data in children

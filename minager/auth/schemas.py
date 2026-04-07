@@ -111,7 +111,7 @@ class UserWithProfileSchema(BaseModel):
 
     display_name: str
     bio: str
-    knowledge_tree_root_id: str | None
+    knowledge_tree_root_id: str
     experience: int
 
     @classmethod

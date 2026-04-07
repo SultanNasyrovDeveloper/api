@@ -7,7 +7,7 @@ from pydantic_settings import SettingsConfigDict
 class SurrealConfig(BaseModel):
     driver: str = 'surreal'
     name: str
-    namespace: str | None = None
+    namespace: str = None
     host: str | None = None
     port: int | None = None
     username: str | None = None

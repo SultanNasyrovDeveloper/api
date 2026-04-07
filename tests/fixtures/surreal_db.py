@@ -4,9 +4,11 @@ import pytest
 import pytest_asyncio
 
 from minager import settings
+from minager.auth.schemas import UserWithProfileSchema
 from minager.core import surorm
 from minager.core.surorm.core.settings import SurrealConfig
 from minager.node.managers import PalaceNodeManager
+from minager.node.models import Node
 
 
 @pytest.fixture(scope='session')
@@ -17,6 +19,8 @@ def surreal_original_config() -> SurrealConfig:
 @pytest.fixture(scope='session', autouse=True)
 def surreal_test_config(surreal_original_config: SurrealConfig) -> Generator[SurrealConfig]:
     settings.config.palace_node_db = surreal_original_config.test
+    if not settings.config.palace_node_db:
+        raise ValueError('Unable to locate knowledge tree database configuration for tests.')
     yield settings.config.palace_node_db
     settings.config.palace_node_db = surreal_original_config
 
@@ -70,3 +74,14 @@ async def palace_node_db(
     yield
     await test_palace_node_manager.query(surorm.Delete('node'))
     await test_palace_node_manager.query(surorm.Delete('child'))
+
+
+@pytest_asyncio.fixture
+async def test_user_root_node(
+    test_palace_node_manager: PalaceNodeManager,
+    test_user: UserWithProfileSchema,
+) -> AsyncGenerator[Node]:
+    root_node = await test_palace_node_manager.get(test_user.knowledge_tree_root_id)
+    if not root_node:
+        raise ValueError('Unable to find root node for test.')
+    yield root_node

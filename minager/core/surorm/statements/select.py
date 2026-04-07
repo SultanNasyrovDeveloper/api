@@ -11,7 +11,7 @@ from ..utils import render
 class Select(Statement, Filterable):
     def __init__(self, *columns: Expression, all_: bool = False, **kwargs):
         super().__init__(**kwargs)
-        self._from = None
+        self.target = None
         self._columns = []
         self.columns(*columns, all_=all_)
 
@@ -33,11 +33,16 @@ class Select(Statement, Filterable):
         return self.sql()
 
     def from_(self, name: Expression | type[Table], only: bool = False) -> Self:
+        # TODO: Refactor this should be done in sql method not here
         sql = ['from']
         if only:
             sql.append('only')
-        sql.append(get_table_name(name))
-        self._from = ' '.join(sql)
+        sql.append(
+            get_table_name(name)
+            if isinstance(name, type) and issubclass(name, Table)
+            else render(name)
+        )
+        self.target = ' '.join(sql)
         return self
 
     def columns(self, *columns: Expression, all_: bool = False) -> Self:
@@ -99,7 +104,7 @@ class Select(Statement, Filterable):
         if self._omit:
             q.append('omit')
             q.append(','.join(self._omit))
-        q.append(render(self._from))
+        q.append(self.target)
 
         if self._fetch:
             q.append('fetch')

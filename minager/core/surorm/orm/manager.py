@@ -52,8 +52,8 @@ class Manager:
 
     async def select(self, sql: Expression, variables: dict[str, Any] | None = None) -> list[Any]:
         response = await self.query(sql, variables)
-        if isinstance(response, list) and len(response) == 1:
-            response = response[0]
+        if not isinstance(response, list):
+            return [response]
         return response
 
     async def select_one(self, sql: Expression, variables: dict[str, Any] | None = None) -> Any:
