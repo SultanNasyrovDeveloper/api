@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 import pytest
+from faker import Faker
 
 from minager.node.managers import PalaceNodeManager
 from minager.node.models import Node
@@ -61,43 +62,40 @@ async def test_add_child(
     assert any(c.pk == child_node.pk for c in children)
 
 
+@pytest.mark.asyncio
+async def test_patch_node(
+    test_palace_node_manager: PalaceNodeManager, test_user_root_node: Node, faker: Faker
+):
+    update_data = {'title': faker.name(), 'questions': faker.sentence()}
+    updated_node = await test_palace_node_manager.patch(test_user_root_node.pk, update_data)
+    assert updated_node
+    assert updated_node.title == update_data['title']
+    assert updated_node.questions == update_data['questions']
+
+
 # @pytest.mark.asyncio
-# async def test_list_nodes_pagination_and_search(test_palace_node_manager: PalaceNodeManager):
-#     owner_id = 'user_list'
-#     # Create 15 nodes
-#     for i in range(15):
-#         await test_palace_node_manager.create(
-#             NodeCreateSchema(title=f'Node {i}', questions='?', owner_id=owner_id,
-#                              content='{}').model_dump())
-#
-#     # First page
-#     page1 = await test_palace_node_manager.list_(owner_id, '', page=1, per_page=10)
-#     assert len(page1) == 10
-#     # Second page
-#     page2 = await test_palace_node_manager.list_(owner_id, '', page=2, per_page=10)
-#     assert len(page2) == 5
-#     # Search
-#     search_results = await test_palace_node_manager.list_(owner_id, 'Node 1', page=1, per_page=10)
-#     assert all('Node 1' in node.title for node in search_results)
-#
-#
-# @pytest.mark.asyncio
-# async def test_patch_node_updates_fields(test_palace_node_manager: PalaceNodeManager):
-#     node = await test_palace_node_manager.create(
+# async def test_get_subtree_returns_tree(test_palace_node_manager: PalaceNodeManager):
+#     root = await test_palace_node_manager.create(
+#         NodeCreateSchema(title='Root', questions='?', owner_id='user_tree',
+#                          content='{}').model_dump())
+#     child1 = await test_palace_node_manager.create_child(
+#         root.pk,
 #         NodeCreateSchema(
-#             title='Old',
-#             questions='Old?',
-#             owner_id='user_patch',
-#             content='{}'
-#         ).model_dump()
+#             title='Child1',
+#             questions='?',
+#             owner_id='user_tree',
+#             content='{}').model_dump()
 #     )
+#     child2 = await test_palace_node_manager.create_child(root.pk, NodeCreateSchema(title='Child2',
+#                                                                                    questions='?',
+#                                                                                    owner_id='user_tree',
+#                                                                                    content='{}').model_dump())
 #
-#     updated_node = await test_palace_node_manager.patch(
-#         node.pk,
-#         {'title': 'New', 'questions': 'Updated?'}
-#     )
-#     assert updated_node.title == 'New'
-#     assert updated_node.questions == 'Updated?'
+#     tree = await test_palace_node_manager.get_subtree(root.pk)
+#     assert tree.id == root.pk
+#     assert len(tree.children) == 2
+#     assert {c.title for c in tree.children} == {'Child1', 'Child2'}
+
 #
 #
 # @pytest.mark.asyncio
@@ -125,28 +123,7 @@ async def test_add_child(
 #     assert updated_child.parent_id.id == parent.pk
 #
 #
-# @pytest.mark.asyncio
-# async def test_get_subtree_returns_tree(test_palace_node_manager: PalaceNodeManager):
-#     root = await test_palace_node_manager.create(
-#         NodeCreateSchema(title='Root', questions='?', owner_id='user_tree',
-#                          content='{}').model_dump())
-#     child1 = await test_palace_node_manager.create_child(
-#         root.pk,
-#         NodeCreateSchema(
-#             title='Child1',
-#             questions='?',
-#             owner_id='user_tree',
-#             content='{}').model_dump()
-#     )
-#     child2 = await test_palace_node_manager.create_child(root.pk, NodeCreateSchema(title='Child2',
-#                                                                                    questions='?',
-#                                                                                    owner_id='user_tree',
-#                                                                                    content='{}').model_dump())
-#
-#     tree = await test_palace_node_manager.get_subtree(root.pk)
-#     assert tree.id == root.pk
-#     assert len(tree.children) == 2
-#     assert {c.title for c in tree.children} == {'Child1', 'Child2'}
+
 #
 #
 # @pytest.mark.asyncio
@@ -176,3 +153,23 @@ async def test_add_child(
 #     assert hasattr(stats, 'average_rating')
 #     assert hasattr(stats, 'size')
 #     assert hasattr(stats, 'owner_views')
+
+
+# @pytest.mark.asyncio
+# async def test_list_nodes_pagination_and_search(test_palace_node_manager: PalaceNodeManager):
+#     owner_id = 'user_list'
+#     # Create 15 nodes
+#     for i in range(15):
+#         await test_palace_node_manager.create(
+#             NodeCreateSchema(title=f'Node {i}', questions='?', owner_id=owner_id,
+#                              content='{}').model_dump())
+#
+#     # First page
+#     page1 = await test_palace_node_manager.list_(owner_id, '', page=1, per_page=10)
+#     assert len(page1) == 10
+#     # Second page
+#     page2 = await test_palace_node_manager.list_(owner_id, '', page=2, per_page=10)
+#     assert len(page2) == 5
+#     # Search
+#     search_results = await test_palace_node_manager.list_(owner_id, 'Node 1', page=1, per_page=10)
+#     assert all('Node 1' in node.title for node in search_results)

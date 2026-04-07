@@ -15,13 +15,16 @@ class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
     model: models.Node = models.Node
 
     @abstractmethod
-    async def create(self, data: dict | BaseModel) -> models.Node: ...
+    async def create(self, data: dict | BaseModel) -> models.Node | None: ...
 
     @abstractmethod
-    async def get(self, id_: str) -> models.Node: ...
+    async def get(self, id_: str) -> models.Node | None: ...
 
     @abstractmethod
-    async def add_child(self, id_: str, data: dict): ...
+    async def add_child(self, id_: str, data: dict) -> models.Node | None: ...
+
+    @abstractmethod
+    async def patch(self, id_: str, data: dict) -> models.Node | None: ...
 
     # @abstractmethod
     # async def move_node(self):
@@ -61,17 +64,6 @@ class PalaceNodeManager(BaseNodeManager):
         node_data: dict | None = await self.select_one(query)
         return models.Node.model_validate(node_data) if node_data else None
 
-    async def get_my_palace_root(self, owner_id: str) -> str | None:
-        self._check_connection()
-        query = (
-            surorm.Select('value id')
-            .from_('node')
-            .where(surorm.F.array.is_empty('->child->node'), surorm.Equals('owner_id', owner_id))
-        )
-        response = await self.query(query.sql())
-        palace_root_id: str = response.raw(many=False)
-        return palace_root_id.lstrip('node:') if palace_root_id else None
-
     async def add_child(self, parent_id: str, data: dict) -> models.Node | None:
         self._check_connection()
         last_child_order_query = queries.get_last_child_order_query(parent_id)
@@ -80,7 +72,8 @@ class PalaceNodeManager(BaseNodeManager):
         child_variable_name = 'child'
         query = surorm.Transaction(
             surorm.DefineVariable(
-                child_variable_name, surorm.Create(models.Node, only=True).content(data)
+                child_variable_name,
+                surorm.Create(models.Node, only=True).content(data),
             ),
             (
                 surorm.Relate('child')
