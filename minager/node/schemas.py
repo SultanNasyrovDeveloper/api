@@ -5,7 +5,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from . import enums, mixins
+from . import enums, mixins, models
 
 
 class CreateRootSchema(mixins.NodeStatisticsMixin, mixins.NodeContentMixin):
@@ -13,18 +13,6 @@ class CreateRootSchema(mixins.NodeStatisticsMixin, mixins.NodeContentMixin):
     title: str = 'Mind Palace'
     questions: str = 'What is Mind Palace'
     order: str = 'aaaaaa'
-
-
-class NodeListItemSchema(BaseModel, mixins.IdMixin):
-    title: str
-    order: str | None = Field(default=None)
-
-
-class TreeNodeItemSchema(BaseModel, mixins.IdMixin, mixins.ParentIdMixin):
-    title: str
-    order: str | None = ''
-    ancestors: list[NodeListItemSchema] = Field(default_factory=list)
-    children: list[TreeNodeItemSchema] = Field(default_factory=list)
 
 
 class NodeDetailSchema(mixins.NodeStatisticsMixin, mixins.IdMixin, mixins.ParentIdMixin):
@@ -37,8 +25,8 @@ class NodeDetailSchema(mixins.NodeStatisticsMixin, mixins.IdMixin, mixins.Parent
     order: str
     owner_id: str | None = None
     tags: list[int] = Field(default_factory=list)
-    ancestors: list[NodeListItemSchema] = Field(default_factory=list)
-    children: list[NodeListItemSchema] = Field(default_factory=list)
+    ancestors: list[models.ListNode] = Field(default_factory=list)
+    children: list[models.ListNode] = Field(default_factory=list)
 
 
 class UpdatedNodeSchema(mixins.NodeStatisticsMixin):
@@ -49,7 +37,7 @@ class UpdatedNodeSchema(mixins.NodeStatisticsMixin):
     is_learn: bool = True
     order: str = ''
     parent_id: str = None
-    children: list[NodeListItemSchema] = []
+    children: list[models.ListNode] = []
     tags: list[int] = Field(default_factory=list)
     data_rating: int
 
@@ -73,7 +61,7 @@ class NodeMoveConfiguration(BaseModel):
     position: enums.MovePosition = enums.MovePosition.last_child
 
 
-def model_validate_tree(root_data: dict) -> TreeNodeItemSchema:
+def model_validate_tree(root_data: dict) -> models.TreeNode:
     root_children_data = sorted(
         root_data.pop('children', []), key=lambda child: child.get('order', '')
     )
@@ -82,7 +70,7 @@ def model_validate_tree(root_data: dict) -> TreeNodeItemSchema:
         *root_ancestors_data,
         {'id': root_data['id'], 'title': root_data['title']},
     ]
-    root = TreeNodeItemSchema.model_validate(root_data)
+    root = models.TreeNode.model_validate(root_data)
     root_children = []
     for child_data in root_children_data:
         child_data['parent_id'] = root.id

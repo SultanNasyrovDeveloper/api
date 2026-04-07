@@ -3,13 +3,15 @@ from collections.abc import Callable
 import pytest
 from faker import Faker
 
+from minager.node.dto import NodeSubtreeStatistics
 from minager.node.managers import PalaceNodeManager
 from minager.node.models import Node
 
 
 @pytest.mark.asyncio
 async def test_create_node(
-    test_palace_node_manager: PalaceNodeManager, node_create_data_factory: Callable[..., dict]
+    test_palace_node_manager: PalaceNodeManager,
+    node_create_data_factory: Callable[..., dict],
 ):
     node_data = node_create_data_factory()
     created_node = await test_palace_node_manager.create(node_data)
@@ -64,7 +66,9 @@ async def test_add_child(
 
 @pytest.mark.asyncio
 async def test_patch_node(
-    test_palace_node_manager: PalaceNodeManager, test_user_root_node: Node, faker: Faker
+    test_palace_node_manager: PalaceNodeManager,
+    test_user_root_node: Node,
+    faker: Faker,
 ):
     update_data = {'title': faker.name(), 'questions': faker.sentence()}
     updated_node = await test_palace_node_manager.patch(test_user_root_node.pk, update_data)
@@ -73,28 +77,48 @@ async def test_patch_node(
     assert updated_node.questions == update_data['questions']
 
 
+@pytest.mark.asyncio
+async def test_get_subtree(
+    test_palace_node_manager: PalaceNodeManager,
+    subtree: tuple[Node, NodeSubtreeStatistics],
+):
+    subtree_root, subtree_statistics = subtree
+    tree = await test_palace_node_manager.get_subtree(subtree_root.pk)
+    assert tree.pk == subtree_root.pk
+    # TODO: Think how you can really test this
+    assert len(tree.children) > 0
+
+
+@pytest.mark.asyncio
+async def test_get_subtree_statistics(
+    test_palace_node_manager: PalaceNodeManager,
+    subtree: tuple[Node, NodeSubtreeStatistics],
+):
+    subtree_root, expected_statistics = subtree
+    subtree_statistics = await test_palace_node_manager.get_subtree_statistics(subtree_root.pk)
+    assert subtree_statistics.count == expected_statistics.count
+    assert subtree_statistics.owner_views == expected_statistics.owner_views
+    assert subtree_statistics.repetitions == expected_statistics.repetitions
+    assert subtree_statistics.size == expected_statistics.size
+    assert subtree_statistics.empty == expected_statistics.empty
+    assert subtree_statistics.outdated == expected_statistics.outdated
+    assert subtree_statistics.not_visited == expected_statistics.not_visited
+
+
 # @pytest.mark.asyncio
-# async def test_get_subtree_returns_tree(test_palace_node_manager: PalaceNodeManager):
+# async def test_delete_node_removes_subtree(test_palace_node_manager: PalaceNodeManager):
 #     root = await test_palace_node_manager.create(
-#         NodeCreateSchema(title='Root', questions='?', owner_id='user_tree',
+#         NodeCreateSchema(title='Root', questions='?', owner_id='user_delete',
 #                          content='{}').model_dump())
-#     child1 = await test_palace_node_manager.create_child(
-#         root.pk,
-#         NodeCreateSchema(
-#             title='Child1',
-#             questions='?',
-#             owner_id='user_tree',
-#             content='{}').model_dump()
-#     )
-#     child2 = await test_palace_node_manager.create_child(root.pk, NodeCreateSchema(title='Child2',
-#                                                                                    questions='?',
-#                                                                                    owner_id='user_tree',
-#                                                                                    content='{}').model_dump())
+#     child = await test_palace_node_manager.create_child(root.pk, NodeCreateSchema(title='Child',
+#                                                                                   questions='?',
+#                                                                                   owner_id='user_delete',
+#                                                                                   content='{}').model_dump())
 #
-#     tree = await test_palace_node_manager.get_subtree(root.pk)
-#     assert tree.id == root.pk
-#     assert len(tree.children) == 2
-#     assert {c.title for c in tree.children} == {'Child1', 'Child2'}
+#     await test_palace_node_manager.delete(root.pk)
+#     assert await test_palace_node_manager.get(root.pk) is None
+#     assert await test_palace_node_manager.get(child.pk) is None
+#
 
 #
 #
@@ -122,37 +146,6 @@ async def test_patch_node(
 #     updated_child = await test_palace_node_manager.get(child.pk)
 #     assert updated_child.parent_id.id == parent.pk
 #
-#
-
-#
-#
-# @pytest.mark.asyncio
-# async def test_delete_node_removes_subtree(test_palace_node_manager: PalaceNodeManager):
-#     root = await test_palace_node_manager.create(
-#         NodeCreateSchema(title='Root', questions='?', owner_id='user_delete',
-#                          content='{}').model_dump())
-#     child = await test_palace_node_manager.create_child(root.pk, NodeCreateSchema(title='Child',
-#                                                                                   questions='?',
-#                                                                                   owner_id='user_delete',
-#                                                                                   content='{}').model_dump())
-#
-#     await test_palace_node_manager.delete(root.pk)
-#     assert await test_palace_node_manager.get(root.pk) is None
-#     assert await test_palace_node_manager.get(child.pk) is None
-#
-#
-# @pytest.mark.asyncio
-# async def test_get_subtree_statistics_returns_correct_data(
-#     test_palace_node_manager: PalaceNodeManager):
-#     node = await test_palace_node_manager.create(
-#         NodeCreateSchema(title='Stat Node', questions='?', owner_id='user_stat',
-#                          content='{}').model_dump())
-#     stats = await test_palace_node_manager.get_subtree_statistics(node.pk)
-#
-#     assert stats.count >= 1
-#     assert hasattr(stats, 'average_rating')
-#     assert hasattr(stats, 'size')
-#     assert hasattr(stats, 'owner_views')
 
 
 # @pytest.mark.asyncio

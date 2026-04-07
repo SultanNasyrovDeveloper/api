@@ -1,11 +1,29 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import ClassVar
 
+from pydantic import BaseModel
+from pydantic import Field as SchemaField
 from surrealdb import RecordID
 
 from minager.core.surorm import data_model
 from minager.core.surorm.orm.field import Field
 from minager.core.surorm.orm.models import Model
+
+from . import mixins
+
+
+class ListNode(BaseModel, mixins.IdMixin):
+    title: str
+    order: str | None = SchemaField(default=None)
+
+
+class TreeNode(BaseModel, mixins.IdMixin, mixins.ParentIdMixin):
+    title: str
+    order: str | None = ''
+    ancestors: list[ListNode] = SchemaField(default_factory=list)
+    children: list[TreeNode] = SchemaField(default_factory=list)
 
 
 class Node(Model):
@@ -14,8 +32,8 @@ class Node(Model):
     id: RecordID = Field(data_model.Record)
 
     parent_id: RecordID | None = Field(data_model.Record, default=None, exclude=True)
-    ancestors: list[dict] = Field(type_=data_model.Object, default_factory=list, exclude=True)
-    children: list[dict] = Field(type_=data_model.Object, default_factory=list, exclude=True)
+    ancestors: list[ListNode] = Field(type_=data_model.Object, default_factory=list, exclude=True)
+    children: list[ListNode] = Field(type_=data_model.Object, default_factory=list, exclude=True)
 
     is_learn: bool = Field(data_model.Boolean)
     title: str = Field(data_model.String)

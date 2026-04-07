@@ -4,7 +4,7 @@ from minager.core.api.dependencies import App
 from minager.core.types import PaginatedResult
 from minager.dependencies import RequestUser
 
-from . import dto, schemas
+from . import dto, models, schemas
 from .services.content_generation import HuggingFaceNodeContentGenerator
 
 router = APIRouter(prefix='/nodes')
@@ -17,7 +17,7 @@ async def list_(
     page: int,
     size: int,
     query: str,
-) -> PaginatedResult[schemas.NodeListItemSchema]:
+) -> PaginatedResult[models.ListNode]:
     nodes = await app.state.nodes.list_(
         user_id=user.get('id'),
         page=page,
@@ -69,7 +69,7 @@ async def get_statistics(uid: str, app: App) -> dto.NodeOverallStatistics:
 
 
 @router.get('/{uid}/subtree')
-async def get_subtree(uid: str, app: App) -> schemas.TreeNodeItemSchema:
+async def get_subtree(uid: str, app: App) -> models.TreeNode:
     return await app.state.nodes.get_subtree(uid)
 
 

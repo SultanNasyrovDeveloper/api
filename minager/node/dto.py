@@ -4,15 +4,15 @@ from .mixins import NodeStatisticsMixin
 
 
 class NodeSubtreeStatistics(BaseModel):
-    count: int
-    average_rating: float
-    owner_views: int
-    repetitions: int
-    size: int
+    count: int = 0
+    average_rating: float = 0
+    owner_views: int = 0
+    repetitions: int = 0
+    size: int = 0
 
-    outdated: int
-    not_visited: int
-    empty: int
+    outdated: int = 0
+    not_visited: int = 0
+    empty: int = 0
 
 
 class NodeIndexesInfo(BaseModel):

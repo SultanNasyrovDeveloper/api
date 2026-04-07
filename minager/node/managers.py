@@ -26,17 +26,17 @@ class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
     @abstractmethod
     async def patch(self, id_: str, data: dict) -> models.Node | None: ...
 
+    @abstractmethod
+    async def get_subtree(self, id_: str) -> models.TreeNode | None:
+        pass
+
     # @abstractmethod
     # async def move_node(self):
     #     pass
 
-    #
     # @abstractmethod
     # async def search(self): pass
-    #
-    # @abstractmethod
-    # async def get_subtree(self): pass
-    #
+
     # @abstractmethod
     # async def get_children(self): pass
     #
@@ -84,26 +84,7 @@ class PalaceNodeManager(BaseNodeManager):
         new_node = await self.query(query)
         return await self.get(new_node.get('id').id) if new_node else None
 
-    async def list_(
-        self,
-        owner_id: str,
-        search: str,
-        page: int = 1,
-        per_page: int = 10,
-    ) -> list[schemas.NodeListItemSchema] | None:
-        self._check_connection()
-        config = ListNodesRequestConfig(
-            owner_id=owner_id, search=search, page=page, per_page=per_page
-        )
-        response = await ListNodesRequest(db=self, config=config).perform()
-        nodes = response.data()
-        return (
-            [schemas.NodeListItemSchema.model_validate(node) for node in nodes]
-            if isinstance(nodes, list)
-            else None
-        )
-
-    async def get_subtree(self, uid: str) -> schemas.TreeNodeItemSchema:
+    async def get_subtree(self, id_: str) -> models.TreeNode:
         self._check_connection()
         stmt = surorm.Select(
             'id',
@@ -111,19 +92,19 @@ class PalaceNodeManager(BaseNodeManager):
             'order',
             surorm.Alias('parent_id', queries.parent_id_query),
             surorm.Alias('ancestors', queries.ancestors_query),
-        ).from_(f'{surorm.F.type.thing('node', uid)}.{{1..2+collect+inclusive}}<-child<-node')
+        ).from_(f'{surorm.F.type.thing('node', id_)}.{{1..2+collect+inclusive}}<-child<-node')
         nodes = await self.query(stmt)
         tree_root = utils.construct_tree(nodes)
-        return schemas.TreeNodeItemSchema.model_validate(tree_root)
+        return models.TreeNode.model_validate(tree_root)
 
-    async def get_children(self, uid: str) -> list[schemas.NodeListItemSchema]:
+    async def get_children(self, uid: str) -> list[models.ListNode]:
         self._check_connection()
         query = surorm.Select('VALUE <-child<-node.{id, title, order}').from_(
             surorm.F.type.thing(models.Node, uid), only=True
         )
         children: list[dict] = await self.select(query)
         return [
-            schemas.NodeListItemSchema.model_validate(node_data)
+            models.ListNode.model_validate(node_data)
             for node_data in children
             if node_data and isinstance(node_data, dict)
         ]
@@ -207,3 +188,22 @@ class PalaceNodeManager(BaseNodeManager):
         ).return_(surorm.Variable('descendants'))
         response = await self.query(query.sql())
         return [node['id'].id for node in response]
+
+    async def list_(
+        self,
+        owner_id: str,
+        search: str,
+        page: int = 1,
+        per_page: int = 10,
+    ) -> list[models.ListNode] | None:
+        self._check_connection()
+        config = ListNodesRequestConfig(
+            owner_id=owner_id, search=search, page=page, per_page=per_page
+        )
+        response = await ListNodesRequest(db=self, config=config).perform()
+        nodes = response.data()
+        return (
+            [models.ListNode.model_validate(node) for node in nodes]
+            if isinstance(nodes, list)
+            else None
+        )
