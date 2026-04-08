@@ -157,15 +157,15 @@ class PalaceNodeManager(BaseNodeManager):
         query = surorm.Transaction(
             surorm.DefineVariable('root', surorm.F.type.thing('node', uid)),
             surorm.DefineVariable(
-                'nodes', f'{surorm.Variable('root')}.{{..+collect+inclusive}}<-child<-node.id'
+                'descendants',
+                (
+                    surorm.Select('value id').from_(
+                        f'{surorm.Variable('root')}.{{..+collect+inclusive}}<-child<-node.id'
+                    )
+                ),
             ),
-            surorm.Delete('child').where(
-                surorm.Or(
-                    surorm.In('in', surorm.Variable('nodes')),
-                    surorm.In('out', surorm.Variable('nodes')),
-                )
-            ),
-            surorm.Delete('node').where(surorm.In('in', surorm.Variable('nodes'))),
+            surorm.Delete('child').where(surorm.In('in', surorm.Variable('descendants'))),
+            surorm.Delete(surorm.Variable('descendants')),
         )
         return await self.query(query.sql())
 

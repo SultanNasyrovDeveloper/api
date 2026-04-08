@@ -15,11 +15,11 @@ class TwoOperandOperator(Operator):
     ):
         super().__init__(**kwargs)
         self.operation = operation or self.operation
-        assert self.operation, 'Could not determine operation for this operator. Nothing provided.'
         self.left_operand = left
         self.right_operand = right
 
     def sql(self) -> str:
+        assert self.operation, 'Could not determine operation for this operator. Nothing provided.'
         return f'{render(self.left_operand)} {render(self.operation)} {render(self.right_operand)}'
 
 
