@@ -4,9 +4,9 @@ from pydantic import BaseModel
 
 from minager.core import surorm
 from minager.core.lexorank import Lexorank
+from minager.core.surorm.orm.serializer import Serializer
 
 from . import dto, models, queries, schemas, utils
-from .requests.list import ListNodesRequest, ListNodesRequestConfig
 from .requests.move import MoveNodeConfig, MoveNodeRequest
 from .services.node_index.node_indexes import NodeOverallIndex
 
@@ -21,13 +21,20 @@ class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
     async def get(self, id_: str) -> models.Node | None: ...
 
     @abstractmethod
+    async def search(self, query: str = '', page: int = 1, size: int = 15, **kwargs):
+        pass
+
+    @abstractmethod
     async def add_child(self, id_: str, data: dict) -> models.Node | None: ...
 
     @abstractmethod
     async def patch(self, id_: str, data: dict) -> models.Node | None: ...
 
     @abstractmethod
-    async def get_subtree(self, id_: str) -> models.TreeNode | None:
+    async def get_subtree(self, id_: str) -> models.TreeNode | None: ...
+
+    @abstractmethod
+    async def delete(self, id_: str) -> None:
         pass
 
     # @abstractmethod
@@ -35,16 +42,11 @@ class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
     #     pass
 
     # @abstractmethod
-    # async def search(self): pass
-
-    # @abstractmethod
     # async def get_children(self): pass
     #
     # @abstractmethod
     # async def patch(self): pass
     #
-    # @abstractmethod
-    # async def delete(self): pass
 
 
 class PalaceNodeManager(BaseNodeManager):
@@ -63,6 +65,30 @@ class PalaceNodeManager(BaseNodeManager):
         ).from_(surorm.F.type.thing('node', node_id))
         node_data: dict | None = await self.select_one(query)
         return models.Node.model_validate(node_data) if node_data else None
+
+    async def search(self, q: str = '', page: int = 1, size: int = 15, **kwargs) -> list[models.ListNode]:
+        self._check_connection()
+        conditions = []
+        if q:
+            conditions.append(f'title @@ {surorm.String(q)}')
+        if kwargs:
+            serializer_class = type('NodeSerializer', (Serializer,), {'model': models.Node})
+            serializer = serializer_class()
+            conditions.extend(
+                [
+                    f'{field_name} = {serializer.serialize_field(field_name, value)}'
+                    for field_name, value in kwargs.items()
+                ]
+            )
+        query = (
+            surorm.Select('id', 'title')
+            .from_(models.Node)
+            .where(*conditions)
+            .limit(size)
+            .start(size * (page - 1))
+        )
+        response = await self.select(query)
+        return [models.ListNode.model_validate(item) for item in response]
 
     async def add_child(self, parent_id: str, data: dict) -> models.Node | None:
         self._check_connection()
@@ -109,9 +135,9 @@ class PalaceNodeManager(BaseNodeManager):
             if node_data and isinstance(node_data, dict)
         ]
 
-    async def get_subtree_statistics(self, root_id: str) -> dto.NodeSubtreeStatistics:
+    async def get_subtree_statistics(self, id_: str) -> dto.NodeSubtreeStatistics:
         self._check_connection()
-        stats = await self.query(queries.get_node_statistics_query(root_id))
+        stats = await self.query(queries.get_node_statistics_query(id_))
         return dto.NodeSubtreeStatistics.model_validate(stats)
 
     async def get_statistics(self, node_id: str) -> dto.NodeOverallStatistics:
@@ -188,22 +214,3 @@ class PalaceNodeManager(BaseNodeManager):
         ).return_(surorm.Variable('descendants'))
         response = await self.query(query.sql())
         return [node['id'].id for node in response]
-
-    async def list_(
-        self,
-        owner_id: str,
-        search: str,
-        page: int = 1,
-        per_page: int = 10,
-    ) -> list[models.ListNode] | None:
-        self._check_connection()
-        config = ListNodesRequestConfig(
-            owner_id=owner_id, search=search, page=page, per_page=per_page
-        )
-        response = await ListNodesRequest(db=self, config=config).perform()
-        nodes = response.data()
-        return (
-            [models.ListNode.model_validate(node) for node in nodes]
-            if isinstance(nodes, list)
-            else None
-        )

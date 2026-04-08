@@ -53,9 +53,7 @@ async def test_add_child(
     test_user_root_node: Node,
     node_create_data_factory: Callable[..., dict],
 ):
-    child_node = await test_palace_node_manager.add_child(
-        test_user_root_node.pk, node_create_data_factory()
-    )
+    child_node = await test_palace_node_manager.add_child(test_user_root_node.pk, node_create_data_factory())
 
     assert child_node is not None
     assert child_node.parent_pk == test_user_root_node.pk
@@ -119,24 +117,17 @@ async def test_delete_node(
     # TODO: Test there is no relations also
 
 
-# @pytest.mark.asyncio
-# async def test_list_nodes_pagination_and_search(test_palace_node_manager: PalaceNodeManager):
-#     owner_id = 'user_list'
-#     # Create 15 nodes
-#     for i in range(15):
-#         await test_palace_node_manager.create(
-#             NodeCreateSchema(title=f'Node {i}', questions='?', owner_id=owner_id,
-#                              content='{}').model_dump())
-#
-#     # First page
-#     page1 = await test_palace_node_manager.list_(owner_id, '', page=1, per_page=10)
-#     assert len(page1) == 10
-#     # Second page
-#     page2 = await test_palace_node_manager.list_(owner_id, '', page=2, per_page=10)
-#     assert len(page2) == 5
-#     # Search
-#     search_results = await test_palace_node_manager.list_(owner_id, 'Node 1', page=1, per_page=10)
-#     assert all('Node 1' in node.title for node in search_results)
+@pytest.mark.asyncio
+async def test_search_nodes_pagination(
+    test_palace_node_manager: PalaceNodeManager,
+    node_create_data_factory: Callable[..., dict],
+):
+    owner_id = 'user_list'
+    for i in range(15):
+        await test_palace_node_manager.create(node_create_data_factory(owner_id=owner_id))
+    page1 = await test_palace_node_manager.search('', page=1, size=10, owner_id=owner_id)
+    assert len(page1) == 10
+
 
 # @pytest.mark.asyncio
 # async def test_move_node_changes_parent(test_palace_node_manager: PalaceNodeManager):

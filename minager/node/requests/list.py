@@ -1,6 +1,6 @@
 from typing import TypedDict
 
-from minager.core.surorm import Alias, Response, Select, String, Traverse
+from minager.core.surorm import Alias, Response, Select, String
 
 from .abstract import AbstractRequest
 
@@ -22,7 +22,6 @@ class ListNodesRequest(AbstractRequest[ListNodesRequestConfig]):
                 'title',
                 Alias(
                     'parent',
-                    Traverse('@').alias('parent').relation('->child->node').columns('id', 'title'),
                 ),
             )
             .limit(self._config['per_page'])

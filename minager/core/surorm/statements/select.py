@@ -1,4 +1,4 @@
-from typing import Literal, Self
+from typing import Literal, Self, Type
 
 from ..base import Statement
 from ..mixins import Filterable
@@ -32,15 +32,13 @@ class Select(Statement, Filterable):
     def __str__(self) -> str:
         return self.sql()
 
-    def from_(self, name: Expression | type[Table], only: bool = False) -> Self:
+    def from_(self, name: Expression | Type[Table], only: bool = False) -> Self:
         # TODO: Refactor this should be done in sql method not here
         sql = ['from']
         if only:
             sql.append('only')
         sql.append(
-            get_table_name(name)
-            if isinstance(name, type) and issubclass(name, Table)
-            else render(name)
+            get_table_name(name) if isinstance(name, type) and issubclass(name, Table) else render(name)
         )
         self.target = ' '.join(sql)
         return self
