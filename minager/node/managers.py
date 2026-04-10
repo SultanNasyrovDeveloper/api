@@ -6,8 +6,8 @@ from minager.core import surorm
 from minager.core.lexorank import Lexorank
 from minager.core.surorm.orm.serializer import Serializer
 
-from . import dto, models, queries, schemas, utils
-from .requests.move import MoveNodeConfig, MoveNodeRequest
+from . import dto, enums, models, queries, schemas, utils
+from .services.move_node import MoveNodeService
 from .services.node_index.node_indexes import NodeOverallIndex
 
 
@@ -21,8 +21,10 @@ class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
     async def get(self, id_: str) -> models.Node | None: ...
 
     @abstractmethod
-    async def search(self, query: str = '', page: int = 1, size: int = 15, **kwargs):
-        pass
+    async def search(self, query: str = '', page: int = 1, size: int = 15, **kwargs): ...
+
+    @abstractmethod
+    async def get_subtree(self, id_: str) -> models.TreeNode | None: ...
 
     @abstractmethod
     async def add_child(self, id_: str, data: dict) -> models.Node | None: ...
@@ -31,22 +33,10 @@ class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
     async def patch(self, id_: str, data: dict) -> models.Node | None: ...
 
     @abstractmethod
-    async def get_subtree(self, id_: str) -> models.TreeNode | None: ...
+    async def delete(self, id_: str) -> None: ...
 
     @abstractmethod
-    async def delete(self, id_: str) -> None:
-        pass
-
-    # @abstractmethod
-    # async def move_node(self):
-    #     pass
-
-    # @abstractmethod
-    # async def get_children(self): pass
-    #
-    # @abstractmethod
-    # async def patch(self): pass
-    #
+    async def move(self, id_: str, to: str, position: enums.MovePosition) -> models.Node: ...
 
 
 class PalaceNodeManager(BaseNodeManager):
@@ -129,11 +119,14 @@ class PalaceNodeManager(BaseNodeManager):
             surorm.F.type.thing(models.Node, uid), only=True
         )
         children: list[dict] = await self.select(query)
-        return [
+        validated_children = [
             models.ListNode.model_validate(node_data)
             for node_data in children
             if node_data and isinstance(node_data, dict)
         ]
+        # TODO: This sorting is just a temp solution. Fix
+        validated_children.sort(key=lambda list_node: list_node.order)
+        return validated_children
 
     async def get_subtree_statistics(self, id_: str) -> dto.NodeSubtreeStatistics:
         self._check_connection()
@@ -163,20 +156,13 @@ class PalaceNodeManager(BaseNodeManager):
     update = patch
 
     async def move(
-        self, node_id: str, target_id: str, move_position: int
+        self,
+        id_: str,
+        to: str,
+        position: enums.MovePosition = enums.MovePosition.last_child,
     ) -> schemas.UpdatedNodeSchema | None:
-        """
-        TODO: add validation for:
-          - Node exists
-          - Target exists
-          - Not moving node to itself
-          - Not creating cycles in the tree
-          - Not moving node to be its own descendant
-        """
-        config = MoveNodeConfig(node_id=node_id, target_id=target_id, move_position=move_position)
-        request = MoveNodeRequest(db=self, config=config)
-        response = await request.perform()
-        return response.instances(schemas.UpdatedNodeSchema, many=False) if response else None
+        service = MoveNodeService(manager=self)
+        return await service.move(id_, to, position)
 
     async def delete(self, uid: str):
         self._check_connection()

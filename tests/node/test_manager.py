@@ -4,6 +4,7 @@ import pytest
 from faker import Faker
 
 from minager.node.dto import NodeSubtreeStatistics
+from minager.node.enums import MovePosition
 from minager.node.managers import PalaceNodeManager
 from minager.node.models import Node
 
@@ -129,27 +130,89 @@ async def test_search_nodes_pagination(
     assert len(page1) == 10
 
 
-# @pytest.mark.asyncio
-# async def test_move_node_changes_parent(test_palace_node_manager: PalaceNodeManager):
-#     parent = await test_palace_node_manager.create(
-#         NodeCreateSchema(
-#             title='Parent',
-#             questions='?',
-#             owner_id='user_move',
-#             content='{}'
-#         ).model_dump()
-#     )
-#     child = await test_palace_node_manager.create(
-#         NodeCreateSchema(
-#             title='Child',
-#             questions='?',
-#             owner_id='user_move',
-#             content='{}'
-#         ).model_dump()
-#     )
-#
-#     moved_node = await test_palace_node_manager.move(child.pk, parent.pk, 1)  # last_child
-#     assert moved_node is not None
-#     updated_child = await test_palace_node_manager.get(child.pk)
-#     assert updated_child.parent_id.id == parent.pk
-#
+@pytest.mark.asyncio
+async def test_move_node_first_child(
+    test_palace_node_manager: PalaceNodeManager,
+    node_create_data_factory: Callable[..., dict],
+):
+    initial_new_parent_children_count = 3
+    initial_parent = await test_palace_node_manager.create(node_create_data_factory())
+    child = await test_palace_node_manager.add_child(initial_parent.pk, node_create_data_factory())
+    new_parent = await test_palace_node_manager.create(node_create_data_factory())
+    for _ in range(initial_new_parent_children_count):
+        await test_palace_node_manager.add_child(new_parent.pk, node_create_data_factory())
+    await test_palace_node_manager.move(child.pk, new_parent.pk, MovePosition.first_child)
+
+    moved_node = await test_palace_node_manager.get(child.pk)
+    assert moved_node.parent_pk == new_parent.pk
+    updated_new_parent_children_list = await test_palace_node_manager.get_children(new_parent.pk)
+    assert len(updated_new_parent_children_list) == initial_new_parent_children_count + 1
+    assert updated_new_parent_children_list[0].pk == child.pk
+
+
+@pytest.mark.asyncio
+async def test_move_node_last_child(
+    test_palace_node_manager: PalaceNodeManager,
+    node_create_data_factory: Callable[..., dict],
+):
+    initial_new_parent_children_count = 3
+    initial_parent = await test_palace_node_manager.create(node_create_data_factory())
+    child = await test_palace_node_manager.add_child(initial_parent.pk, node_create_data_factory())
+    new_parent = await test_palace_node_manager.create(node_create_data_factory())
+    for _ in range(initial_new_parent_children_count):
+        await test_palace_node_manager.add_child(new_parent.pk, node_create_data_factory())
+    await test_palace_node_manager.move(child.pk, new_parent.pk, MovePosition.last_child)
+
+    moved_node = await test_palace_node_manager.get(child.pk)
+    assert moved_node.parent_pk == new_parent.pk
+    updated_new_parent_children_list = await test_palace_node_manager.get_children(new_parent.pk)
+    assert len(updated_new_parent_children_list) == initial_new_parent_children_count + 1
+    assert updated_new_parent_children_list[-1].pk == child.pk
+
+
+@pytest.mark.asyncio
+async def test_move_node_after(
+    test_palace_node_manager: PalaceNodeManager,
+    node_create_data_factory: Callable[..., dict],
+):
+    initial_new_parent_children_count = 3
+    initial_parent = await test_palace_node_manager.create(node_create_data_factory())
+    child = await test_palace_node_manager.add_child(initial_parent.pk, node_create_data_factory())
+    new_parent = await test_palace_node_manager.create(node_create_data_factory())
+    to = None
+    for index in range(initial_new_parent_children_count):
+        is_second_child = index == 1
+        node = await test_palace_node_manager.add_child(new_parent.pk, node_create_data_factory())
+        if is_second_child:
+            to = node
+    await test_palace_node_manager.move(child.pk, to.pk, MovePosition.after)
+
+    moved_node = await test_palace_node_manager.get(child.pk)
+    assert moved_node.parent_pk == new_parent.pk
+    updated_new_parent_children_list = await test_palace_node_manager.get_children(new_parent.pk)
+    assert len(updated_new_parent_children_list) == initial_new_parent_children_count + 1
+    assert updated_new_parent_children_list[2].pk == child.pk
+
+
+@pytest.mark.asyncio
+async def test_move_node_before(
+    test_palace_node_manager: PalaceNodeManager,
+    node_create_data_factory: Callable[..., dict],
+):
+    initial_new_parent_children_count = 3
+    initial_parent = await test_palace_node_manager.create(node_create_data_factory())
+    child = await test_palace_node_manager.add_child(initial_parent.pk, node_create_data_factory())
+    new_parent = await test_palace_node_manager.create(node_create_data_factory())
+    to = None
+    for index in range(initial_new_parent_children_count):
+        is_second_child = index == 1
+        node = await test_palace_node_manager.add_child(new_parent.pk, node_create_data_factory())
+        if is_second_child:
+            to = node
+    await test_palace_node_manager.move(child.pk, to.pk, MovePosition.before)
+
+    moved_node = await test_palace_node_manager.get(child.pk)
+    assert moved_node.parent_pk == new_parent.pk
+    updated_new_parent_children_list = await test_palace_node_manager.get_children(new_parent.pk)
+    assert len(updated_new_parent_children_list) == initial_new_parent_children_count + 1
+    assert updated_new_parent_children_list[1].pk == child.pk

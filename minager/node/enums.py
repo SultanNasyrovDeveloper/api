@@ -11,8 +11,8 @@ class NodeRelationType(IntEnum):
 class MovePosition(IntEnum):
     first_child = 1
     last_child = 2
-    left = 3
-    right = 4
+    before = 3
+    after = 4
 
 
 class NodeOrdering(IntEnum):

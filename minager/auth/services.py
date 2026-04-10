@@ -21,6 +21,8 @@ class UserSignupService:
                 knowledge_tree_root_data = {
                     'owner_id': str(user.id),
                     'title': f'{user.username.title()}\'s knowledge tree',
+                    'order': 'aaaaaa',
+                    'questions': 'What do I know?',
                 }
                 root = await knowledge_tree_client.create(knowledge_tree_root_data)
                 if not root:
