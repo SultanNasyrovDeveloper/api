@@ -64,12 +64,11 @@ class PalaceNodeManager(BaseNodeManager):
         if kwargs:
             serializer_class = type('NodeSerializer', (Serializer,), {'model': models.Node})
             serializer = serializer_class()
-            conditions.extend(
-                [
-                    f'{field_name} = {serializer.serialize_field(field_name, value)}'
-                    for field_name, value in kwargs.items()
-                ]
-            )
+            serialized_data = [
+                f'{field_name} = {serializer.serialize_field(field_name, value)}'
+                for field_name, value in kwargs.items()
+            ]
+            conditions.extend(serialized_data)
         query = (
             surorm.Select('id', 'title')
             .from_(models.Node)
