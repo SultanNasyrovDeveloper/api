@@ -14,3 +14,4 @@ htmlcov/
 .nox/
 coverage.xml
 *.cover
+.gwen_docs.md

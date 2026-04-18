@@ -11,15 +11,15 @@ router = APIRouter(prefix='/nodes')
 
 
 @router.get('/')
-async def list_(
+async def search(
     user: RequestUser,
     app: App,
-    page: int,
-    size: int,
-    query: str,
+    query: str = '',
+    page: int = 1,
+    size: int = 10,
 ) -> PaginatedResult[models.ListNode]:
-    nodes = await app.state.nodes.list_(
-        user_id=user.get('id'),
+    nodes = await app.state.nodes.search(
+        user_id=str(user.sub),
         page=page,
         per_page=size,
         query=query,
@@ -34,8 +34,9 @@ async def add_child(
     user: RequestUser,
     app: App,
 ) -> schemas.NodeDetailSchema:
-    data.owner_id = user.sub
-    return await app.state.nodes.add_child(id_, data=data.model_dump())
+    data_as_dict = data.model_dump()
+    data_as_dict['owner_id'] = user.sub
+    return await app.state.nodes.add_child(id_, data=data_as_dict)
 
 
 @router.get('/{id_}')
@@ -91,9 +92,7 @@ async def move_node(
 
 
 @router.patch('/{uid}')
-async def update(
-    uid: str, app: App, update_data: schemas.NodeEditSchema
-) -> schemas.NodeDetailSchema:
+async def update(uid: str, app: App, update_data: schemas.NodeEditSchema) -> schemas.NodeDetailSchema:
     response = await app.state.nodes.patch(uid, update_data.model_dump(exclude_unset=True))
     return response
 

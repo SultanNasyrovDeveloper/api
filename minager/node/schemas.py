@@ -51,8 +51,10 @@ class NodeEditSchema(mixins.NodeContentMixin, mixins.NodeStatisticsMixin, BaseMo
     tags: list[int] = []
 
 
-class NodeCreateSchema(NodeEditSchema, BaseModel):
-    owner_id: str = None
+class NodeCreateSchema(BaseModel):
+    title: str
+    questions: str
+    is_learn: bool = True
     order: str = Field(default='aaaaaa')
 
 
@@ -62,9 +64,7 @@ class NodeMoveConfiguration(BaseModel):
 
 
 def model_validate_tree(root_data: dict) -> models.TreeNode:
-    root_children_data = sorted(
-        root_data.pop('children', []), key=lambda child: child.get('order', '')
-    )
+    root_children_data = sorted(root_data.pop('children', []), key=lambda child: child.get('order', ''))
     root_ancestors_data = root_data.pop('ancestors', [])
     root_data['ancestors'] = [
         *root_ancestors_data,

@@ -10,8 +10,6 @@ from minager.node.dto import NodeSubtreeStatistics
 from minager.node.managers import PalaceNodeManager
 from minager.node.models import Node
 
-BASE = '/api/v1/node/nodes'
-
 
 @pytest.fixture
 def node_create_data_factory(faker: Faker) -> Callable[..., dict]:
@@ -50,9 +48,7 @@ async def subtree(
         size = faker.pyint() if not is_empty else 0
         owner_views = faker.pyint() if is_visited else 0
         repetitions = (
-            faker.pyint(max_value=owner_views) - faker.pyint(max_value=owner_views)
-            if is_visited
-            else 0
+            faker.pyint(max_value=owner_views) - faker.pyint(max_value=owner_views) if is_visited else 0
         )
 
         overall.count += 1
@@ -71,8 +67,7 @@ async def subtree(
             owner_views=owner_views,
             size=size,
             next_optimal_repetition=(
-                datetime.now(UTC)
-                - timedelta(days=faker.pyint(max_value=5), hours=faker.pyint(max_value=23))
+                datetime.now(UTC) - timedelta(days=faker.pyint(max_value=5), hours=faker.pyint(max_value=23))
                 if is_outdated
                 else datetime.now(UTC)
                 + timedelta(days=faker.pyint(max_value=5), hours=faker.pyint(max_value=23))

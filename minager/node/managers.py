@@ -81,6 +81,7 @@ class PalaceNodeManager(BaseNodeManager):
 
     async def add_child(self, parent_id: str, data: dict) -> models.Node | None:
         self._check_connection()
+        # TODO: Must first check if parent node exists
         last_child_order_query = queries.get_last_child_order_query(parent_id)
         last_child_order: str = await self.select_one(last_child_order_query)
         data['order'] = Lexorank.middle(previous=last_child_order)

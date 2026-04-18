@@ -30,6 +30,7 @@ env/
 
 # Poetry
 poetry.lock
+.gwen_docs.md/
 
 # Testing
 .pytest_cache/
