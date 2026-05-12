@@ -56,11 +56,15 @@ class PalaceNodeManager(BaseNodeManager):
         node_data: dict | None = await self.select_one(query)
         return models.Node.model_validate(node_data) if node_data else None
 
-    async def search(self, q: str = '', page: int = 1, size: int = 15, **kwargs) -> list[models.ListNode]:
+    async def search(
+        self, query: str = '', page: int = 1, per_page: int = 15, user_id: str = None, **kwargs
+    ) -> list[models.ListNode]:
         self._check_connection()
         conditions = []
-        if q:
-            conditions.append(f'title @@ {surorm.String(q)}')
+        if user_id:
+            kwargs['owner_id'] = user_id
+        if query:
+            conditions.append(f'title @@ {surorm.String(query)}')
         if kwargs:
             serializer_class = type('NodeSerializer', (Serializer,), {'model': models.Node})
             serializer = serializer_class()
@@ -69,14 +73,14 @@ class PalaceNodeManager(BaseNodeManager):
                 for field_name, value in kwargs.items()
             ]
             conditions.extend(serialized_data)
-        query = (
+        q = (
             surorm.Select('id', 'title')
             .from_(models.Node)
             .where(*conditions)
-            .limit(size)
-            .start(size * (page - 1))
+            .limit(per_page)
+            .start(per_page * (page - 1))
         )
-        response = await self.select(query)
+        response = await self.select(q)
         return [models.ListNode.model_validate(item) for item in response]
 
     async def add_child(self, parent_id: str, data: dict) -> models.Node | None:

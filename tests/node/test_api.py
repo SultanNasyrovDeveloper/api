@@ -1,5 +1,6 @@
 import pytest
 from faker import Faker
+from fastapi import status
 from httpx import AsyncClient
 
 from minager.node.managers import PalaceNodeManager
@@ -238,100 +239,75 @@ async def test_get_node_detail_returns_node(
 #     mock_generator.generate.assert_called_once()
 #
 #
-# # =============================================================================
-# # GET /api/v1/node/nodes/{uid}/children - Get Children
-# # =============================================================================
-# @pytest.mark.asyncio
-# async def test_get_children_returns_paginated_list(
-#     app_client: AsyncClient,
-#     root_node: NodeDetailSchema,
-#     test_palace_node_manager: PalaceNodeManager,
-#     faker,
-# ):
-#     # Create some children first
-#     for _ in range(3):
-#         await test_palace_node_manager.add_child(
-#             root_node.pk,
-#             {
-#                 'title': faker.name(),
-#                 'questions': faker.sentence(),
-#                 'owner_id': 'test_owner',
-#                 'content': '{"root": {}}',
-#                 'order': 'aaaaa',
-#             },
-#         )
-#
-#     url = f'{BASE}/{root_node.pk}/children'
-#     response = await app_client.get(url)
-#     assert response.status_code == 200
-#     body = response.json()
-#     assert 'results' in body
-#     assert 'page' in body
-#     assert len(body['results']) == 3
-#
-#
-# @pytest.mark.asyncio
-# async def test_get_children_empty_node(
-#     app_client: AsyncClient,
-#     root_node: NodeDetailSchema,
-# ):
-#     url = f'{BASE}/{root_node.pk}/children'
-#     response = await app_client.get(url)
-#     assert response.status_code == 200
-#     body = response.json()
-#     assert body['results'] == []
-#
-#
-# @pytest.mark.asyncio
-# async def test_get_children_with_pagination_params(
-#     app_client: AsyncClient,
-#     root_node: NodeDetailSchema,
-#     test_palace_node_manager: PalaceNodeManager,
-#     faker,
-# ):
-#     for _ in range(5):
-#         await test_palace_node_manager.add_child(
-#             root_node.pk,
-#             {
-#                 'title': faker.name(),
-#                 'questions': faker.sentence(),
-#                 'owner_id': 'test_owner',
-#                 'content': '{"root": {}}',
-#                 'order': 'aaaaa',
-#             },
-#         )
-#
-#     url = f'{BASE}/{root_node.pk}/children?page=1&size=2'
-#     response = await app_client.get(url)
-#     assert response.status_code == 200
-#
-#
-# @pytest.mark.asyncio
-# async def test_get_children_nonexistent_node(
-#     app_client: AsyncClient,
-# ):
-#     url = f'{BASE}/nonexistent_id/children'
-#     response = await app_client.get(url)
-#     # Manager returns empty list for non-existent, not 404
-#     assert response.status_code in [200, 404]
-#
-#
-# # =============================================================================
-# # GET /api/v1/node/nodes/{uid}/statistics - Get Statistics
-# # =============================================================================
-# @pytest.mark.asyncio
-# async def test_get_statistics_returns_valid_structure(
-#     app_client: AsyncClient,
-#     root_node: NodeDetailSchema,
-# ):
-#     url = f'{BASE}/{root_node.pk}/statistics'
-#     response = await app_client.get(url)
-#     assert response.status_code == 200
-#     body = response.json()
-#     assert 'indexes' in body
-#     assert 'subtree' in body
-#     assert 'node' in body
-#
+# =============================================================================
+# GET /api/v1/node/nodes/{uid}/children - Get Children
+# =============================================================================
+@pytest.mark.asyncio
+async def test_get_children_returns_paginated_list(
+    app_client: AsyncClient,
+    test_user_root_node: Node,
+    test_palace_node_manager: PalaceNodeManager,
+    faker,
+):
+    # Create some children first
+    for _ in range(3):
+        await test_palace_node_manager.add_child(
+            test_user_root_node.pk,
+            {
+                'title': faker.name(),
+                'questions': faker.sentence(),
+                'owner_id': 'test_owner',
+                'content': '{"root": {}}',
+                'order': 'aaaaa',
+            },
+        )
+
+    url = f'{BASE_URL}{test_user_root_node.pk}/children'
+    response = await app_client.get(url)
+    assert response.status_code == 200
+    body = response.json()
+    assert 'results' in body
+    assert 'page' in body
+    assert len(body['results']) == 3
+
+
+@pytest.mark.asyncio
+async def test_get_children_empty_node(
+    app_client: AsyncClient,
+    test_user_root_node: Node,
+):
+    url = f'{BASE_URL}{test_user_root_node.pk}/children'
+    response = await app_client.get(url)
+    assert response.status_code == 200
+    body = response.json()
+    assert body['results'] == []
+
+
+@pytest.mark.xfail
+@pytest.mark.asyncio
+async def test_get_children_nonexistent_node(app_client: AsyncClient):
+    url = f'{BASE_URL}nonexistent_id/children'
+    response = await app_client.get(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+# =============================================================================
+# GET /api/v1/node/nodes/{uid}/statistics - Get Statistics
+# =============================================================================
+@pytest.mark.asyncio
+async def test_get_statistics_returns_valid_structure(
+    app_client: AsyncClient,
+    test_user_root_node: Node,
+):
+    url = f'{BASE_URL}{test_user_root_node.pk}/statistics'
+    response = await app_client.get(url)
+    assert response.status_code == 200
+    body = response.json()
+    assert 'indexes' in body
+    assert 'subtree' in body
+    assert 'node' in body
+
+
 #
 # @pytest.mark.asyncio
 # async def test_get_statistics_nonexistent_node(

@@ -61,6 +61,7 @@ async def generate_content(uid: str, app: App) -> str:
 @router.get('/{uid}/children')
 async def get_children(uid: str, app: App, page: int = 1, size: int = 30):
     children = await app.state.nodes.get_children(uid)
+    # TODO: Raise 404 if node whose children we trying to access not found
     return PaginatedResult(page=page, results=[child.model_dump() for child in children])
 
 
@@ -76,6 +77,8 @@ async def get_subtree(uid: str, app: App) -> models.TreeNode:
 
 @router.get('/{uid}/subtree/statistics')
 async def get_subtree_statistics(uid: str, app: App) -> dto.NodeSubtreeStatistics:
+    # TODO: Make proper schema for statistics response
+    # TODO: Check if node exists raise 404 if not
     return await app.state.nodes.get_subtree_statistics(uid)
 
 
