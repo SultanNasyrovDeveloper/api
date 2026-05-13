@@ -29,17 +29,16 @@ class NodeDetailSchema(mixins.NodeStatisticsMixin, mixins.IdMixin, mixins.Parent
     children: list[models.ListNode] = Field(default_factory=list)
 
 
-class UpdatedNodeSchema(mixins.NodeStatisticsMixin):
+class UpdatedNodeSchema(mixins.NodeStatisticsMixin, mixins.IdMixin, mixins.ParentIdMixin):
     title: str = ''
     questions: str = ''
     size: int = 0
     content: str = ''
     is_learn: bool = True
     order: str = ''
-    parent_id: str = None
     children: list[models.ListNode] = []
     tags: list[int] = Field(default_factory=list)
-    data_rating: int
+    ancestors: list[models.ListNode] = Field(default_factory=list)
 
     model_config = ConfigDict(extra='ignore')
 

@@ -3,6 +3,7 @@ from faker import Faker
 from fastapi import status
 from httpx import AsyncClient
 
+from minager.node.enums import MovePosition
 from minager.node.managers import PalaceNodeManager
 from minager.node.models import Node
 
@@ -543,162 +544,119 @@ async def test_get_statistics_returns_valid_structure(
 #     body = response.json()
 #     assert isinstance(body, list)
 #
-#
-# # =============================================================================
-# # POST /api/v1/node/nodes/{uid}/move - Move Node
-# # =============================================================================
-# @pytest.mark.asyncio
-# async def test_move_node_as_last_child(
-#     app_client: AsyncClient,
-#     root_node: NodeDetailSchema,
-#     test_palace_node_manager: PalaceNodeManager,
-#     faker,
-# ):
-#     # Create two children
-#     child1 = await test_palace_node_manager.add_child(
-#         root_node.pk,
-#         {
-#             'title': faker.name(),
-#             'questions': faker.sentence(),
-#             'owner_id': 'test_owner',
-#             'content': '{"root": {}}',
-#             'order': 'aaaaa',
-#         },
-#     )
-#     child2 = await test_palace_node_manager.add_child(
-#         root_node.pk,
-#         {
-#             'title': faker.name(),
-#             'questions': faker.sentence(),
-#             'owner_id': 'test_owner',
-#             'content': '{"root": {}}',
-#             'order': 'bbbbb',
-#         },
-#     )
-#
-#     # Move child1 to be last child of child2
-#     url = f'{BASE}/{child1.pk}/move'
-#     data = {'target_id': child2.pk, 'position': MovePosition.last_child.value}
-#     response = await app_client.post(url, json=data)
-#     assert response.status_code == 200
-#     body = response.json()
-#     assert body['title'] == child1.title
-#
-#
-# @pytest.mark.asyncio
-# async def test_move_node_as_first_child(
-#     app_client: AsyncClient,
-#     root_node: NodeDetailSchema,
-#     test_palace_node_manager: PalaceNodeManager,
-#     faker,
-# ):
-#     child1 = await test_palace_node_manager.add_child(
-#         root_node.pk,
-#         {
-#             'title': faker.name(),
-#             'questions': faker.sentence(),
-#             'owner_id': 'test_owner',
-#             'content': '{"root": {}}',
-#             'order': 'aaaaa',
-#         },
-#     )
-#     child2 = await test_palace_node_manager.add_child(
-#         root_node.pk,
-#         {
-#             'title': faker.name(),
-#             'questions': faker.sentence(),
-#             'owner_id': 'test_owner',
-#             'content': '{"root": {}}',
-#             'order': 'bbbbb',
-#         },
-#     )
-#
-#     url = f'{BASE}/{child2.pk}/move'
-#     data = {'target_id': child1.pk, 'position': MovePosition.first_child.value}
-#     response = await app_client.post(url, json=data)
-#     assert response.status_code == 200
-#
-#
-# @pytest.mark.asyncio
-# async def test_move_node_before(
-#     app_client: AsyncClient,
-#     root_node: NodeDetailSchema,
-#     test_palace_node_manager: PalaceNodeManager,
-#     faker,
-# ):
-#     child1 = await test_palace_node_manager.add_child(
-#         root_node.pk,
-#         {
-#             'title': faker.name(),
-#             'questions': faker.sentence(),
-#             'owner_id': 'test_owner',
-#             'content': '{"root": {}}',
-#             'order': 'aaaaa',
-#         },
-#     )
-#     child2 = await test_palace_node_manager.add_child(
-#         root_node.pk,
-#         {
-#             'title': faker.name(),
-#             'questions': faker.sentence(),
-#             'owner_id': 'test_owner',
-#             'content': '{"root": {}}',
-#             'order': 'bbbbb',
-#         },
-#     )
-#
-#     url = f'{BASE}/{child2.pk}/move'
-#     data = {'target_id': child1.pk, 'position': MovePosition.before.value}
-#     response = await app_client.post(url, json=data)
-#     assert response.status_code == 200
-#
-#
-# @pytest.mark.asyncio
-# async def test_move_node_after(
-#     app_client: AsyncClient,
-#     root_node: NodeDetailSchema,
-#     test_palace_node_manager: PalaceNodeManager,
-#     faker,
-# ):
-#     child1 = await test_palace_node_manager.add_child(
-#         root_node.pk,
-#         {
-#             'title': faker.name(),
-#             'questions': faker.sentence(),
-#             'owner_id': 'test_owner',
-#             'content': '{"root": {}}',
-#             'order': 'aaaaa',
-#         },
-#     )
-#     child2 = await test_palace_node_manager.add_child(
-#         root_node.pk,
-#         {
-#             'title': faker.name(),
-#             'questions': faker.sentence(),
-#             'owner_id': 'test_owner',
-#             'content': '{"root": {}}',
-#             'order': 'bbbbb',
-#         },
-#     )
-#
-#     url = f'{BASE}/{child1.pk}/move'
-#     data = {'target_id': child2.pk, 'position': MovePosition.after.value}
-#     response = await app_client.post(url, json=data)
-#     assert response.status_code == 200
-#
-#
-# @pytest.mark.asyncio
-# async def test_move_node_invalid_position(
-#     app_client: AsyncClient,
-#     root_node: NodeDetailSchema,
-#     faker,
-# ):
-#     url = f'{BASE}/{root_node.pk}/move'
-#     data = {'target_id': 'some_target', 'position': 999}
-#     response = await app_client.post(url, json=data)
-#     assert response.status_code in [422, 500]
-#
-#
+
+
+# =============================================================================
+# POST /api/v1/node/nodes/{uid}/move - Move Node
+# =============================================================================
+@pytest.mark.asyncio
+async def test_move_node_as_last_child(
+    app_client: AsyncClient,
+    test_user_root_node: Node,
+    test_palace_node_manager: PalaceNodeManager,
+    node_create_data_factory,
+    auth_headers: dict,
+):
+    # Create two children
+    child1 = await test_palace_node_manager.add_child(
+        test_user_root_node.pk,
+        node_create_data_factory(),
+    )
+    child2 = await test_palace_node_manager.add_child(
+        test_user_root_node.pk,
+        node_create_data_factory(order='bbbbb'),
+    )
+
+    # Move child1 to be last child of child2
+    url = f'{BASE_URL}{child1.pk}/move'
+    data = {'target_id': child2.pk, 'position': MovePosition.last_child.value}
+    response = await app_client.post(url, json=data, headers=auth_headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert body['title'] == child1.title
+
+
+@pytest.mark.asyncio
+async def test_move_node_as_first_child(
+    app_client: AsyncClient,
+    test_user_root_node: Node,
+    test_palace_node_manager: PalaceNodeManager,
+    node_create_data_factory,
+    auth_headers: dict,
+):
+    child1 = await test_palace_node_manager.add_child(
+        test_user_root_node.pk,
+        node_create_data_factory(),
+    )
+    child2 = await test_palace_node_manager.add_child(
+        test_user_root_node.pk,
+        node_create_data_factory(order='bbbbb'),
+    )
+
+    url = f'{BASE_URL}{child2.pk}/move'
+    data = {'target_id': child1.pk, 'position': MovePosition.first_child.value}
+    response = await app_client.post(url, json=data, headers=auth_headers)
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_move_node_before(
+    app_client: AsyncClient,
+    test_user_root_node: Node,
+    test_palace_node_manager: PalaceNodeManager,
+    node_create_data_factory,
+    auth_headers: dict,
+):
+    child1 = await test_palace_node_manager.add_child(
+        test_user_root_node.pk,
+        node_create_data_factory(),
+    )
+    child2 = await test_palace_node_manager.add_child(
+        test_user_root_node.pk,
+        node_create_data_factory(order='bbbbb'),
+    )
+
+    url = f'{BASE_URL}{child2.pk}/move'
+    data = {'target_id': child1.pk, 'position': MovePosition.before.value}
+    response = await app_client.post(url, json=data, headers=auth_headers)
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_move_node_after(
+    app_client: AsyncClient,
+    test_user_root_node: Node,
+    test_palace_node_manager: PalaceNodeManager,
+    node_create_data_factory,
+    auth_headers: dict,
+):
+    child1 = await test_palace_node_manager.add_child(
+        test_user_root_node.pk,
+        node_create_data_factory(),
+    )
+    child2 = await test_palace_node_manager.add_child(
+        test_user_root_node.pk,
+        node_create_data_factory(order='bbbbb'),
+    )
+
+    url = f'{BASE_URL}{child1.pk}/move'
+    data = {'target_id': child2.pk, 'position': MovePosition.after.value}
+    response = await app_client.post(url, json=data, headers=auth_headers)
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_move_node_invalid_position(
+    app_client: AsyncClient,
+    test_user_root_node: Node,
+    auth_headers: dict,
+):
+    url = f'{BASE_URL}{test_user_root_node.pk}/move'
+    data = {'target_id': 'some_target', 'position': 999}
+    response = await app_client.post(url, json=data, headers=auth_headers)
+    assert response.status_code in [422, 500]
+
+
 # # =============================================================================
 # # PATCH /api/v1/node/nodes/{uid} - Update Node
 # # =============================================================================
@@ -779,11 +737,11 @@ async def test_get_statistics_returns_valid_structure(
 # @pytest.mark.asyncio
 # async def test_update_node_partial_update(
 #     app_client: AsyncClient,
-#     root_node: NodeDetailSchema,
-#     faker,
+#     test_user_root_node: Node,
+#     faker: Faker,
 # ):
 #     """Only specified fields should be updated"""
-#     url = f'{BASE}/{root_node.pk}'
+#     url = f'{BASE_URL}{test_user_root_node.pk}'
 #     data = {'title': faker.name()}
 #     response = await app_client.patch(url, json=data)
 #     assert response.status_code == 200
@@ -793,15 +751,13 @@ async def test_get_statistics_returns_valid_structure(
 #
 #
 # @pytest.mark.asyncio
-# async def test_update_nonexistent_node(
-#     app_client: AsyncClient,
-# ):
-#     url = f'{BASE}/nonexistent_id'
+# async def test_update_nonexistent_node(app_client: AsyncClient):
+#     url = f'{BASE_URL}nonexistent_id'
 #     data = {'title': 'New Title'}
 #     response = await app_client.patch(url, json=data)
 #     assert response.status_code in [404, 200, 500]
-#
-#
+
+
 # # =============================================================================
 # # DELETE /api/v1/node/nodes/{uid} - Delete Node
 # # =============================================================================

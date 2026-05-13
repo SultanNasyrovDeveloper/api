@@ -60,4 +60,4 @@ class Node(Model):
 
     @property
     def parent_pk(self) -> str | None:
-        return self.parent_id.id
+        return self.parent_id.id if bool(self.parent_id) else None

@@ -35,36 +35,57 @@ class MoveNodeStrategy(metaclass=ABCMeta):
         self.config = config
         self.manager = manager
 
-    async def _would_create_cycle(self) -> bool:
-        """Check if target_id is a descendant of node_id.
-
-        Uses LIMIT 1 to stop scanning after first match.
-        Returns True if moving node_id under target_id would create cycle.
-        """
-        query = (
-            surorm.Select('value id')
-            .from_(f'node:{self.config.node_id}<-child<-node{{{{..+inclusive}}}}')
-            .where(f'id == node:{self.config.target_id}')
-            .limit(1)
-        )
-        result = await self.manager.query(query.sql())
-        return bool(result)
-
     async def validate(self) -> None:
         """Validate the move operation before execution.
 
         Base validation common to all strategies.
+        Performs Python-only checks first, then database validations in single transaction.
         Subclasses can override to add strategy-specific validation.
 
         Raises:
-            ValueError: If validation fails (self-reference or cycle detected)
+            ValueError: If validation fails (self-reference, non-existent nodes, or cycle detected)
         """
-        # Check for self-reference
+        # Python-only check first - avoid DB call if moving to itself
         if self.config.node_id == self.config.target_id:
             raise ValueError(f"Cannot move node to itself: node:{self.config.node_id}")
 
+        # Single transaction for all database validations
+        validation_query = (
+            surorm.Transaction()
+            .perform(
+                # Check if source node exists
+                surorm.DefineVariable(
+                    'source', surorm.Select('id').from_(surorm.Record('node', self.config.node_id), only=True)
+                ),
+                # Check if target node exists
+                surorm.DefineVariable(
+                    'target',
+                    surorm.Select('id').from_(surorm.Record('node', self.config.target_id), only=True),
+                ),
+                # Check for cycle: is target a descendant of source?
+                surorm.DefineVariable(
+                    'cycle',
+                    surorm.Select('value id')
+                    .from_(f'node:{self.config.node_id}.{{..}}<-child<-node')
+                    .where(f'id == node:{self.config.target_id}')
+                    .limit(1),
+                ),
+            )
+            .return_('{source: $source, target: $target, has_cycle: $cycle}')
+        )
+
+        result = await self.manager.query(validation_query.sql())
+
+        # Validate source node exists
+        if not result.get('source'):
+            raise ValueError(f"Source node not found: node:{self.config.node_id}")
+
+        # Validate target node exists
+        if not result.get('target'):
+            raise ValueError(f"Target node not found: node:{self.config.target_id}")
+
         # Check for cycle (would create circular reference)
-        if await self._would_create_cycle():
+        if result.get('has_cycle'):
             raise ValueError(
                 f"Cannot move node:{self.config.node_id} to node:{self.config.target_id} "
                 f"- would create cycle (target is a descendant of source)"
@@ -96,11 +117,12 @@ class MoveNodeAsFirstChild(MoveNodeStrategy):
         move_node_query = surorm.Transaction().perform(
             f'delete child where in == node:{self.config.node_id};',
             f'relate node:{self.config.node_id}->child->node:{self.config.target_id};',
-            surorm.DefineVariable(
-                'updated', f'update only node:{self.config.node_id} set order = "{order}";'
-            ),
+            f'update only node:{self.config.node_id} set order = "{order}";',
         )
-        return await self.manager.query(move_node_query.sql())
+        await self.manager.query(move_node_query.sql())
+
+        # TODO: Optimize by returning updated node directly from transaction instead of separate query
+        return await self.manager.get(self.config.node_id)
 
 
 class MoveNodeAsLastChild(MoveNodeStrategy):
@@ -118,11 +140,12 @@ class MoveNodeAsLastChild(MoveNodeStrategy):
         move_node_query = surorm.Transaction().perform(
             f'delete child where in == node:{self.config.node_id};',
             f'relate node:{self.config.node_id}->child->node:{self.config.target_id};',
-            surorm.DefineVariable(
-                'updated', f'update only node:{self.config.node_id} set order = "{order}";'
-            ),
+            f'update only node:{self.config.node_id} set order = "{order}";',
         )
-        return await self.manager.query(move_node_query.sql())
+        await self.manager.query(move_node_query.sql())
+
+        # TODO: Optimize by returning updated node directly from transaction instead of separate query
+        return await self.manager.get(self.config.node_id)
 
 
 class MoveNodeBefore(MoveNodeStrategy):
@@ -151,16 +174,17 @@ class MoveNodeBefore(MoveNodeStrategy):
         )
         move_data = await self.manager.query(neighbour_orders_query.sql())
         if not move_data:
-            return
+            return None
         order = Lexorank.middle(move_data['previous'], move_data['next'])
         move_node_query = surorm.Transaction().perform(
             f'delete child where in == node:{self.config.node_id};',
             f'relate node:{self.config.node_id}->child->{move_data['new_parent']};',
-            surorm.DefineVariable(
-                'updated', f'update only node:{self.config.node_id} set order = "{order}";'
-            ),
+            f'update only node:{self.config.node_id} set order = "{order}";',
         )
-        return await self.manager.query(move_node_query.sql())
+        await self.manager.query(move_node_query.sql())
+
+        # TODO: Optimize by returning updated node directly from transaction instead of separate query
+        return await self.manager.get(self.config.node_id)
 
 
 class MoveNodeAfter(MoveNodeStrategy):
@@ -190,16 +214,17 @@ class MoveNodeAfter(MoveNodeStrategy):
         )
         move_data = await self.manager.query(neighbour_orders_query.sql())
         if not move_data:
-            return
+            return None
         order = Lexorank.middle(move_data['previous'], move_data['next'])
         move_node_query = surorm.Transaction().perform(
             f'delete child where in == node:{self.config.node_id};',
             f'relate node:{self.config.node_id}->child->{move_data['new_parent']};',
-            surorm.DefineVariable(
-                'updated', f'update only node:{self.config.node_id} set order = "{order}";'
-            ),
+            f'update only node:{self.config.node_id} set order = "{order}";',
         )
-        return await self.manager.query(move_node_query.sql())
+        await self.manager.query(move_node_query.sql())
+
+        # TODO: Optimize by returning updated node directly from transaction instead of separate query
+        return await self.manager.get(self.config.node_id)
 
 
 class MoveNodeService:
