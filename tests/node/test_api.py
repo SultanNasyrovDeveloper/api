@@ -416,50 +416,62 @@ async def test_get_statistics_returns_valid_structure(
 #     # May return empty tree or error
 #     assert response.status_code in [200, 404]
 #
-#
-# # =============================================================================
-# # GET /api/v1/node/nodes/{uid}/subtree/statistics - Get Subtree Statistics
-# # =============================================================================
-# @pytest.mark.asyncio
-# async def test_get_subtree_statistics_returns_valid_structure(
-#     app_client: AsyncClient,
-#     root_node: NodeDetailSchema,
-# ):
-#     url = f'{BASE}/{root_node.pk}/subtree/statistics'
-#     response = await app_client.get(url)
-#     assert response.status_code == 200
-#     body = response.json()
-#     required_fields = ['count', 'average_rating', 'owner_views', 'repetitions', 'size', 'outdated', 'not_visited', 'empty']
-#     for field in required_fields:
-#         assert field in body
-#
-#
-# @pytest.mark.asyncio
-# async def test_get_subtree_statistics_with_children(
-#     app_client: AsyncClient,
-#     root_node: NodeDetailSchema,
-#     test_palace_node_manager: PalaceNodeManager,
-#     faker,
-# ):
-#     # Create children
-#     for _ in range(3):
-#         await test_palace_node_manager.add_child(
-#             root_node.pk,
-#             {
-#                 'title': faker.name(),
-#                 'questions': faker.sentence(),
-#                 'owner_id': 'test_owner',
-#                 'content': '{"root": {}}',
-#                 'order': 'aaaaa',
-#                 'last_rating': 4,
-#             },
-#         )
-#
-#     url = f'{BASE}/{root_node.pk}/subtree/statistics'
-#     response = await app_client.get(url)
-#     assert response.status_code == 200
-#     body = response.json()
-#     assert body['count'] >= 3
+
+
+# =============================================================================
+# GET /api/v1/node/nodes/{uid}/subtree/statistics - Get Subtree Statistics
+# =============================================================================
+@pytest.mark.asyncio
+async def test_get_subtree_statistics_returns_valid_structure(
+    app_client: AsyncClient,
+    test_user_root_node: Node,
+):
+    url = f'{BASE_URL}{test_user_root_node.pk}/subtree/statistics'
+    response = await app_client.get(url)
+    assert response.status_code == 200
+    body = response.json()
+    required_fields = [
+        'count',
+        'average_rating',
+        'owner_views',
+        'repetitions',
+        'size',
+        'outdated',
+        'not_visited',
+        'empty',
+    ]
+    for field in required_fields:
+        assert field in body
+
+
+@pytest.mark.asyncio
+async def test_get_subtree_statistics_with_children(
+    app_client: AsyncClient,
+    test_user_root_node: Node,
+    test_palace_node_manager: PalaceNodeManager,
+    faker,
+):
+    # Create children
+    for _ in range(3):
+        await test_palace_node_manager.add_child(
+            test_user_root_node.pk,
+            {
+                'title': faker.name(),
+                'questions': faker.sentence(),
+                'owner_id': 'test_owner',
+                'content': '{"root": {}}',
+                'order': 'aaaaa',
+                'last_rating': 4,
+            },
+        )
+
+    url = f'{BASE_URL}{test_user_root_node.pk}/subtree/statistics'
+    response = await app_client.get(url)
+    assert response.status_code == 200
+    body = response.json()
+    assert body['count'] >= 3
+
+
 #
 #
 # @pytest.mark.asyncio

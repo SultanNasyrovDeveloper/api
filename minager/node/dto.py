@@ -15,16 +15,7 @@ class NodeSubtreeStatistics(BaseModel):
     empty: int = 0
 
 
-class NodeIndexesInfo(BaseModel):
-    overall_index: float
-    node_index: float
-    subtree_index: float
-    weights: dict[str, float]
-    node_components: dict[str, float]
-    subtree_components: dict[str, float]
-
-
 class NodeOverallStatistics(BaseModel):
-    indexes: NodeIndexesInfo
+    indexes: dict
     subtree: NodeSubtreeStatistics
     node: NodeStatisticsMixin

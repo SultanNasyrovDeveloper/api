@@ -8,7 +8,6 @@ from minager.core.surorm.orm.serializer import Serializer
 
 from . import dto, enums, models, queries, schemas, utils
 from .services.move_node import MoveNodeService
-from .services.node_index.node_indexes import NodeOverallIndex
 
 
 class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
@@ -134,18 +133,17 @@ class PalaceNodeManager(BaseNodeManager):
 
     async def get_subtree_statistics(self, id_: str) -> dto.NodeSubtreeStatistics:
         self._check_connection()
-        stats = await self.query(queries.get_node_statistics_query(id_))
-        return dto.NodeSubtreeStatistics.model_validate(stats)
+        query = queries.get_node_statistics_query(id_)
+        stats = await self.query(query)
+        return dto.NodeSubtreeStatistics.model_validate(stats or {})
 
     async def get_statistics(self, node_id: str) -> dto.NodeOverallStatistics:
         self._check_connection()
         node = await self.get(node_id)
         subtree_stats = await self.get_subtree_statistics(node_id)
-        index = NodeOverallIndex(node, subtree_stats)
-        data = index.calculate()
         return dto.NodeOverallStatistics.model_validate(
             {
-                'indexes': data,
+                'indexes': {},
                 'node': node.model_dump(mode='json'),  # TODO: Fix only node statistic data here
                 'subtree': subtree_stats,
             }
