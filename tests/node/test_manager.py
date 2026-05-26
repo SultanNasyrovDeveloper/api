@@ -3,6 +3,7 @@ from collections.abc import Callable
 import pytest
 from faker import Faker
 
+from minager.auth.schemas import UserWithProfileSchema
 from minager.node.dto import NodeSubtreeStatistics
 from minager.node.enums import MovePosition
 from minager.node.managers import PalaceNodeManager
@@ -216,3 +217,61 @@ async def test_move_node_before(
     updated_new_parent_children_list = await test_palace_node_manager.get_children(new_parent.pk)
     assert len(updated_new_parent_children_list) == initial_new_parent_children_count + 1
     assert updated_new_parent_children_list[1].pk == child.pk
+
+
+@pytest.mark.asyncio
+async def test_search_provides_ancestor_context_for_disambiguation(
+    test_palace_node_manager: PalaceNodeManager,
+    test_user: UserWithProfileSchema,
+    test_user_root_node: Node,
+    node_create_data_factory: Callable[..., dict],
+):
+    """Multiple nodes with same title have ancestor context for UI disambiguation"""
+    # Root -> Python -> Data Model
+    python_node = await test_palace_node_manager.add_child(
+        test_user_root_node.pk, node_create_data_factory(title='Python', owner_id=test_user.id)
+    )
+    python_data_model = await test_palace_node_manager.add_child(
+        python_node.pk, node_create_data_factory(title='Data Model', owner_id=test_user.id)
+    )
+
+    # Root -> JavaScript -> Data Model
+    javascript_node = await test_palace_node_manager.add_child(
+        test_user_root_node.pk, node_create_data_factory(title='JavaScript', owner_id=test_user.id)
+    )
+    javascript_data_model = await test_palace_node_manager.add_child(
+        javascript_node.pk, node_create_data_factory(title='Data Model', owner_id=test_user.id)
+    )
+
+    # Root -> SQL -> Data Model
+    sql_node = await test_palace_node_manager.add_child(
+        test_user_root_node.pk, node_create_data_factory(title='SQL', owner_id=test_user.id)
+    )
+    sql_data_model = await test_palace_node_manager.add_child(
+        sql_node.pk, node_create_data_factory(title='Data Model', owner_id=test_user.id)
+    )
+
+    # ACT: Search for "Data Model"
+    results = await test_palace_node_manager.search(query='Data Model', user_id=test_user.id)
+
+    # ASSERT
+    # Should return 3 nodes all named "Data Model"
+    assert len(results) == 3, "Should find 3 'Data Model' nodes"
+
+    # All should have title "Data Model"
+    for result in results:
+        assert result.title == 'Data Model'
+
+    # Each should have ancestors field populated
+    for result in results:
+        assert hasattr(result, 'ancestors')
+        assert isinstance(result.ancestors, list)
+        assert len(result.ancestors) > 0
+
+    # Extract immediate parent from each result (last ancestor)
+    parent_titles = {result.ancestors[-1].title for result in results}
+
+    # Verify each has different parent context
+    assert 'Python' in parent_titles, 'Should have Data Model under Python'
+    assert 'JavaScript' in parent_titles, 'Should have Data Model under JavaScript'
+    assert 'SQL' in parent_titles, 'Should have Data Model under SQL'

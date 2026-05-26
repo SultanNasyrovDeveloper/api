@@ -56,8 +56,10 @@ class Node(Model):
 
     @property
     def pk(self) -> str | None:
+        # TODO: Return empty string here instead of node for types
         return self.id.id
 
     @property
     def parent_pk(self) -> str | None:
+        # TODO: Return empty string here instead of node for types
         return self.parent_id.id if bool(self.parent_id) else None

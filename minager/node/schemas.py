@@ -62,6 +62,12 @@ class NodeMoveConfiguration(BaseModel):
     position: enums.MovePosition = enums.MovePosition.last_child
 
 
+class SearchNodeResultSchema(BaseModel, mixins.IdMixin):
+    title: str
+    order: str | None = Field(default=None)
+    ancestors: list[models.ListNode] = Field(default_factory=list)
+
+
 def model_validate_tree(root_data: dict) -> models.TreeNode:
     root_children_data = sorted(root_data.pop('children', []), key=lambda child: child.get('order', ''))
     root_ancestors_data = root_data.pop('ancestors', [])

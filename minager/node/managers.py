@@ -20,7 +20,9 @@ class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
     async def get(self, id_: str) -> models.Node | None: ...
 
     @abstractmethod
-    async def search(self, query: str = '', page: int = 1, size: int = 15, **kwargs): ...
+    async def search(
+        self, query: str = '', page: int = 1, size: int = 15, user_id: str = None, **kwargs
+    ) -> list[schemas.SearchNodeResultSchema]: ...
 
     @abstractmethod
     async def get_subtree(self, id_: str) -> models.TreeNode | None: ...
@@ -56,8 +58,8 @@ class PalaceNodeManager(BaseNodeManager):
         return models.Node.model_validate(node_data) if node_data else None
 
     async def search(
-        self, query: str = '', page: int = 1, per_page: int = 15, user_id: str = None, **kwargs
-    ) -> list[models.ListNode]:
+        self, query: str = '', page: int = 1, size: int = 15, user_id: str = None, **kwargs
+    ) -> list[schemas.SearchNodeResultSchema]:
         self._check_connection()
         conditions = []
         if user_id:
@@ -73,14 +75,19 @@ class PalaceNodeManager(BaseNodeManager):
             ]
             conditions.extend(serialized_data)
         q = (
-            surorm.Select('id', 'title')
+            surorm.Select(
+                'id',
+                'title',
+                'order',
+                surorm.Alias('ancestors', queries.ancestors_query),
+            )
             .from_(models.Node)
             .where(*conditions)
-            .limit(per_page)
-            .start(per_page * (page - 1))
+            .limit(size)
+            .start(size * (page - 1))
         )
         response = await self.select(q)
-        return [models.ListNode.model_validate(item) for item in response]
+        return [schemas.SearchNodeResultSchema.model_validate(item) for item in response]
 
     async def add_child(self, parent_id: str, data: dict) -> models.Node | None:
         self._check_connection()

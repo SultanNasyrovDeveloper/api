@@ -17,7 +17,7 @@ async def search(
     query: str = '',
     page: int = 1,
     size: int = 10,
-) -> PaginatedResult[models.ListNode]:
+) -> PaginatedResult[schemas.SearchNodeResultSchema]:
     nodes = await app.state.nodes.search(
         user_id=str(user.sub),
         page=page,
