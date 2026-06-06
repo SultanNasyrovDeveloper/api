@@ -32,9 +32,11 @@ class UserTestContext:
 
 @pytest_asyncio.fixture(scope='session')
 async def app_client(palace_node_db_setup: None) -> AsyncGenerator[AsyncClient, None]:
-    async with app.router.lifespan_context(app):
-        async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
-            yield client
+    async with (
+        app.router.lifespan_context(app),
+        AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client,
+    ):
+        yield client
 
 
 @pytest_asyncio.fixture()

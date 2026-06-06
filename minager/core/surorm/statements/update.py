@@ -39,7 +39,7 @@ class Update(Filterable, Returnable, Renderable):
         raise NotImplementedError
 
     def sql(self):
-        q = [f'update']
+        q = ['update']
         if self.only:
             q.append('only')
         q.append(self.get_update_target())

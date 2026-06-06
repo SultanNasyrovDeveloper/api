@@ -33,9 +33,7 @@ class SuperMemo2LearningStrategy(BaseLearningStrategy):
         )
         if rating >= 3:  # if repetition is positive
             q = rating
-            new_difficulty = Decimal(node_difficulty) + Decimal(
-                (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
-            )
+            new_difficulty = Decimal(node_difficulty) + Decimal(0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
             result.difficulty = float(new_difficulty.quantize(Decimal('1.0')))
 
             if node.cpr == 0:

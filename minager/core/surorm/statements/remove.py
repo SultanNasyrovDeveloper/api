@@ -5,9 +5,7 @@ from ..mixins import IfExists
 from ..types import Expression
 from ..utils import render
 
-type RemoveResource = Literal[
-    'namespace', 'database', 'user', 'access', 'event', 'event', 'field', 'index'
-]
+type RemoveResource = Literal['namespace', 'database', 'user', 'access', 'event', 'event', 'field', 'index']
 type RemoveFrom = Literal['namespace', 'database', 'table']
 
 

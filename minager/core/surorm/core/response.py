@@ -1,4 +1,4 @@
-from typing import Literal, Type, TypedDict
+from typing import Literal, TypedDict
 
 from pydantic import BaseModel
 
@@ -19,7 +19,7 @@ class Response[ResponseData: dict]:
     def __init__(
         self,
         data: list[SurrealClientResponseData[ResponseData]],
-        model: Type[BaseModel] = None,
+        model: type[BaseModel] | None = None,
     ):
         self._data = data[0] if isinstance(data, list) else {}
         self.model = model
@@ -41,22 +41,16 @@ class Response[ResponseData: dict]:
         return (
             self._data['result']
             if many
-            else (
-                self._data['result'][0]
-                if isinstance(self._data['result'], list)
-                else self._data['result']
-            )
+            else (self._data['result'][0] if isinstance(self._data['result'], list) else self._data['result'])
         )
 
-    def instances(
-        self, model: Type[BaseModel], many: bool = True
-    ) -> list[BaseModel] | BaseModel | None:
+    def instances(self, model: type[BaseModel], many: bool = True) -> list[BaseModel] | BaseModel | None:
         raw = self.raw(many)
         if not raw:
             return
         return model.model_validate(raw) if not many else map(model.model_validate, raw)
 
-    def dict(self, model: Type[BaseModel], many: bool = True) -> dict | list[dict] | None:
+    def dict(self, model: type[BaseModel], many: bool = True) -> dict | list[dict] | None:
         model_instances = self.instances(model, many)
         if not model_instances:
             return

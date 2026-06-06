@@ -70,7 +70,6 @@ User-defined questions: {questions}
 
 
 class BaseNodeContentGenerator(metaclass=ABCMeta):
-
     @abstractmethod
     async def generate(self, *args, **kwargs):
         pass
@@ -88,9 +87,7 @@ class HuggingFaceNodeContentGenerator(BaseNodeContentGenerator):
         prepared_prompt = PROMPT.format(
             title=node.title, questions=node.questions, address='not filled for now'
         )
-        output = self.client.chat_completion(
-            messages=[{'role': 'user', 'content': prepared_prompt}]
-        )
+        output = self.client.chat_completion(messages=[{'role': 'user', 'content': prepared_prompt}])
         return self._extract_generate_response_content(output)
 
     def _extract_generate_response_content(self, response: ChatCompletionOutput) -> str:

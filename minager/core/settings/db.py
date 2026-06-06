@@ -9,7 +9,6 @@ type DBDriver = Literal['postgresql+asyncpg', 'postgresql', 'motor', 'surreal']
 
 
 class DBConnectionConfig(BaseModel):
-
     driver: DBDriver = 'postgresql+asyncpg'
     name: str
     test_name: str | None = None

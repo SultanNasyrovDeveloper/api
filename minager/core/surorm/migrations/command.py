@@ -20,7 +20,7 @@ class PerformMigrationCommand:
     # Public interface
     # ------------------------------------------------------------------
 
-    async def upgrade(self, app: str | None = None, migration_number: str = None):
+    async def upgrade(self, app: str | None = None, migration_number: str | None = None):
         if migration_number:
             assert app
         await self._ensure_history_table()
@@ -38,7 +38,7 @@ class PerformMigrationCommand:
                 await self.session.query(query.sql())
                 await self._record_migration(migration_app, migration_name)
 
-    async def downgrade(self, app: str | None = None, migration_number: str = None):
+    async def downgrade(self, app: str | None = None, migration_number: str | None = None):
         if migration_number:
             assert app
         await self._ensure_history_table()
@@ -65,7 +65,7 @@ class PerformMigrationCommand:
 
     def discover_migrations(self) -> dict[str, list[tuple[str, list[MigrationOperation]]]]:
         migrations_registry = {}
-        for root, folders, files in self.base_path.walk(top_down=True):
+        for root, _folders, files in self.base_path.walk(top_down=True):
             folder_name = root.parts[-1]
             if folder_name == 'migrations':
                 migration_app_path = root.parent
@@ -104,12 +104,7 @@ class PerformMigrationCommand:
             DefineTable(Migration).schemafull(True).if_not_exists(True),
             DefineField('app', 'string').on(Migration).if_not_exists(True),
             DefineField('migration', 'string').on(Migration).if_not_exists(True),
-            (
-                DefineField('applied_at', 'datetime')
-                .on(Migration)
-                .if_not_exists(True)
-                .default('time::now()')
-            ),
+            (DefineField('applied_at', 'datetime').on(Migration).if_not_exists(True).default('time::now()')),
         )
         await self.session.query(query.sql())
 

@@ -6,9 +6,6 @@ class Renderable(metaclass=ABCMeta):
     def sql(self) -> str:
         pass
 
-    def __init__(self, **kwargs):
-        pass
-
     def __str__(self) -> str:
         return self.sql()
 
@@ -42,4 +39,4 @@ class Function(Renderable, metaclass=ABCMeta):
         self.arguments = list(arguments)
 
     def sql(self) -> str:
-        return f'{self.name}({', '.join(map(str, self.arguments))})'
+        return f'{self.name}({", ".join(map(str, self.arguments))})'

@@ -29,9 +29,7 @@ class RecursivePath(Statement):
 class Traverse(Statement):
     MAX_ALLOWED = 256
 
-    def __init__(
-        self, target: Expression = '@', *columns: Expression, all_: bool = False, **kwargs
-    ):
+    def __init__(self, target: Expression = '@', *columns: Expression, all_: bool = False, **kwargs):
         super().__init__(**kwargs)
         self.target = target
         self._depth = None
@@ -75,5 +73,5 @@ class Traverse(Statement):
 
     def _render_columns(self) -> str:
         if self._alias or len(self._columns) > 1:
-            return f'.{{{', '.join(self._columns)}, {self._alias or 'connections'}: {render(self._relation)}.@ }}'
+            return f'.{{{", ".join(self._columns)}, {self._alias or "connections"}: {render(self._relation)}.@ }}'
         return f'({self._relation}).{self._columns[0]}'

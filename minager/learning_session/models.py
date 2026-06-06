@@ -1,5 +1,4 @@
 from datetime import UTC, datetime, timedelta
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
@@ -28,15 +27,13 @@ class LearningSession(MongoDBModel):
     nodes from a target subtree using spaced repetition.
     """
 
-    id: Optional[MongoDBId] = Field(alias='_id', default=None)
+    id: MongoDBId | None = Field(alias='_id', default=None)
     is_active: bool = Field(default=True, description='Whether session is currently active')
     user_id: str = Field(description='ID of the user who owns this session')
     target: str = Field(description='Root node ID of the subtree being studied')
 
     # Node queues
-    current_node: Optional[str] = Field(
-        default=None, description='Node ID currently being reviewed'
-    )
+    current_node: str | None = Field(default=None, description='Node ID currently being reviewed')
     queue: list[str] = Field(default_factory=list, description='Main review queue of node IDs')
     bad_repetition_queue: list[str] = Field(
         default_factory=list,
@@ -52,7 +49,7 @@ class LearningSession(MongoDBModel):
         default_factory=lambda: datetime.now(tz=UTC),
         description='Last time the session was interacted with',
     )
-    finish_datetime: Optional[datetime] = Field(
+    finish_datetime: datetime | None = Field(
         default=None, description='When the session was finished (if completed)'
     )
 
@@ -70,9 +67,7 @@ class LearningSession(MongoDBModel):
     @property
     def is_expired(self) -> bool:
         """Check if session has been inactive for more than 1 hour."""
-        return self.last_activity_datetime.replace(tzinfo=UTC) < datetime.now(tz=UTC) - timedelta(
-            hours=1
-        )
+        return self.last_activity_datetime.replace(tzinfo=UTC) < datetime.now(tz=UTC) - timedelta(hours=1)
 
     @computed_field
     @property

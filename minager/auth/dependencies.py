@@ -13,7 +13,7 @@ security = HTTPBearer()
 
 
 async def get_current_user_id(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)]
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
 ) -> UUID:
     """
     Extract and validate user ID from JWT access token.

@@ -1,5 +1,5 @@
 from asyncio import get_running_loop
-from typing import Annotated, Any, Union
+from typing import Annotated, Any
 
 from bson import ObjectId
 from pydantic import AfterValidator, PlainSerializer, WithJsonSchema
@@ -17,7 +17,7 @@ def validate_object_id(v: Any) -> ObjectId:
 
 
 MongoDBId = Annotated[
-    Union[str, ObjectId],
+    str | ObjectId,
     AfterValidator(validate_object_id),
     PlainSerializer(lambda x: str(x), return_type=str),
     WithJsonSchema({'type': 'string'}, mode='serialization'),

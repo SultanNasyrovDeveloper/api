@@ -14,8 +14,8 @@ Usage:
 
 import inspect
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, Type
 
 from fastapi import Depends, HTTPException, Request, status
 
@@ -66,7 +66,7 @@ class BasePermission(ABC):
         )
 
 
-def permissions(*permission_classes: Type[BasePermission]) -> Callable:
+def permissions(*permission_classes: type[BasePermission]) -> Callable:
     """
     Decorator that injects permission dependency into function signature.
 
@@ -87,9 +87,7 @@ def permissions(*permission_classes: Type[BasePermission]) -> Callable:
         Decorator function that injects permission checking
     """
 
-    async def permission_checker(
-        request: Request, current_user: CurrentActiveUser
-    ) -> CurrentActiveUser:
+    async def permission_checker(request: Request, current_user: CurrentActiveUser) -> CurrentActiveUser:
         """
         Dependency that checks all permissions.
 
@@ -169,7 +167,7 @@ class AnyOf(BasePermission):
             ...
     """
 
-    def __init__(self, *permission_classes: Type[BasePermission] | BasePermission):
+    def __init__(self, *permission_classes: type[BasePermission] | BasePermission):
         self.permission_classes = permission_classes
         self.error_message = 'None of the required permissions are satisfied'
 
@@ -207,7 +205,7 @@ class AllOf(BasePermission):
             ...
     """
 
-    def __init__(self, *permission_classes: Type[BasePermission] | BasePermission):
+    def __init__(self, *permission_classes: type[BasePermission] | BasePermission):
         self.permission_classes = permission_classes
         self.error_message = 'All required permissions must be satisfied'
 
@@ -238,7 +236,7 @@ class Not(BasePermission):
             ...
     """
 
-    def __init__(self, permission_class: Type[BasePermission]):
+    def __init__(self, permission_class: type[BasePermission]):
         self.permission_class = permission_class
         self.error_message = f'Must not have {permission_class.__name__} permission'
 

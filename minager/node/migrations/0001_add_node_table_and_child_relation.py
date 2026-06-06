@@ -7,18 +7,13 @@ operations = [
     ),
     MigrationOperation(
         query=(
-            surorm.DefineTable('child')
-            .type('relation', 'node', 'node')
-            .schemafull(True)
-            .if_not_exists(True)
+            surorm.DefineTable('child').type('relation', 'node', 'node').schemafull(True).if_not_exists(True)
         )
     ),
     MigrationOperation(
         query=surorm.DefineField('is_learn', 'bool').on('node').if_not_exists(True).default('true')
     ),
-    MigrationOperation(
-        query=surorm.DefineField('owner_id', 'string').on('node').if_not_exists(True)
-    ),
+    MigrationOperation(query=surorm.DefineField('owner_id', 'string').on('node').if_not_exists(True)),
     MigrationOperation(query=surorm.DefineField('title', 'string').on('node').if_not_exists(True)),
     MigrationOperation(
         query=surorm.DefineField('questions', 'string')
@@ -34,16 +29,10 @@ operations = [
         .default(surorm.String(''))
     ),
     MigrationOperation(
-        query=surorm.DefineField('size', 'number')
-        .on('node')
-        .if_not_exists(True)
-        .default(surorm.Number(0))
+        query=surorm.DefineField('size', 'number').on('node').if_not_exists(True).default(surorm.Number(0))
     ),
     MigrationOperation(
-        query=surorm.DefineField('cpr', 'number')
-        .on('node')
-        .if_not_exists(True)
-        .default(surorm.Number(0))
+        query=surorm.DefineField('cpr', 'number').on('node').if_not_exists(True).default(surorm.Number(0))
     ),
     MigrationOperation(
         query=surorm.DefineField('last_rating', 'number')

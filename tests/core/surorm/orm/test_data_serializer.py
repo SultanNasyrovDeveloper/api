@@ -28,7 +28,7 @@ def test_serialize_number_field(faker: Faker):
 
     decimal = faker.pydecimal()
     serialized_decimal = serializer.serialize_field('number_field', decimal)
-    assert serialized_decimal == f'{str(decimal)}dec'
+    assert serialized_decimal == f'{decimal!s}dec'
 
 
 def test_serialize_datetime_field(faker: Faker):

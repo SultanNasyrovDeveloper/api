@@ -50,9 +50,7 @@ def construct_tree(nodes: list[dict]) -> dict:
     def make_children_list(obj: dict):
         return {
             **obj['data'],
-            'children': list(
-                sorted(map(make_children_list, obj['children'].values()), key=lambda n: n['order'])
-            ),
+            'children': sorted(map(make_children_list, obj['children'].values()), key=lambda n: n['order']),
         }
 
     final_tree = make_children_list(tree)

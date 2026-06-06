@@ -6,7 +6,7 @@ Create Date: 2025-11-10 18:14:27.803147
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 import sqlmodel
@@ -15,9 +15,9 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = 'ef53b717c1b6'
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -43,9 +43,7 @@ def upgrade() -> None:
         'auth__user_profiles',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('user_id', sa.Uuid(), nullable=False),
-        sa.Column(
-            'knowledge_tree_root_id', sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True
-        ),
+        sa.Column('knowledge_tree_root_id', sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True),
         sa.Column('display_name', sqlmodel.sql.sqltypes.AutoString(length=100), nullable=False),
         sa.Column('bio', sqlmodel.sql.sqltypes.AutoString(length=500), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=False),

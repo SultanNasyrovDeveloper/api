@@ -1,5 +1,4 @@
 from itertools import batched
-from typing import Type
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel
@@ -26,7 +25,7 @@ type Identifier = int | str
 
 class BaseDatabaseManager[ModelT: Model]:
     id_field_name: str = 'id'
-    model_class: Type[ModelT]
+    model_class: type[ModelT]
     _session_factory: async_sessionmaker[AsyncSession]
 
     def __init__(
@@ -119,8 +118,8 @@ class DatabaseManager[ModelT](BaseDatabaseManager[ModelT]):
         session = self.get_session(session)
         try:
             session.add(item)
-        except IntegrityError:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT)
+        except IntegrityError as err:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT) from err
         await session.commit()
         item_id = self.get_item_id(item)
         created = await self.get(item_id, session)

@@ -9,4 +9,4 @@ class Boolean(DataType):
         self._value = value
 
     def sql(self) -> str:
-        return f'<bytes>{str(self._value)}'
+        return f'<bytes>{self._value!s}'

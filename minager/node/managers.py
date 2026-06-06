@@ -118,7 +118,7 @@ class PalaceNodeManager(BaseNodeManager):
             'order',
             surorm.Alias('parent_id', queries.parent_id_query),
             surorm.Alias('ancestors', queries.ancestors_query),
-        ).from_(f'{surorm.F.type.thing('node', id_)}.{{1..2+collect+inclusive}}<-child<-node')
+        ).from_(f'{surorm.F.type.thing("node", id_)}.{{1..2+collect+inclusive}}<-child<-node')
         nodes = await self.query(stmt)
         tree_root = utils.construct_tree(nodes)
         return models.TreeNode.model_validate(tree_root)
@@ -181,7 +181,7 @@ class PalaceNodeManager(BaseNodeManager):
                 'descendants',
                 (
                     surorm.Select('value id').from_(
-                        f'{surorm.Variable('root')}.{{..+collect+inclusive}}<-child<-node.id'
+                        f'{surorm.Variable("root")}.{{..+collect+inclusive}}<-child<-node.id'
                     )
                 ),
             ),
@@ -194,7 +194,7 @@ class PalaceNodeManager(BaseNodeManager):
         self,
         root_id: str,
         limit: int = 30,
-        _strategy: str = None,  # Add later
+        _strategy: str | None = None,  # Add later
     ) -> list[str]:
         self._check_connection()
         query = surorm.Transaction(
@@ -202,7 +202,7 @@ class PalaceNodeManager(BaseNodeManager):
             surorm.DefineVariable(
                 'descendants',
                 surorm.Select('id', 'title', 'next_optimal_repetition')
-                .from_(f'{surorm.Variable('root')}.{{..+collect+inclusive}}<-child<-node')
+                .from_(f'{surorm.Variable("root")}.{{..+collect+inclusive}}<-child<-node')
                 .order_by('next_optimal_repetition')
                 .limit(limit),
             ),

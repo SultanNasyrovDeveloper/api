@@ -32,6 +32,6 @@ def get_node_statistics_query(node_id: str) -> surorm.Expression:
             surorm.Alias('not_visited', surorm.F.math.sum('IF owner_views = 0 THEN 1 ELSE 0 END')),
             surorm.Alias('empty', surorm.F.math.sum('IF size = 0 THEN 1 ELSE 0 END')),
         )
-        .from_(f'{surorm.Variable('node')}.{{..+collect}}<-child<-node')
+        .from_(f'{surorm.Variable("node")}.{{..+collect}}<-child<-node')
         .group(all_=True)
     )

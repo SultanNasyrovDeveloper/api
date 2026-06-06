@@ -1,4 +1,4 @@
-from typing import Iterable
+from collections.abc import Iterable
 
 from ..base import Operator
 from ..types import Expression
@@ -10,9 +10,7 @@ class TwoOperandOperator(Operator):
     left_operand: Expression
     right_operand: Expression
 
-    def __init__(
-        self, left: Expression, right: Expression, operation: Expression | None = None, **kwargs
-    ):
+    def __init__(self, left: Expression, right: Expression, operation: Expression | None = None, **kwargs):
         super().__init__(**kwargs)
         self.operation = operation or self.operation
         self.left_operand = left

@@ -168,7 +168,7 @@ class DefineIndex(Overridable, IfNotExists, Commentable, Renderable):
             stmt.append(if_not_exists_sql)
         stmt.append(render(self._name))
         stmt.append(f'on table {self._table}')
-        stmt.append(f'columns {', '.join(self._columns)}')
+        stmt.append(f'columns {", ".join(self._columns)}')
         if self._is_unique:
             stmt.append('unique')
         if self._is_search:
@@ -207,9 +207,9 @@ class DefineAnalyzer(Overridable, IfNotExists, Commentable, Renderable):
             stmt.append(if_not_exists_sql)
         stmt.append(render(self._name))
         if self._tokenizers:
-            stmt.append(f'tokenizers {', '.join(map(render, self._tokenizers))}')
+            stmt.append(f'tokenizers {", ".join(map(render, self._tokenizers))}')
         if self._filters:
-            stmt.append(f'filters {', '.join(map(render, self._filters))}')
+            stmt.append(f'filters {", ".join(map(render, self._filters))}')
         if comment_sql := self.get_comment_sql():
             stmt.append(comment_sql)
         return ' '.join(stmt)
@@ -237,7 +237,7 @@ class DefineFunction(Overridable, IfNotExists, Commentable, Renderable):
         if if_not_exists_sql := self.get_if_not_exists_sql():
             stmt.append(if_not_exists_sql)
         stmt.append(render(self._name))
-        stmt.append(f'({', '.join(map(render, self._args))})')
+        stmt.append(f'({", ".join(map(render, self._args))})')
         stmt.append(f'{{ {render(self._body)}; }}')
         if comment_sql := self.get_comment_sql():
             stmt.append(comment_sql)

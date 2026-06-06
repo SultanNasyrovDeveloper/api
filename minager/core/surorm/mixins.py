@@ -7,7 +7,6 @@ type ReturnType = Literal['none', 'after', 'before', 'diff']
 
 
 class Filterable:
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._where = set()
@@ -21,7 +20,7 @@ class Filterable:
 
     def get_filter_sql(self) -> str:
         if self._where:
-            return f'where {' and '.join(map(render, self._where))}'
+            return f'where {" and ".join(map(render, self._where))}'
         return ''
 
 
@@ -34,7 +33,7 @@ class Returnable:
         return_strategy = getattr(self, '_return', None)
         if not return_strategy:
             return ''
-        return f'return {return_strategy or 'after'}'
+        return f'return {return_strategy or "after"}'
 
     def return_(self, value: ReturnType | None) -> Self:
         self._return = value

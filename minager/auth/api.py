@@ -53,7 +53,7 @@ async def update_me(
             updated_user = await manager.update_user(user.id, user_data)
         return updated_user
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @users_router.get('/me/profile', response_model=schemas.UserProfileDetailSchema)
@@ -73,4 +73,4 @@ async def update_my_profile(
             updated_profile = await manager.update_profile(user.id, profile_data)
         return updated_profile
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e

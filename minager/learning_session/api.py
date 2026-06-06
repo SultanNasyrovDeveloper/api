@@ -1,5 +1,3 @@
-from typing import Optional
-
 from fastapi import APIRouter, status
 
 from minager.dependencies import App, RequestUser
@@ -14,9 +12,7 @@ router = APIRouter(prefix='/learning-sessions')
     response_model_by_alias=False,
     response_model_exclude={'queue'},
 )
-async def get_my_active_session(
-    user: RequestUser, app: App
-) -> Optional[schemas.LearningSessionSchema]:
+async def get_my_active_session(user: RequestUser, app: App) -> schemas.LearningSessionSchema | None:
     return await app.state.learning_session.get_my_active_session(str(user.sub))
 
 

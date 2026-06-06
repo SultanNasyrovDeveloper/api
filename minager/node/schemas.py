@@ -36,7 +36,7 @@ class UpdatedNodeSchema(mixins.NodeStatisticsMixin, mixins.IdMixin, mixins.Paren
     content: str = ''
     is_learn: bool = True
     order: str = ''
-    children: list[models.ListNode] = []
+    children: list[models.ListNode] = Field(default_factory=list)
     tags: list[int] = Field(default_factory=list)
     ancestors: list[models.ListNode] = Field(default_factory=list)
 

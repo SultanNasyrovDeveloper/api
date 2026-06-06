@@ -118,7 +118,7 @@ class UserWithProfileSchema(BaseModel):
         return cls(
             id=user.id,
             **user.model_dump(exclude={'id'}),
-            **profile.model_dump(exclude={'id', 'user_id', 'created_at', 'updated_at'})
+            **profile.model_dump(exclude={'id', 'user_id', 'created_at', 'updated_at'}),
         )
 
 

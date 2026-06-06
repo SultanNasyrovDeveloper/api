@@ -71,7 +71,5 @@ class NodeStatisticsMixin(BaseModel):
     owner_views: int = 0
     last_interval: float = 0
     last_repetition: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    next_optimal_repetition: datetime = Field(
-        default_factory=lambda: datetime.now(UTC) + timedelta(days=1)
-    )
+    next_optimal_repetition: datetime = Field(default_factory=lambda: datetime.now(UTC) + timedelta(days=1))
     cpr: int = 0  # consecutive positive repetitions

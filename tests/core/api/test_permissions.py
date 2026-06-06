@@ -113,7 +113,6 @@ async def test_always_deny_permission_fails(mock_user):
 async def test_permission_raises_http_exception():
     """Test that permission can raise HTTPException."""
     perm = AlwaysDeny()
-    request = Request(scope={'type': 'http', 'method': 'GET', 'headers': []})
 
     with pytest.raises(HTTPException) as exc_info:
         perm.raise_permission_denied()

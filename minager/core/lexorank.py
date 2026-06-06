@@ -1,6 +1,5 @@
 import math
 import string
-from typing import List, Optional, Tuple
 
 
 class Lexorank:
@@ -21,15 +20,15 @@ class Lexorank:
         return chr(num + ord(cls.first_symbol))
 
     @classmethod
-    def parse_rank(cls, rank: str) -> List[int]:
+    def parse_rank(cls, rank: str) -> list[int]:
         return [cls.char_to_int(char) for char in rank]
 
     @classmethod
-    def format_rank(cls, rank: List[int]) -> str:
+    def format_rank(cls, rank: list[int]) -> str:
         return ''.join(map(cls.int_to_char, rank))
 
     @classmethod
-    def align_ranks(cls, previous_rank: str, next_rank: str) -> Tuple[str, str]:
+    def align_ranks(cls, previous_rank: str, next_rank: str) -> tuple[str, str]:
         max_len = max(len(previous_rank), len(next_rank))
 
         if max_len > cls.max_rank_length:
@@ -43,8 +42,8 @@ class Lexorank:
     @classmethod
     def get_lexorank_in_between(
         cls,
-        previous_rank: Optional[str] = '',
-        next_rank: Optional[str] = '',
+        previous_rank: str | None = '',
+        next_rank: str | None = '',
         objects_count: int = 0,
         force_reorder: bool = False,
     ) -> str:
@@ -140,7 +139,7 @@ class Lexorank:
             step = total // cls.base
 
         if step > 0:
-            rank_parts = [step] + rank_parts
+            rank_parts = [step, *rank_parts]
 
         return cls.format_rank(rank_parts)
 

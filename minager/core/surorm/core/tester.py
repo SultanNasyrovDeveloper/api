@@ -1,3 +1,4 @@
+import contextlib
 from time import sleep
 
 from requests import request
@@ -6,7 +7,6 @@ from .settings import SurrealConfig
 
 
 class SurrealConnectionTester:
-
     MAX_RETRIES = 10
     RETRIES_SLEEP = 10
 
@@ -27,13 +27,8 @@ class SurrealConnectionTester:
         is_connected = False
         retries = 0
         while not is_connected and retries < self.MAX_RETRIES:
-            try:
+            with contextlib.suppress(Exception):
                 is_connected = self.test()
-            except Exception:
-                pass
-                # logger.warning(
-                #     f'Unusual exception occured when trying to connect to surrealdb: {str(e)}.'
-                # )
             if not is_connected:
                 # logger.info(f'Unable to connect to surrealdb. Waiting {self.RETRIES_SLEEP} sec...')
                 retries += 1

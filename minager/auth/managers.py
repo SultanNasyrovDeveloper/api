@@ -20,7 +20,7 @@ class UserManager(PostgresDatabaseManager[models.User]):
 
     async def get_by_email(self, email: str, session: AsyncSession | None = None) -> models.User | None:
         """Get user by email address"""
-        stmt = select(models.User).where(models.User.email == email, models.User.is_deleted == False)
+        stmt = select(models.User).where(models.User.email == email, models.User.is_deleted.is_(False))
         return await self.select_one(stmt, session=session)
 
     async def get_by_username(
@@ -29,15 +29,15 @@ class UserManager(PostgresDatabaseManager[models.User]):
         session: AsyncSession | None = None,
     ) -> models.User | None:
         """Get user by username"""
-        stmt = select(models.User).where(models.User.username == username, models.User.is_deleted == False)
+        stmt = select(models.User).where(models.User.username == username, models.User.is_deleted.is_(False))
         return await self.select_one(stmt, session=session)
 
     async def get_active_user(self, user_id: UUID, session: AsyncSession | None = None) -> models.User | None:
         """Get active user by ID (not deleted, is active)"""
         stmt = select(models.User).where(
             models.User.id == user_id,
-            models.User.is_deleted == False,
-            models.User.is_active == True,
+            models.User.is_deleted.is_(False),
+            models.User.is_active.is_(True),
         )
         return await self.select_one(stmt, session=session)
 

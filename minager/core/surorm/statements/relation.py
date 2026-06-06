@@ -37,4 +37,4 @@ class Relate(Returnable, Renderable):
     def _render_relation_records(self, records: list[Expression]) -> str:
         if len(records) == 1:
             return render(records[0])
-        return f'[{','.join(map(render, records))}]'
+        return f'[{",".join(map(render, records))}]'

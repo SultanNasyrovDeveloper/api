@@ -1,15 +1,14 @@
+from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
-from typing import AsyncGenerator, Generator
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import create_engine
+from alembic.config import Config as AlembicConfig
+from sqlalchemy import create_engine, text
 from sqlalchemy import delete as sa_delete
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from alembic import command as alembic_command
-from alembic.config import Config as AlembicConfig
 from minager import settings
 from minager.auth.models import User, UserProfile
 from minager.core.settings.db import DBConnectionConfig

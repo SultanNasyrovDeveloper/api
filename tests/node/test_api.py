@@ -160,7 +160,7 @@ async def test_add_child_with_is_learn_false(
     body = response.json()
     new_node = await test_palace_node_manager.get(body['id'])
     assert new_node
-    assert new_node.is_learn == False
+    assert not new_node.is_learn
 
 
 @pytest.mark.xfail

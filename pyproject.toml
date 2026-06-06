@@ -5,17 +5,55 @@ description = "Minager - mind management tool"
 authors = ["Sultan Nasyrov <tightbtctrader@gmail.com>"]
 readme = "README.md"
 
-[tool.black]
+[tool.ruff]
 line-length = 110
-skip-string-normalization = true
+target-version = "py312"
 
-[tool.isort]
-profile = "black"
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "N",    # pep8-naming
+    "RUF",  # ruff-specific rules
+    "ASYNC", # flake8-async
+    "PTH",  # flake8-use-pathlib
+    "TC",   # flake8-type-checking
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # function calls in default args (FastAPI Depends pattern)
+    "N805",   # first arg named self (pydantic v1 validators)
+    "SIM108", # ternary operator (sometimes less readable)
+    "TC001",  # move import into TYPE_CHECKING block (breaks runtime annotations)
+    "TC002",  # move import into TYPE_CHECKING block
+    "TC003",  # move stdlib import into TYPE_CHECKING block
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["minager"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["N802", "S101"]  # allow assert and lowercase test names
+"minager/core/surorm/__init__.py" = ["F403", "F405"]
+"minager/core/surorm/statements/__init__.py" = ["F403", "F405"]
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+docstring-code-format = true
 
 [mypy]
-strict_optional = true
-check_untyped_defs = true
-disable_error_code = "type-arg"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
 
 [tool.pytest.ini_options]
 pythonpath = "."
@@ -92,6 +130,7 @@ fastapi-users = "^15.0.5"
 ipython = "^8.18.1"
 pre-commit = "^3.8.0"
 psycopg = "^3.2.9"
+ruff = "^0.15.16"
 
 
 [tool.poetry.group.test.dependencies]

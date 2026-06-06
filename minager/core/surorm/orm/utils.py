@@ -8,14 +8,14 @@ from .models import Table
 
 @singledispatch
 def get_table_name(table: Any) -> str:
-    raise TypeError(f"Unsupported type: {type(table)}")
+    raise TypeError(f'Unsupported type: {type(table)}')
 
 
 @get_table_name.register(type)
 def _(table: type) -> str:
     if issubclass(table, Table):
         return table.__table_name__
-    raise TypeError(f"Expected Table class, got {table}")
+    raise TypeError(f'Expected Table class, got {table}')
 
 
 @get_table_name.register(type)

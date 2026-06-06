@@ -1,4 +1,3 @@
-from abc import ABCMeta
 from logging import Logger, getLogger
 from typing import Any
 
@@ -8,12 +7,8 @@ from ..core.settings import SurrealConfig
 from ..statements import Expression
 
 
-class BaseManager(metaclass=ABCMeta):
-    pass
-
-
 class Manager:
-    def __init__(self, config: SurrealConfig, logger: Logger = None):
+    def __init__(self, config: SurrealConfig, logger: Logger | None = None):
         assert config.driver == 'surreal'
         self._config = config
         self._base_url = f'ws://{self._config.host}:{self._config.port}'
@@ -42,9 +37,7 @@ class Manager:
     def _check_connection(self):
         assert self._connection
 
-    async def query(
-        self, sql: Expression, variables: dict[str, Any] | None = None
-    ) -> Any | list[Any]:
+    async def query(self, sql: Expression, variables: dict[str, Any] | None = None) -> Any | list[Any]:
         response = await self._connection.query(query=str(sql), vars=variables)
         if isinstance(response, list) and len(response) == 1:
             response = response[0]

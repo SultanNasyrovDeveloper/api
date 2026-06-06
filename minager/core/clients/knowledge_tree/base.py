@@ -2,7 +2,6 @@ from abc import ABCMeta, abstractmethod
 
 
 class AbstractPalaceClient(metaclass=ABCMeta):
-
     @abstractmethod
     async def __aenter__(self):
         pass

@@ -1,11 +1,10 @@
 from ..base import Function
-from . import array, duration, math
+from . import array, duration, math, time
 from . import object as surreal_object_functions
-from . import time
 from . import type as surreal_type_functions
 
 
-class dotdict(dict):
+class dotdict(dict):  # noqa: N801
     __getattr__ = dict.get
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__

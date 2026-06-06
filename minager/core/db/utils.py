@@ -9,6 +9,6 @@ def make_database_url(config: DBConnectionConfig, **additional) -> str:
         password=config.password.get_secret_value(),
         host=config.host,
         port=int(config.port),
-        **additional
+        **additional,
     )
     return str(url)

@@ -1,4 +1,5 @@
-from typing import Any, Callable, ClassVar, Dict, Type
+from collections.abc import Callable
+from typing import Any, ClassVar
 
 from pydantic import BaseModel, ConfigDict
 from pydantic import Field as PydanticField
@@ -6,19 +7,19 @@ from sqlalchemy.sql import operators
 from sqlalchemy.sql.expression import ColumnElement
 from sqlmodel import SQLModel
 
-LOOKUP_MAP: Dict[str, Callable[[Any, Any], Any]] = {
+LOOKUP_MAP: dict[str, Callable[[Any, Any], Any]] = {
     'exact': operators.eq,
     'gt': operators.gt,
     'gte': operators.ge,
     'lt': operators.lt,
     'lte': operators.le,
     'contains': lambda field, value: field.contains(value),
-    'icontains': lambda field, value: field.ilike(f"%{value}%"),
+    'icontains': lambda field, value: field.ilike(f'%{value}%'),
     'in': lambda field, value: field.in_(value if isinstance(value, list) else [value]),
 }
 
 
-def Field(
+def Field(  # noqa: N802
     field_name: str | None = None,
     method: str | None = None,
     lookup: str | None = None,
@@ -36,7 +37,7 @@ def Field(
 
 
 class FilterSetConfiguration(ConfigDict):
-    model: Type[SQLModel]
+    model: type[SQLModel]
 
 
 class FilterSet(BaseModel):
@@ -73,9 +74,7 @@ class FilterSet(BaseModel):
             model_field_name = field_def.json_schema_extra.get('field_name', field_name)
             model_column = getattr(model, model_field_name, None)
             if model_column is None:
-                raise ValueError(
-                    f"Field '{model_field_name}' does not exist on model " f"'{model.__name__}'"
-                )
+                raise ValueError(f"Field '{model_field_name}' does not exist on model '{model.__name__}'")
 
             lookup = field_def.json_schema_extra.get('lookup', 'exact')
             if lookup not in LOOKUP_MAP:

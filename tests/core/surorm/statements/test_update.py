@@ -12,5 +12,5 @@ def test_update_set_basic(faker: Faker):
     assert sql.startswith(f'update {DummyModel.__table_name__}')
     assert 'set' in sql
     assert 'bool_field = true' in sql
-    assert f'number_int = {data['number_int']}' in sql
-    assert f'number_float = {data['number_float']}' in sql
+    assert f'number_int = {data["number_int"]}' in sql
+    assert f'number_float = {data["number_float"]}' in sql

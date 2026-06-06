@@ -42,16 +42,10 @@ async def palace_node_db_setup(
     await palace_node_setup_manager.query(
         surorm.DefineNamespace(surreal_test_config.namespace).if_not_exists(True)
     )
-    await palace_node_setup_manager.query(
-        surorm.DefineDatabase(surreal_test_config.name).if_not_exists(True)
-    )
-    await surorm.PerformMigrationCommand(
-        palace_node_setup_manager, settings.config.base_path
-    ).upgrade()
+    await palace_node_setup_manager.query(surorm.DefineDatabase(surreal_test_config.name).if_not_exists(True))
+    await surorm.PerformMigrationCommand(palace_node_setup_manager, settings.config.base_path).upgrade()
     yield
-    await palace_node_setup_manager.query(
-        surorm.Remove('database', surreal_test_config.name).if_exists(True)
-    )
+    await palace_node_setup_manager.query(surorm.Remove('database', surreal_test_config.name).if_exists(True))
     if surreal_test_config.namespace != surreal_original_config.namespace:
         await palace_node_setup_manager.query(
             surorm.Remove('namespace', surreal_test_config.namespace).if_exists(True)

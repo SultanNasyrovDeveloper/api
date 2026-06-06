@@ -35,12 +35,7 @@ class IsAuthenticated(BasePermission):
     async def has_permission(self, request: Request, **context) -> bool:
         """Check if user is authenticated."""
         user = context.get('user')
-
-        if not user:
-            return False
-
-        # User exists and is authenticated
-        return True
+        return bool(user)
 
 
 class IsSuperuser(BasePermission):

@@ -82,7 +82,7 @@ async def test_get_subtree(
     test_palace_node_manager: PalaceNodeManager,
     subtree: tuple[Node, NodeSubtreeStatistics],
 ):
-    subtree_root, subtree_statistics = subtree
+    subtree_root, _subtree_statistics = subtree
     tree = await test_palace_node_manager.get_subtree(subtree_root.pk)
     assert tree.pk == subtree_root.pk
     # TODO: Think how you can really test this
@@ -125,7 +125,7 @@ async def test_search_nodes_pagination(
     node_create_data_factory: Callable[..., dict],
 ):
     owner_id = 'user_list'
-    for i in range(15):
+    for _ in range(15):
         await test_palace_node_manager.create(node_create_data_factory(owner_id=owner_id))
     page1 = await test_palace_node_manager.search('', page=1, size=10, owner_id=owner_id)
     assert len(page1) == 10
@@ -231,7 +231,7 @@ async def test_search_provides_ancestor_context_for_disambiguation(
     python_node = await test_palace_node_manager.add_child(
         test_user_root_node.pk, node_create_data_factory(title='Python', owner_id=test_user.id)
     )
-    python_data_model = await test_palace_node_manager.add_child(
+    await test_palace_node_manager.add_child(
         python_node.pk, node_create_data_factory(title='Data Model', owner_id=test_user.id)
     )
 
@@ -239,7 +239,7 @@ async def test_search_provides_ancestor_context_for_disambiguation(
     javascript_node = await test_palace_node_manager.add_child(
         test_user_root_node.pk, node_create_data_factory(title='JavaScript', owner_id=test_user.id)
     )
-    javascript_data_model = await test_palace_node_manager.add_child(
+    await test_palace_node_manager.add_child(
         javascript_node.pk, node_create_data_factory(title='Data Model', owner_id=test_user.id)
     )
 
@@ -247,7 +247,7 @@ async def test_search_provides_ancestor_context_for_disambiguation(
     sql_node = await test_palace_node_manager.add_child(
         test_user_root_node.pk, node_create_data_factory(title='SQL', owner_id=test_user.id)
     )
-    sql_data_model = await test_palace_node_manager.add_child(
+    await test_palace_node_manager.add_child(
         sql_node.pk, node_create_data_factory(title='Data Model', owner_id=test_user.id)
     )
 

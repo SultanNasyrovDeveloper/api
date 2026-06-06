@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
+from typing import ClassVar
 
 from minager.core import surorm
 from minager.core.lexorank import Lexorank
@@ -47,7 +48,7 @@ class MoveNodeStrategy(metaclass=ABCMeta):
         """
         # Python-only check first - avoid DB call if moving to itself
         if self.config.node_id == self.config.target_id:
-            raise ValueError(f"Cannot move node to itself: node:{self.config.node_id}")
+            raise ValueError(f'Cannot move node to itself: node:{self.config.node_id}')
 
         # Single transaction for all database validations
         validation_query = (
@@ -78,17 +79,17 @@ class MoveNodeStrategy(metaclass=ABCMeta):
 
         # Validate source node exists
         if not result.get('source'):
-            raise ValueError(f"Source node not found: node:{self.config.node_id}")
+            raise ValueError(f'Source node not found: node:{self.config.node_id}')
 
         # Validate target node exists
         if not result.get('target'):
-            raise ValueError(f"Target node not found: node:{self.config.target_id}")
+            raise ValueError(f'Target node not found: node:{self.config.target_id}')
 
         # Check for cycle (would create circular reference)
         if result.get('has_cycle'):
             raise ValueError(
-                f"Cannot move node:{self.config.node_id} to node:{self.config.target_id} "
-                f"- would create cycle (target is a descendant of source)"
+                f'Cannot move node:{self.config.node_id} to node:{self.config.target_id} '
+                f'- would create cycle (target is a descendant of source)'
             )
 
     @abstractmethod
@@ -102,7 +103,6 @@ class MoveNodeStrategy(metaclass=ABCMeta):
 
 # TODO: Return queried with children node only when config parameter provided.
 class MoveNodeAsFirstChild(MoveNodeStrategy):
-
     async def move(self):
         current_first_child_order_query = (
             surorm.Select('value order')
@@ -178,7 +178,7 @@ class MoveNodeBefore(MoveNodeStrategy):
         order = Lexorank.middle(move_data['previous'], move_data['next'])
         move_node_query = surorm.Transaction().perform(
             f'delete child where in == node:{self.config.node_id};',
-            f'relate node:{self.config.node_id}->child->{move_data['new_parent']};',
+            f'relate node:{self.config.node_id}->child->{move_data["new_parent"]};',
             f'update only node:{self.config.node_id} set order = "{order}";',
         )
         await self.manager.query(move_node_query.sql())
@@ -218,7 +218,7 @@ class MoveNodeAfter(MoveNodeStrategy):
         order = Lexorank.middle(move_data['previous'], move_data['next'])
         move_node_query = surorm.Transaction().perform(
             f'delete child where in == node:{self.config.node_id};',
-            f'relate node:{self.config.node_id}->child->{move_data['new_parent']};',
+            f'relate node:{self.config.node_id}->child->{move_data["new_parent"]};',
             f'update only node:{self.config.node_id} set order = "{order}";',
         )
         await self.manager.query(move_node_query.sql())
@@ -228,8 +228,7 @@ class MoveNodeAfter(MoveNodeStrategy):
 
 
 class MoveNodeService:
-
-    STRATEGY_MAP = {
+    STRATEGY_MAP: ClassVar[dict] = {
         MovePosition.before.value: MoveNodeBefore,
         MovePosition.after.value: MoveNodeAfter,
         MovePosition.first_child.value: MoveNodeAsFirstChild,

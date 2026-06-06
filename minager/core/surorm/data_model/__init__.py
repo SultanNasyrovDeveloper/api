@@ -1,5 +1,5 @@
 import json
-from typing import Any
+from typing import Any, ClassVar
 
 from ..base import DataType
 from ..types import Expression
@@ -52,12 +52,12 @@ class Array[InnerType: Any](DataType):
         self.length = length
 
     def sql(self) -> str:
-        return f'[{','.join(map(render, self.values))}]'
+        return f'[{",".join(map(render, self.values))}]'
 
 
 class Sequence[InnerType: Any](DataType):
     name = 'sequence'
-    values: list[Expression] = []
+    values: ClassVar[list[Expression]] = []
 
     def __init__(self, items: list[Expression], length: int | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -65,7 +65,7 @@ class Sequence[InnerType: Any](DataType):
         self.length = length
 
     def sql(self) -> str:
-        return f'[{','.join(map(render, self.values))}]'
+        return f'[{",".join(map(render, self.values))}]'
 
     def __add__(self, other: Expression) -> Expression:
         if isinstance(other, Sequence):
@@ -87,15 +87,15 @@ class Json(DataType):
 
 
 __all__ = [
+    'Array',
+    'Boolean',
     'Datetime',
+    'Json',
+    'Null',
     'Number',
     'Object',
     'Record',
-    'Null',
-    'String',
-    'Array',
-    'Sequence',
-    'Json',
-    'Boolean',
     'Record',
+    'Sequence',
+    'String',
 ]  # TODO: Move all types into separate files

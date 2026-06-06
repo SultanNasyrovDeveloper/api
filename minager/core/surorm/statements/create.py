@@ -1,4 +1,4 @@
-from typing import Any, Self, Type
+from typing import Any, Self
 
 from ..base import Statement
 from ..mixins import Returnable
@@ -9,7 +9,7 @@ from ..utils import render
 
 
 class Create(Statement, Returnable):
-    def __init__(self, target: str | Type[Table], only: bool = False, *args, **kwargs):
+    def __init__(self, target: str | type[Table], only: bool = False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._target = target
         self._only = only

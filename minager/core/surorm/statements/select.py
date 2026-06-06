@@ -1,4 +1,4 @@
-from typing import Literal, Self, Type
+from typing import Literal, Self
 
 from ..base import Statement
 from ..mixins import Filterable
@@ -32,7 +32,7 @@ class Select(Statement, Filterable):
     def __str__(self) -> str:
         return self.sql()
 
-    def from_(self, name: Expression | Type[Table], only: bool = False) -> Self:
+    def from_(self, name: Expression | type[Table], only: bool = False) -> Self:
         # TODO: Refactor this should be done in sql method not here
         sql = ['from']
         if only:
@@ -112,10 +112,10 @@ class Select(Statement, Filterable):
             q.append(filter_expression)
 
         if self._group_all or self._group_by:
-            q.append('group all' if self._group_all else f'group by {','.join(self._group_by)}')
+            q.append('group all' if self._group_all else f'group by {",".join(self._group_by)}')
 
         if self._order_by:
-            q.append(f'order by {','.join(self._order_by)} {self._order_by_direction}')
+            q.append(f'order by {",".join(self._order_by)} {self._order_by_direction}')
 
         if self._limit:
             q.append(f'limit {self._limit}')
