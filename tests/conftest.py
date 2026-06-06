@@ -21,6 +21,8 @@ pytest_plugins = [
     'tests.fixtures.postgres_db',
 ]
 
+TEST_USER_PASSWORD = 'TestPassword123!'
+
 
 @dataclass
 class UserTestContext:
@@ -45,7 +47,7 @@ async def test_user(
             UserCreateDataSchema(
                 email=f'test_{suffix}@test.example.com',
                 username=f'testuser_{suffix}',
-                password='TestPassword123!',
+                password=TEST_USER_PASSWORD,
             )
         )
     root_node = await test_palace_node_manager.create(

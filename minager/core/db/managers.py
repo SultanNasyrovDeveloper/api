@@ -132,9 +132,7 @@ class DatabaseManager[ModelT](BaseDatabaseManager[ModelT]):
         self._check_active_session(session)
         create_data = []
         for item in items:
-            create_data.append(
-                item.model_dump(mode='json') if isinstance(item, BaseModel) else item
-            )
+            create_data.append(item.model_dump(mode='json') if isinstance(item, BaseModel) else item)
         session = self.get_session(session)
         stmt = insert(self.model_class)
         stmt = stmt.returning(self.model_class)
@@ -149,6 +147,7 @@ class DatabaseManager[ModelT](BaseDatabaseManager[ModelT]):
             .where(self.model_class.id.expression == id_)
             .values(**data)
             .returning(self.model_class)
+            .execution_options(populate_existing=True)
         )
         session = self.get_session(session)
         updated = await session.scalar(stmt)
@@ -193,9 +192,7 @@ class PostgresDatabaseManager[ModelT](DatabaseManager[ModelT]):
         self._check_active_session(session)
         create_data = []
         for item in items:
-            create_data.append(
-                item.model_dump(mode='json') if isinstance(item, BaseModel) else item
-            )
+            create_data.append(item.model_dump(mode='json') if isinstance(item, BaseModel) else item)
         session = self.get_session(session)
         stmt = postgres_insert(self.model_class)
         if fail_silently:

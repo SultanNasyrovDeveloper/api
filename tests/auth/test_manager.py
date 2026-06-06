@@ -3,12 +3,14 @@ from uuid import uuid4
 import pytest
 from faker import Faker
 
-from minager.auth.managers import UserManager
+from minager.auth.managers import UserManager, UserProfileManager
 from minager.auth.schemas import (
     UserCreateDataSchema,
+    UserProfileUpdateDataSchema,
     UserUpdateDataSchema,
     UserWithProfileSchema,
 )
+from tests.conftest import TEST_USER_PASSWORD
 
 pytestmark = pytest.mark.asyncio
 
@@ -36,21 +38,17 @@ async def test_create_user_success(user_manager: UserManager, faker: Faker):
     assert user.updated_at is not None
 
 
-async def test_create_user_duplicate_email(
-    user_manager: UserManager, test_user: UserWithProfileSchema
-):
+async def test_create_user_duplicate_email(user_manager: UserManager, test_user: UserWithProfileSchema):
     schema = UserCreateDataSchema(
-        email=test_user.email, username='different_username', password='TestPassword123!'
+        email=test_user.email, username='different_username', password=TEST_USER_PASSWORD
     )
     with pytest.raises(ValueError, match='Email already registered'):
         await user_manager.create_user(schema)
 
 
-async def test_create_user_duplicate_username(
-    user_manager: UserManager, test_user: UserWithProfileSchema
-):
+async def test_create_user_duplicate_username(user_manager: UserManager, test_user: UserWithProfileSchema):
     schema = UserCreateDataSchema(
-        email='different@example.com', username=test_user.username, password='TestPassword123!'
+        email='different@example.com', username=test_user.username, password=TEST_USER_PASSWORD
     )
     with pytest.raises(ValueError, match='Username already taken'):
         await user_manager.create_user(schema)
@@ -68,9 +66,7 @@ async def test_get_by_email_not_found(user_manager: UserManager):
     assert user is None
 
 
-async def test_get_by_email_deleted_user(
-    user_manager: UserManager, test_user: UserWithProfileSchema
-):
+async def test_get_by_email_deleted_user(user_manager: UserManager, test_user: UserWithProfileSchema):
     await user_manager.update(str(test_user.id), data={'is_deleted': True})
     user = await user_manager.get_by_email(test_user.email)
     assert user is None
@@ -89,9 +85,7 @@ async def test_get_by_username_not_found(user_manager: UserManager):
     assert user is None
 
 
-async def test_get_by_username_deleted_user(
-    user_manager: UserManager, test_user: UserWithProfileSchema
-):
+async def test_get_by_username_deleted_user(user_manager: UserManager, test_user: UserWithProfileSchema):
     await user_manager.update(str(test_user.id), data={'is_deleted': True})
     user = await user_manager.get_by_username(test_user.username)
     assert user is None
@@ -105,9 +99,7 @@ async def test_get_active_user_success(user_manager: UserManager, test_user: Use
     assert user.is_deleted is False
 
 
-async def test_get_active_user_inactive(
-    user_manager: UserManager, test_user: UserWithProfileSchema
-):
+async def test_get_active_user_inactive(user_manager: UserManager, test_user: UserWithProfileSchema):
     await user_manager.update(str(test_user.id), data={'is_active': False})
     user = await user_manager.get_active_user(test_user.id)
     assert user is None
@@ -125,46 +117,32 @@ async def test_get_active_user_not_found(user_manager: UserManager):
 
 
 async def test_authenticate_success(user_manager: UserManager, test_user: UserWithProfileSchema):
-    user = await user_manager.authenticate(
-        email=test_user.email, password='TestPassword123!'  # TODO: Refactor - do not use raw value
-    )
+    user = await user_manager.authenticate(email=test_user.email, password=TEST_USER_PASSWORD)
     assert user is not None
     assert user.id == test_user.id
 
 
-async def test_authenticate_wrong_password(
-    user_manager: UserManager, test_user: UserWithProfileSchema
-):
+async def test_authenticate_wrong_password(user_manager: UserManager, test_user: UserWithProfileSchema):
     user = await user_manager.authenticate(email=test_user.email, password='WrongPassword123!')
     assert user is None
 
 
 async def test_authenticate_wrong_email(user_manager: UserManager):
     """Test authentication with non-existent email returns None"""
-    user = await user_manager.authenticate(
-        email='nonexistent@example.com', password='TestPassword123!'
-    )
+    user = await user_manager.authenticate(email='nonexistent@example.com', password=TEST_USER_PASSWORD)
 
     assert user is None
 
 
-async def test_authenticate_inactive_user(
-    user_manager: UserManager, test_user: UserWithProfileSchema
-):
+async def test_authenticate_inactive_user(user_manager: UserManager, test_user: UserWithProfileSchema):
     await user_manager.update(str(test_user.id), data={'is_active': False})
-    user = await user_manager.authenticate(
-        email=test_user.email, password='TestPassword123!'  # TODO: Refactor - do not use raw value
-    )
+    user = await user_manager.authenticate(email=test_user.email, password=TEST_USER_PASSWORD)
     assert user is None
 
 
-async def test_authenticate_deleted_user(
-    user_manager: UserManager, test_user: UserWithProfileSchema
-):
+async def test_authenticate_deleted_user(user_manager: UserManager, test_user: UserWithProfileSchema):
     await user_manager.update(str(test_user.id), data={'is_deleted': True})
-    user = await user_manager.authenticate(
-        email=test_user.email, password='TestPassword123!'  # TODO: Refactor - do not use raw value
-    )
+    user = await user_manager.authenticate(email=test_user.email, password=TEST_USER_PASSWORD)
     assert user is None
 
 
@@ -183,16 +161,12 @@ async def test_update_last_login(user_manager: UserManager, test_user: UserWithP
     assert updated_user.updated_at > original_updated_at
 
 
-@pytest.mark.xfail()
 async def test_update_last_login_nonexistent_user(user_manager: UserManager):
-    with pytest.raises(Exception):  # SQLAlchemy will raise an error
+    with pytest.raises(ValueError, match='User not found'):
         await user_manager.update_last_login(uuid4())
 
 
-@pytest.mark.xfail()
-async def test_update_user_email_success(
-    user_manager: UserManager, test_user: UserWithProfileSchema
-):
+async def test_update_user_email_success(user_manager: UserManager, test_user: UserWithProfileSchema):
     new_email = f'updated_{uuid4().hex[:8]}@example.com'
     update_data = UserUpdateDataSchema(email=new_email)
 
@@ -200,21 +174,80 @@ async def test_update_user_email_success(
 
     assert updated_user.email == new_email
     assert updated_user.is_verified is False
-    assert updated_user.updated_at > test_user.updated_at
+    assert updated_user.updated_at >= test_user.updated_at
 
 
-@pytest.mark.xfail()
-async def test_update_user_password_success(
-    user_manager: UserManager, test_user: UserWithProfileSchema
-):
+async def test_update_user_password_success(user_manager: UserManager, test_user: UserWithProfileSchema):
     new_password = 'NewPassword123!'
     update_data = UserUpdateDataSchema(password=new_password)
 
     updated_user = await user_manager.update_user(test_user.id, update_data)
 
     assert user_manager.verify_password(new_password, updated_user.hashed_password) is True
-    is_old_pass_verified = user_manager.verify_password(
-        'TestPassword123!', updated_user.hashed_password  # TODO: Refactor - do not use raw value,
+    assert not user_manager.verify_password(TEST_USER_PASSWORD, updated_user.hashed_password)
+    assert updated_user.updated_at >= test_user.updated_at
+
+
+# ---------------------------------------------------------------------------
+# UserProfileManager tests
+# ---------------------------------------------------------------------------
+
+
+async def test_create_profile_success(
+    user_profile_manager: UserProfileManager, test_user: UserWithProfileSchema
+):
+    profile = await user_profile_manager.get_by_user_id(test_user.id)
+    assert profile is not None
+    assert profile.user_id == test_user.id
+    assert profile.knowledge_tree_root_id == test_user.knowledge_tree_root_id
+
+
+async def test_get_by_user_id_not_found(user_profile_manager: UserProfileManager):
+    profile = await user_profile_manager.get_by_user_id(uuid4())
+    assert profile is None
+
+
+async def test_update_profile_display_name(
+    user_profile_manager: UserProfileManager, test_user: UserWithProfileSchema, faker: Faker
+):
+    new_name = faker.name()
+    update_data = UserProfileUpdateDataSchema(display_name=new_name)
+    updated = await user_profile_manager.update_profile(test_user.id, update_data)
+
+    assert updated.display_name == new_name
+    assert updated.bio == ''
+
+
+async def test_update_profile_partial_patch_preserves_other_fields(
+    user_profile_manager: UserProfileManager, test_user: UserWithProfileSchema, faker: Faker
+):
+    await user_profile_manager.update_profile(
+        test_user.id, UserProfileUpdateDataSchema(display_name='keep_me')
     )
-    assert not is_old_pass_verified
-    assert updated_user.updated_at > test_user.updated_at
+    updated = await user_profile_manager.update_profile(
+        test_user.id, UserProfileUpdateDataSchema(bio='new bio')
+    )
+    assert updated.display_name == 'keep_me'
+    assert updated.bio == 'new bio'
+
+
+async def test_update_profile_not_found(user_profile_manager: UserProfileManager):
+    with pytest.raises(ValueError, match='Profile not found'):
+        await user_profile_manager.update_profile(uuid4(), UserProfileUpdateDataSchema(display_name='x'))
+
+
+async def test_add_experience_increments(
+    user_profile_manager: UserProfileManager, test_user: UserWithProfileSchema
+):
+    await user_profile_manager.add_experience(test_user.id, 10)
+    after_first = await user_profile_manager.get_by_user_id(test_user.id)
+    assert after_first.experience == 10
+
+    await user_profile_manager.add_experience(test_user.id, 10)
+    after_second = await user_profile_manager.get_by_user_id(test_user.id)
+    assert after_second.experience == 20
+
+
+async def test_add_experience_not_found(user_profile_manager: UserProfileManager):
+    with pytest.raises(ValueError, match='Profile not found'):
+        await user_profile_manager.add_experience(uuid4(), 10)

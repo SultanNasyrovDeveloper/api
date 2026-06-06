@@ -46,21 +46,8 @@ async def get_current_user(
     return user
 
 
-async def get_current_active_user(
-    user: Annotated[User, Depends(get_current_user)],
-) -> User:
-    """
-    Get current active user.
-    Raises 403 if user is not active.
-    """
-    if not user.is_active:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Inactive user')
-
-    return user
-
-
 async def get_current_verified_user(
-    user: Annotated[User, Depends(get_current_active_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> User:
     """
     Get current verified user.
@@ -74,7 +61,7 @@ async def get_current_verified_user(
 
 
 async def get_current_superuser(
-    user: Annotated[User, Depends(get_current_active_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> User:
     """
     Get current superuser.
@@ -88,7 +75,7 @@ async def get_current_superuser(
 
 
 async def get_current_user_profile(
-    user: Annotated[User, Depends(get_current_active_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> UserProfile:
     """
     Get current user's profile.
@@ -105,7 +92,7 @@ async def get_current_user_profile(
 
 # Type aliases for dependency injection
 CurrentUser = Annotated[User, Depends(get_current_user)]
-CurrentActiveUser = Annotated[User, Depends(get_current_active_user)]
+CurrentActiveUser = Annotated[User, Depends(get_current_user)]
 CurrentVerifiedUser = Annotated[User, Depends(get_current_verified_user)]
 CurrentSuperuser = Annotated[User, Depends(get_current_superuser)]
 CurrentUserProfile = Annotated[UserProfile, Depends(get_current_user_profile)]

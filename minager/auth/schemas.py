@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Self
 from uuid import UUID
 
@@ -86,7 +86,6 @@ class UserProfileUpdateDataSchema(BaseModel):
 
     display_name: str | None = Field(None, max_length=100)
     bio: str | None = Field(None, max_length=500)
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class UserProfileCreateSchema(BaseModel):
@@ -111,7 +110,7 @@ class UserWithProfileSchema(BaseModel):
 
     display_name: str
     bio: str
-    knowledge_tree_root_id: str
+    knowledge_tree_root_id: str | None
     experience: int
 
     @classmethod
@@ -126,5 +125,5 @@ class UserWithProfileSchema(BaseModel):
 class LoginCredentialsSchema(BaseModel):
     """Login credentials"""
 
-    username: str  # always email for now
+    email: EmailStr
     password: str

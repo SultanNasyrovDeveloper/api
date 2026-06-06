@@ -18,13 +18,9 @@ class UserManager(PostgresDatabaseManager[models.User]):
     def get_item_id(self, item: models.User) -> str | None:
         return str(item.id)
 
-    async def get_by_email(
-        self, email: str, session: AsyncSession | None = None
-    ) -> models.User | None:
+    async def get_by_email(self, email: str, session: AsyncSession | None = None) -> models.User | None:
         """Get user by email address"""
-        stmt = select(models.User).where(
-            models.User.email == email, models.User.is_deleted == False
-        )
+        stmt = select(models.User).where(models.User.email == email, models.User.is_deleted == False)
         return await self.select_one(stmt, session=session)
 
     async def get_by_username(
@@ -33,14 +29,10 @@ class UserManager(PostgresDatabaseManager[models.User]):
         session: AsyncSession | None = None,
     ) -> models.User | None:
         """Get user by username"""
-        stmt = select(models.User).where(
-            models.User.username == username, models.User.is_deleted == False
-        )
+        stmt = select(models.User).where(models.User.username == username, models.User.is_deleted == False)
         return await self.select_one(stmt, session=session)
 
-    async def get_active_user(
-        self, user_id: UUID, session: AsyncSession | None = None
-    ) -> models.User | None:
+    async def get_active_user(self, user_id: UUID, session: AsyncSession | None = None) -> models.User | None:
         """Get active user by ID (not deleted, is active)"""
         stmt = select(models.User).where(
             models.User.id == user_id,
@@ -81,24 +73,22 @@ class UserManager(PostgresDatabaseManager[models.User]):
         """
         user = await self.get_by_email(email, session=session)
 
-        if not user:
+        if not user or not user.is_active:
             return None
 
         if not self.verify_password(password, user.hashed_password):
             return None
 
-        if not user.is_active or user.is_deleted:
-            return None
-
         return user
 
-    async def update_last_login(
-        self, user_id: UUID, session: AsyncSession | None = None
-    ) -> models.User:
+    async def update_last_login(self, user_id: UUID, session: AsyncSession | None = None) -> models.User:
         now = datetime.now(UTC).replace(tzinfo=None)
-        return await self.update(
+        updated = await self.update(
             str(user_id), data={'last_login': now, 'updated_at': now}, session=session
         )
+        if updated is None:
+            raise ValueError('User not found')
+        return updated
 
     async def update_user(
         self,
@@ -122,7 +112,10 @@ class UserManager(PostgresDatabaseManager[models.User]):
             update_data['hashed_password'] = crypt_context.hash(user_data.password)
         update_data['updated_at'] = datetime.now(UTC).replace(tzinfo=None)
 
-        return await self.update(str(user_id), data=update_data, session=session)
+        updated = await self.update(str(user_id), data=update_data, session=session)
+        if updated is None:
+            raise ValueError('User not found')
+        return updated
 
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -169,7 +162,9 @@ class UserProfileManager(PostgresDatabaseManager[models.UserProfile]):
         profile = await self.get_by_user_id(user_id, session=session)
         if not profile:
             raise ValueError('Profile not found')
-        return await self.update(profile.id, data=profile_data.model_dump(), session=session)
+        update_data = profile_data.model_dump(exclude_none=True)
+        update_data['updated_at'] = utils.utc_now_naive()
+        return await self.update(profile.id, data=update_data, session=session)
 
     async def add_experience(
         self, user_id: UUID, amount: int, session: AsyncSession | None = None
@@ -180,6 +175,6 @@ class UserProfileManager(PostgresDatabaseManager[models.UserProfile]):
             raise ValueError('Profile not found')
         return await self.update(
             profile.id,
-            data={'experience': amount, 'updated_at': utils.utc_now_naive()},
+            data={'experience': profile.experience + amount, 'updated_at': utils.utc_now_naive()},
             session=session,
         )

@@ -33,7 +33,7 @@ class User(Model, table=True):
 class UserProfile(Model, table=True):
     __tablename__ = 'auth__user_profiles'
 
-    id: int | None = Field(primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: UUID = Field(foreign_key='auth__users.id')
     knowledge_tree_root_id: str | None = Field(default=None, max_length=50)
     display_name: str = Field(default='', max_length=100)

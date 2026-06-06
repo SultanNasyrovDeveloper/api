@@ -4,7 +4,7 @@ import pytest
 import pytest_asyncio
 from faker import Faker
 
-from minager.auth.managers import UserManager
+from minager.auth.managers import UserManager, UserProfileManager
 
 fake = Faker()
 
@@ -13,6 +13,12 @@ fake = Faker()
 async def user_manager() -> AsyncGenerator[UserManager]:
     async with UserManager() as user_manager:
         yield user_manager
+
+
+@pytest_asyncio.fixture
+async def user_profile_manager() -> AsyncGenerator[UserProfileManager]:
+    async with UserProfileManager() as manager:
+        yield manager
 
 
 @pytest.fixture

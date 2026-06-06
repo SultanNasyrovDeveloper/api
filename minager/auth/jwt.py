@@ -18,7 +18,7 @@ class JWTService:
         secret: str,
         algorithm: str = 'HS256',
         access_token_expire_minutes: int = 60,
-        refresh_token_expire_days=7,
+        refresh_token_expire_days: int = 7,
     ):
         self.secret_key = secret
         self.algorithm = algorithm
@@ -104,7 +104,7 @@ class JWTService:
         if payload.type != expected_type:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f'Invalid token type. Expected {expected_type}, got {payload.type}',
+                detail='Could not validate credentials',
                 headers={'WWW-Authenticate': 'Bearer'},
             )
 
