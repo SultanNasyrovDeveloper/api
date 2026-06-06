@@ -21,7 +21,7 @@ class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
 
     @abstractmethod
     async def search(
-        self, query: str = '', page: int = 1, size: int = 15, user_id: str = None, **kwargs
+        self, query: str = '', page: int = 1, size: int = 15, user_id: str | None = None, **kwargs
     ) -> list[schemas.SearchNodeResultSchema]: ...
 
     @abstractmethod
@@ -58,7 +58,7 @@ class PalaceNodeManager(BaseNodeManager):
         return models.Node.model_validate(node_data) if node_data else None
 
     async def search(
-        self, query: str = '', page: int = 1, size: int = 15, user_id: str = None, **kwargs
+        self, query: str = '', page: int = 1, size: int = 15, user_id: str | None = None, **kwargs
     ) -> list[schemas.SearchNodeResultSchema]:
         self._check_connection()
         conditions = []

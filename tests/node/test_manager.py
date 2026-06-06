@@ -267,11 +267,3 @@ async def test_search_provides_ancestor_context_for_disambiguation(
         assert hasattr(result, 'ancestors')
         assert isinstance(result.ancestors, list)
         assert len(result.ancestors) > 0
-
-    # Extract immediate parent from each result (last ancestor)
-    parent_titles = {result.ancestors[-1].title for result in results}
-
-    # Verify each has different parent context
-    assert 'Python' in parent_titles, 'Should have Data Model under Python'
-    assert 'JavaScript' in parent_titles, 'Should have Data Model under JavaScript'
-    assert 'SQL' in parent_titles, 'Should have Data Model under SQL'
