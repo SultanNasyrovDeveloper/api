@@ -18,7 +18,7 @@ async def signup(user_data: schemas.UserCreateDataSchema) -> models.User:
 @auth_router.post('/token', response_model=schemas.TokenPairSchema)
 async def get_token(credentials: schemas.LoginCredentialsSchema) -> schemas.TokenPairSchema:
     async with managers.UserManager() as manager:
-        user = await manager.authenticate(credentials.email, credentials.password)
+        user = await manager.authenticate(credentials.username, credentials.password)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

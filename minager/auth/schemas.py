@@ -125,5 +125,5 @@ class UserWithProfileSchema(BaseModel):
 class LoginCredentialsSchema(BaseModel):
     """Login credentials"""
 
-    email: EmailStr
+    username: str
     password: str
