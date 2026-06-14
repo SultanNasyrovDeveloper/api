@@ -76,15 +76,11 @@ class LearningSessionManager:
         session = await self.get(id_)
         repetition_queue = await self.palace_client.get_subtree_ids(session.target, 50)
         shuffled_repetition_queue = shuffle(repetition_queue)
-        return await self.update(
-            id_,
-            {
-                'current_node': (
-                    shuffled_repetition_queue[0] if len(shuffled_repetition_queue) > 0 else None
-                ),
-                'queue': (shuffled_repetition_queue[1:] if len(shuffled_repetition_queue) > 1 else []),
-            },
-        )
+        update_data = {
+            'current_node': shuffled_repetition_queue[0] if len(shuffled_repetition_queue) > 0 else None,
+            'queue': shuffled_repetition_queue[1:] if len(shuffled_repetition_queue) > 1 else [],
+        }
+        return await self.update(id_, update_data)
 
     async def update(self, id_: str | ObjectId, data: dict) -> LearningSession:
         id_ = id_ if type(id_) is ObjectId else ObjectId(id_)
