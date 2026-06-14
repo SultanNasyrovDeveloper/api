@@ -7,7 +7,7 @@ from minager.core.surorm.core.tester import SurrealConnectionTester
 from minager.learning_session.managers import LearningSessionManager
 from minager.node.managers import PalaceNodeManager
 
-from .settings import config
+from .settings import config, main_db_engine
 
 
 @asynccontextmanager
@@ -29,3 +29,4 @@ async def lifespan(app: FastAPI):
     await palace_service_client.__aexit__(None, None, None)
     await app.state.nodes.__aexit__(None, None, None)
     await app.state.learning_session.__aexit__(None, None, None)
+    await main_db_engine.dispose()
