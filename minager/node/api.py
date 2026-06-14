@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Path, Query, status
 
 from minager.core.api.dependencies import App
 from minager.core.types import PaginatedResult
@@ -14,9 +14,9 @@ router = APIRouter(prefix='/nodes')
 async def search(
     user: RequestUser,
     app: App,
-    query: str = '',
-    page: int = 1,
-    size: int = 10,
+    query: str = Query(default='', max_length=200),
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=10, ge=1, le=100),
 ) -> PaginatedResult[schemas.SearchNodeResultSchema]:
     nodes = await app.state.nodes.search(
         user_id=str(user.sub),
@@ -29,10 +29,10 @@ async def search(
 
 @router.post('/{id_}/add-child', status_code=status.HTTP_201_CREATED)
 async def add_child(
-    id_: str,
-    data: schemas.NodeCreateSchema,
-    user: RequestUser,
-    app: App,
+    id_: str = Path(description='Parent node ID'),
+    data: schemas.NodeCreateSchema = ...,
+    user: RequestUser = ...,
+    app: App = ...,
 ) -> schemas.NodeDetailSchema:
     data_as_dict = data.model_dump()
     data_as_dict['owner_id'] = user.sub
@@ -40,7 +40,11 @@ async def add_child(
 
 
 @router.get('/{id_}')
-async def get(id_: str, app: App, user: RequestUser) -> schemas.NodeDetailSchema:
+async def get(
+    id_: str = Path(description='Node ID'),
+    app: App = ...,
+    user: RequestUser = ...,
+) -> schemas.NodeDetailSchema:
     node = await app.state.nodes.get(id_)
     if not node:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -50,7 +54,10 @@ async def get(id_: str, app: App, user: RequestUser) -> schemas.NodeDetailSchema
 
 
 @router.get('/{uid}/generate-content')
-async def generate_content(uid: str, app: App) -> str:
+async def generate_content(
+    uid: str = Path(description='Node ID'),
+    app: App = ...,
+) -> str:
     node = await app.state.nodes.get(uid)
     if not node:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -59,47 +66,74 @@ async def generate_content(uid: str, app: App) -> str:
 
 
 @router.get('/{uid}/children')
-async def get_children(uid: str, app: App, page: int = 1, size: int = 30):
+async def get_children(
+    uid: str = Path(description='Node ID'),
+    app: App = ...,
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=30, ge=1, le=100),
+):
     children = await app.state.nodes.get_children(uid)
     # TODO: Raise 404 if node whose children we trying to access not found
     return PaginatedResult(page=page, results=[child.model_dump() for child in children])
 
 
 @router.get('/{uid}/statistics')
-async def get_statistics(uid: str, app: App) -> dto.NodeOverallStatistics:
+async def get_statistics(
+    uid: str = Path(description='Node ID'),
+    app: App = ...,
+) -> dto.NodeOverallStatistics:
     return await app.state.nodes.get_statistics(uid)
 
 
 @router.get('/{uid}/subtree')
-async def get_subtree(uid: str, app: App) -> models.TreeNode:
+async def get_subtree(
+    uid: str = Path(description='Node ID'),
+    app: App = ...,
+) -> models.TreeNode:
     return await app.state.nodes.get_subtree(uid)
 
 
 @router.get('/{uid}/subtree/statistics')
-async def get_subtree_statistics(uid: str, app: App) -> dto.NodeSubtreeStatistics:
+async def get_subtree_statistics(
+    uid: str = Path(description='Node ID'),
+    app: App = ...,
+) -> dto.NodeSubtreeStatistics:
     # TODO: Make proper schema for statistics response
     # TODO: Check if node exists raise 404 if not
     return await app.state.nodes.get_subtree_statistics(uid)
 
 
 @router.get('/{uid}/subtree/ids')
-async def get_subtree_ids(uid: str, app: App, limit: int = 50) -> list[str]:
+async def get_subtree_ids(
+    uid: str = Path(description='Node ID'),
+    app: App = ...,
+    limit: int = Query(default=50, ge=1, le=1000),
+) -> list[str]:
     return await app.state.nodes.get_subtree_ids(uid, limit=limit)
 
 
 @router.post('/{uid}/move')
 async def move_node(
-    uid: str, app: App, move_config: schemas.NodeMoveConfiguration
+    uid: str = Path(description='Node ID'),
+    app: App = ...,
+    move_config: schemas.NodeMoveConfiguration = ...,
 ) -> schemas.UpdatedNodeSchema:
     return await app.state.nodes.move(uid, move_config.target_id, move_config.position)
 
 
 @router.patch('/{uid}')
-async def update(uid: str, app: App, update_data: schemas.NodeEditSchema) -> schemas.NodeDetailSchema:
+async def update(
+    uid: str = Path(description='Node ID'),
+    app: App = ...,
+    update_data: schemas.NodeEditSchema = ...,
+) -> schemas.NodeDetailSchema:
     response = await app.state.nodes.patch(uid, update_data.model_dump(exclude_unset=True))
     return response
 
 
 @router.delete('/{uid}')
-async def delete(uid: str, app: App) -> None:
+async def delete(
+    uid: str = Path(description='Node ID'),
+    app: App = ...,
+) -> None:
     await app.state.nodes.delete(uid)

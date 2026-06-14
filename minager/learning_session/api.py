@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Path, status
 
 from minager.dependencies import App, RequestUser
 
@@ -35,7 +35,10 @@ async def start(
     response_model_by_alias=False,
     response_model_exclude={'queue'},
 )
-async def regenerate_queue(id_: str, app: App) -> schemas.LearningSessionSchema:
+async def regenerate_queue(
+    id_: str = Path(description='Learning session ID'),
+    app: App = ...,
+) -> schemas.LearningSessionSchema:
     return await app.state.learning_session.regenerate_queue(id_)
 
 
@@ -45,10 +48,10 @@ async def regenerate_queue(id_: str, app: App) -> schemas.LearningSessionSchema:
     response_model_exclude={'queue'},
 )
 async def perform_repetition(
-    id_: str,
-    user: RequestUser,
-    repetition_data: schemas.RecordRepetitionDataSchema,
-    app: App,
+    id_: str = Path(description='Learning session ID'),
+    user: RequestUser = ...,
+    repetition_data: schemas.RecordRepetitionDataSchema = ...,
+    app: App = ...,
 ) -> schemas.LearningSessionSchema:
     # TODO: Consider returning only new current node cause only this value actually changes
     return await app.state.learning_session.perform_repetition(
@@ -57,5 +60,8 @@ async def perform_repetition(
 
 
 @router.post('/{id_}/finish', response_model_by_alias=False, response_model_exclude={'queue'})
-async def finish(id_: str, app: App) -> schemas.LearningSessionSchema:
+async def finish(
+    id_: str = Path(description='Learning session ID'),
+    app: App = ...,
+) -> schemas.LearningSessionSchema:
     return await app.state.learning_session.finish(id_)
