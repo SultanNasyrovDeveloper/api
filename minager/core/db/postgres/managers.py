@@ -1,5 +1,4 @@
 from itertools import batched
-from typing import Any
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel
@@ -74,9 +73,9 @@ class BaseDatabaseManager[ModelT: Model]:
 class DatabaseManager[ModelT](BaseDatabaseManager[ModelT]):
     async def count(
         self,
-        *positional_query: ColumnExpressionArgument[Any],
+        *positional_query: ColumnExpressionArgument,
         session: AsyncSession | None = None,
-        **keyword_query: ColumnExpressionArgument[Any],
+        **keyword_query: ColumnExpressionArgument,
     ) -> int:
         return await self.select_one(
             select(func.count(getattr(self.model_class, self.id_field_name))).where(
@@ -87,9 +86,9 @@ class DatabaseManager[ModelT](BaseDatabaseManager[ModelT]):
 
     async def exists(
         self,
-        *positional_query: ColumnExpressionArgument[Any],
+        *positional_query: ColumnExpressionArgument,
         session: AsyncSession | None = None,
-        **filters: ColumnExpressionArgument[Any],
+        **filters: ColumnExpressionArgument,
     ) -> bool:
         return await self.exists(*positional_query, session=session, **filters) > 0
 

@@ -11,12 +11,12 @@ type DBDriver = Literal['postgresql+asyncpg', 'postgresql', 'motor', 'surreal']
 class DBConnectionConfig(BaseModel):
     driver: DBDriver = 'postgresql+asyncpg'
     name: str
-    test_name: str | None = None
-    namespace: str | None = None
-    host: str | None = None
-    port: int | None = None
-    username: str | None = None
-    password: SecretStr | None = None
+    test_name: str = Field(default='')
+    namespace: str = Field(default='')
+    host: str = Field(default='')
+    port: int = Field(default='')
+    username: str = Field(default='')
+    password: SecretStr = Field(default='')
 
     test: DBConnectionConfig | None = Field(default=None, validate_default=True)
 

@@ -40,8 +40,8 @@ class ApplicationConfig(BaseSettings):
 
 config = ApplicationConfig()
 
-main_db_engine = create_async_engine(config.main_db.to_str(), echo=True)
-main_db = async_sessionmaker(main_db_engine, expire_on_commit=False)
+main_db_engine = create_async_engine(config.main_db.to_str(), echo=config.debug)
+main_db = async_sessionmaker(main_db_engine, expire_on_commit=False, autoflush=True)
 
 crypt_context = PasswordHash((BcryptHasher(),))
 AuthBearerToken = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/users/token')
