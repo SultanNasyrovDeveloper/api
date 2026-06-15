@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from minager.app import app
 from minager.auth.jwt import jwt_service
@@ -14,7 +15,7 @@ from minager.auth.schemas import (
     UserProfileCreateSchema,
     UserWithProfileSchema,
 )
-from minager.node.managers import PalaceNodeManager
+from minager.node.managers import KnowledgeTreeNodeManager
 
 pytest_plugins = [
     'tests.fixtures.surreal_db',
@@ -41,17 +42,17 @@ async def app_client(palace_node_db_setup: None) -> AsyncGenerator[AsyncClient, 
 
 @pytest_asyncio.fixture()
 async def test_user(
-    test_palace_node_manager: PalaceNodeManager,
-) -> AsyncGenerator[UserWithProfileSchema, None]:
+    pg_session: AsyncSession,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
+) -> UserWithProfileSchema:
     suffix = uuid4().hex[:8]
-    async with UserManager() as user_mgr:
-        user = await user_mgr.create_user(
-            UserCreateDataSchema(
-                email=f'test_{suffix}@test.example.com',
-                username=f'testuser_{suffix}',
-                password=TEST_USER_PASSWORD,
-            )
+    user = await UserManager(session=pg_session).create_user(
+        UserCreateDataSchema(
+            email=f'test_{suffix}@test.example.com',
+            username=f'testuser_{suffix}',
+            password=TEST_USER_PASSWORD,
         )
+    )
     root_node = await test_palace_node_manager.create(
         {
             'owner_id': str(user.id),
@@ -61,23 +62,13 @@ async def test_user(
             'order': 'aaaaaa',
         }
     )
-    async with UserProfileManager() as profile_mgr:
-        user_profile = await profile_mgr.create_profile(
-            UserProfileCreateSchema(
-                user_id=user.id,
-                knowledge_tree_root_id=root_node.id.id,
-            )
+    user_profile = await UserProfileManager(session=pg_session).create_profile(
+        UserProfileCreateSchema(
+            user_id=user.id,
+            knowledge_tree_root_id=root_node.id.id,
         )
-
-    yield UserWithProfileSchema.build(user, user_profile)
-
-    async with UserProfileManager() as profile_mgr:
-        profile = await profile_mgr.get_by_user_id(user.id)
-        if profile:
-            await profile_mgr.delete(profile.id)
-
-    async with UserManager() as user_mgr:
-        await user_mgr.delete(user.id)
+    )
+    return UserWithProfileSchema.build(user, user_profile)
 
 
 @pytest.fixture()

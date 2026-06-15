@@ -14,7 +14,7 @@ class DBConnectionConfig(BaseModel):
     test_name: str = Field(default='')
     namespace: str = Field(default='')
     host: str = Field(default='')
-    port: int = Field(default='')
+    port: int | None = Field(default=None)
     username: str = Field(default='')
     password: SecretStr = Field(default='')
 

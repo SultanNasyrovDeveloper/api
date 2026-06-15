@@ -1,10 +1,9 @@
-from fastapi import APIRouter, HTTPException, Path, Query, status
+from fastapi import APIRouter, HTTPException, status
 
-from minager.core.api.dependencies import App
+from minager.auth.dependencies import CurrentUserID
 from minager.core.types import PaginatedResult
-from minager.dependencies import RequestUser
 
-from . import dto, models, schemas
+from . import dependencies, dto, models, schemas
 from .services.content_generation import HuggingFaceNodeContentGenerator
 
 router = APIRouter(prefix='/nodes')
@@ -12,128 +11,138 @@ router = APIRouter(prefix='/nodes')
 
 @router.get('/')
 async def search(
-    user: RequestUser,
-    app: App,
-    query: str = Query(default='', max_length=200),
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=10, ge=1, le=100),
+    user_id: CurrentUserID,
+    nodes: dependencies.KnowledgeTreeNodeManagerDependency,
+    query: str = '',
+    page: int = 1,
+    size: int = 10,
 ) -> PaginatedResult[schemas.SearchNodeResultSchema]:
-    nodes = await app.state.nodes.search(
-        user_id=str(user.sub),
+    found_nodes = await nodes.search(
+        user_id=str(user_id),
         page=page,
         per_page=size,
         query=query,
     )
-    return PaginatedResult(page=page, results=nodes)
+    return PaginatedResult(page=page, results=found_nodes)
 
 
 @router.post('/{id_}/add-child', status_code=status.HTTP_201_CREATED)
 async def add_child(
-    id_: str = Path(description='Parent node ID'),
-    data: schemas.NodeCreateSchema = ...,
-    user: RequestUser = ...,
-    app: App = ...,
+    id_: str,
+    data: schemas.NodeCreateSchema,
+    user_id: CurrentUserID,
+    nodes: dependencies.KnowledgeTreeNodeManagerDependency,
 ) -> schemas.NodeDetailSchema:
     data_as_dict = data.model_dump()
-    data_as_dict['owner_id'] = user.sub
-    return await app.state.nodes.add_child(id_, data=data_as_dict)
+    data_as_dict['owner_id'] = user_id
+    new_node = await nodes.add_child(id_, data=data_as_dict)
+    if not new_node:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Not able to create child node')
+    return new_node
 
 
 @router.get('/{id_}')
 async def get(
-    id_: str = Path(description='Node ID'),
-    app: App = ...,
-    user: RequestUser = ...,
+    id_: str,
+    user_id: CurrentUserID,
+    nodes: dependencies.KnowledgeTreeNodeManagerDependency,
 ) -> schemas.NodeDetailSchema:
-    node = await app.state.nodes.get(id_)
+    node = await nodes.get(id_)
     if not node:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    if node.owner_id == str(user.sub):
-        node = await app.state.nodes.patch(node.id.id, {'owner_views': node.owner_views + 1})
+    # TODO: update only once per some period of time(~30 min). Can be abused
+    if node.owner_id == user_id:
+        node = await nodes.patch(node.id.id, {'owner_views': node.owner_views + 1})
     return node
 
 
-@router.get('/{uid}/generate-content')
+@router.get('/{id_}/generate-content')
 async def generate_content(
-    uid: str = Path(description='Node ID'),
-    app: App = ...,
+    id_: str,
+    nodes: dependencies.KnowledgeTreeNodeManagerDependency,
 ) -> str:
-    node = await app.state.nodes.get(uid)
+    node = await nodes.get(id_)
     if not node:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     generator = HuggingFaceNodeContentGenerator.from_config()
     return await generator.generate(node)
 
 
-@router.get('/{uid}/children')
+@router.get('/{id_}/children')
 async def get_children(
-    uid: str = Path(description='Node ID'),
-    app: App = ...,
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=30, ge=1, le=100),
+    id_: str,
+    nodes: dependencies.KnowledgeTreeNodeManagerDependency,
+    page: int = 1,
 ):
-    children = await app.state.nodes.get_children(uid)
+    children = await nodes.get_children(id_)
     # TODO: Raise 404 if node whose children we trying to access not found
     return PaginatedResult(page=page, results=[child.model_dump() for child in children])
 
 
-@router.get('/{uid}/statistics')
+@router.get('/{id_}/statistics')
 async def get_statistics(
-    uid: str = Path(description='Node ID'),
-    app: App = ...,
+    id_: str,
+    nodes: dependencies.KnowledgeTreeNodeManagerDependency,
 ) -> dto.NodeOverallStatistics:
-    return await app.state.nodes.get_statistics(uid)
+    return await nodes.get_statistics(id_)
 
 
-@router.get('/{uid}/subtree')
+@router.get('/{id_}/subtree')
 async def get_subtree(
-    uid: str = Path(description='Node ID'),
-    app: App = ...,
+    id_: str,
+    nodes: dependencies.KnowledgeTreeNodeManagerDependency,
 ) -> models.TreeNode:
-    return await app.state.nodes.get_subtree(uid)
+    return await nodes.get_subtree(id_)
 
 
-@router.get('/{uid}/subtree/statistics')
+@router.get('/{id_}/subtree/statistics')
 async def get_subtree_statistics(
-    uid: str = Path(description='Node ID'),
-    app: App = ...,
+    id_: str,
+    nodes: dependencies.KnowledgeTreeNodeManagerDependency,
 ) -> dto.NodeSubtreeStatistics:
     # TODO: Make proper schema for statistics response
     # TODO: Check if node exists raise 404 if not
-    return await app.state.nodes.get_subtree_statistics(uid)
+    return await nodes.get_subtree_statistics(id_)
 
 
-@router.get('/{uid}/subtree/ids')
+@router.get('/{id_}/subtree/ids')
 async def get_subtree_ids(
-    uid: str = Path(description='Node ID'),
-    app: App = ...,
-    limit: int = Query(default=50, ge=1, le=1000),
+    id_: str,
+    limit: int,
+    nodes: dependencies.KnowledgeTreeNodeManagerDependency,
 ) -> list[str]:
-    return await app.state.nodes.get_subtree_ids(uid, limit=limit)
+    return await nodes.get_subtree_ids(id_, limit=limit)
 
 
-@router.post('/{uid}/move')
+@router.post('/{id_}/move')
 async def move_node(
-    uid: str = Path(description='Node ID'),
-    app: App = ...,
-    move_config: schemas.NodeMoveConfiguration = ...,
+    id_: str,
+    move_config: schemas.NodeMoveConfiguration,
+    nodes: dependencies.KnowledgeTreeNodeManagerDependency,
 ) -> schemas.UpdatedNodeSchema:
-    return await app.state.nodes.move(uid, move_config.target_id, move_config.position)
+    updated = await nodes.move(id_, move_config.target_id, move_config.position)
+    # TODO: Show proper exceptions. If was not able to find node show 404. Show 400 only as a fallback
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Not able to update child node')
+    return updated
 
 
-@router.patch('/{uid}')
+@router.patch('/{id_}')
 async def update(
-    uid: str = Path(description='Node ID'),
-    app: App = ...,
-    update_data: schemas.NodeEditSchema = ...,
+    id_: str,
+    update_data: schemas.NodeEditSchema,
+    nodes: dependencies.KnowledgeTreeNodeManagerDependency,
 ) -> schemas.NodeDetailSchema:
-    response = await app.state.nodes.patch(uid, update_data.model_dump(exclude_unset=True))
-    return response
+    updated = await nodes.patch(id_, update_data.model_dump(exclude_unset=True))
+    # TODO: Show proper exceptions. If was not able to find node show 404. Show 400 only as a fallback
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Not able to update child node')
+    return updated
 
 
-@router.delete('/{uid}')
+@router.delete('/{id_}')
 async def delete(
-    uid: str = Path(description='Node ID'),
-    app: App = ...,
+    id_: str,
+    nodes: dependencies.KnowledgeTreeNodeManagerDependency,
 ) -> None:
-    await app.state.nodes.delete(uid)
+    await nodes.delete(id_)

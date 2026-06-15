@@ -1,9 +1,9 @@
-from minager.node.managers import PalaceNodeManager
+from minager.node.managers import KnowledgeTreeNodeManager
 
 from .base import AbstractPalaceClient
 
 
-class PalaceNodeServiceClient(PalaceNodeManager, AbstractPalaceClient):
+class PalaceNodeServiceClient(KnowledgeTreeNodeManager, AbstractPalaceClient):
     pass
 
 

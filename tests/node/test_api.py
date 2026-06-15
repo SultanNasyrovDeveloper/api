@@ -4,7 +4,7 @@ from fastapi import status
 from httpx import AsyncClient
 
 from minager.node.enums import MovePosition
-from minager.node.managers import PalaceNodeManager
+from minager.node.managers import KnowledgeTreeNodeManager
 from minager.node.models import Node
 
 from ..conftest import UserTestContext
@@ -86,7 +86,7 @@ async def test_add_child_requires_auth(app_client: AsyncClient, test_user_root_n
 async def test_add_child_creates_node(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     auth_headers: dict,
     faker: Faker,
 ):
@@ -123,7 +123,7 @@ async def test_add_child_validates_required_fields(
 async def test_add_child_sets_owner_id_from_token(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     test_user_context: UserTestContext,
     auth_headers: dict,
     faker: Faker,
@@ -144,7 +144,7 @@ async def test_add_child_sets_owner_id_from_token(
 async def test_add_child_with_is_learn_false(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     auth_headers: dict,
     faker,
 ):
@@ -247,7 +247,7 @@ async def test_get_node_detail_returns_node(
 async def test_get_children_returns_paginated_list(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     faker,
 ):
     # Create some children first
@@ -325,7 +325,7 @@ async def test_get_statistics_returns_valid_structure(
 # async def test_get_statistics_with_children(
 #     app_client: AsyncClient,
 #     root_node: NodeDetailSchema,
-#     test_palace_node_manager: PalaceNodeManager,
+#     test_palace_node_manager: KnowledgeTreeNodeManager,
 #     faker,
 # ):
 #     # Create children with statistics
@@ -358,7 +358,7 @@ async def test_get_statistics_returns_valid_structure(
 # async def test_get_subtree_returns_tree_structure(
 #     app_client: AsyncClient,
 #     root_node: NodeDetailSchema,
-#     test_palace_node_manager: PalaceNodeManager,
+#     test_palace_node_manager: KnowledgeTreeNodeManager,
 #     faker,
 # ):
 #     # Create a small tree
@@ -448,7 +448,7 @@ async def test_get_subtree_statistics_returns_valid_structure(
 async def test_get_subtree_statistics_with_children(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     faker,
 ):
     # Create children
@@ -493,7 +493,7 @@ async def test_get_subtree_statistics_with_children(
 # async def test_get_subtree_ids_returns_list(
 #     app_client: AsyncClient,
 #     root_node: NodeDetailSchema,
-#     test_palace_node_manager: PalaceNodeManager,
+#     test_palace_node_manager: KnowledgeTreeNodeManager,
 #     faker,
 # ):
 #     # Create children
@@ -521,7 +521,7 @@ async def test_get_subtree_statistics_with_children(
 # async def test_get_subtree_ids_with_limit(
 #     app_client: AsyncClient,
 #     root_node: NodeDetailSchema,
-#     test_palace_node_manager: PalaceNodeManager,
+#     test_palace_node_manager: KnowledgeTreeNodeManager,
 #     faker,
 # ):
 #     # Create children
@@ -565,7 +565,7 @@ async def test_get_subtree_statistics_with_children(
 async def test_move_node_as_last_child(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory,
     auth_headers: dict,
 ):
@@ -592,7 +592,7 @@ async def test_move_node_as_last_child(
 async def test_move_node_as_first_child(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory,
     auth_headers: dict,
 ):
@@ -615,7 +615,7 @@ async def test_move_node_as_first_child(
 async def test_move_node_before(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory,
     auth_headers: dict,
 ):
@@ -638,7 +638,7 @@ async def test_move_node_before(
 async def test_move_node_after(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory,
     auth_headers: dict,
 ):
@@ -776,7 +776,7 @@ async def test_move_node_invalid_position(
 # @pytest.mark.asyncio
 # async def test_delete_node(
 #     app_client: AsyncClient,
-#     test_palace_node_manager: PalaceNodeManager,
+#     test_palace_node_manager: KnowledgeTreeNodeManager,
 #     faker,
 # ):
 #     # Create a node to delete
@@ -798,7 +798,7 @@ async def test_move_node_invalid_position(
 # @pytest.mark.asyncio
 # async def test_delete_node_with_children(
 #     app_client: AsyncClient,
-#     test_palace_node_manager: PalaceNodeManager,
+#     test_palace_node_manager: KnowledgeTreeNodeManager,
 #     faker,
 # ):
 #     # Create a node with children
@@ -894,7 +894,7 @@ async def test_move_node_invalid_position(
 #     app_client: AsyncClient,
 #     root_node: NodeDetailSchema,
 #     auth_headers: dict,
-#     test_palace_node_manager: PalaceNodeManager,
+#     test_palace_node_manager: KnowledgeTreeNodeManager,
 #     faker,
 # ):
 #     """Create a 2-level tree and verify subtree endpoints"""

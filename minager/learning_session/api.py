@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Path, status
+from fastapi import APIRouter, status
 
-from minager.dependencies import App, RequestUser
+from minager.auth.dependencies import CurrentUserID
 
-from . import schemas
+from . import dependencies, schemas
 
 router = APIRouter(prefix='/learning-sessions')
 
@@ -12,8 +12,11 @@ router = APIRouter(prefix='/learning-sessions')
     response_model_by_alias=False,
     response_model_exclude={'queue'},
 )
-async def get_my_active_session(user: RequestUser, app: App) -> schemas.LearningSessionSchema | None:
-    return await app.state.learning_session.get_my_active_session(str(user.sub))
+async def get_my_active_session(
+    user_id: CurrentUserID,
+    learning_sessions: dependencies.LearningSessionManagerDependency,
+) -> schemas.LearningSessionSchema | None:
+    return await learning_sessions.get_my_active_session(str(user_id))
 
 
 @router.post(
@@ -23,11 +26,11 @@ async def get_my_active_session(user: RequestUser, app: App) -> schemas.Learning
     status_code=status.HTTP_201_CREATED,
 )
 async def start(
-    learning_session: schemas.StartLearningSessionSchema, app: App, user: RequestUser
+    user_id: CurrentUserID,
+    data: schemas.StartLearningSessionSchema,
+    learning_sessions: dependencies.LearningSessionManagerDependency,
 ) -> schemas.LearningSessionSchema:
-    return await app.state.learning_session.start(
-        user_id=str(user.sub), data=learning_session.model_dump(mode='json')
-    )
+    return await learning_sessions.start(user_id=str(user_id), data=data.model_dump(mode='json'))
 
 
 @router.post(
@@ -36,10 +39,10 @@ async def start(
     response_model_exclude={'queue'},
 )
 async def regenerate_queue(
-    id_: str = Path(description='Learning session ID'),
-    app: App = ...,
+    id_: str,
+    learning_sessions: dependencies.LearningSessionManagerDependency,
 ) -> schemas.LearningSessionSchema:
-    return await app.state.learning_session.regenerate_queue(id_)
+    return await learning_sessions.regenerate_queue(id_)
 
 
 @router.post(
@@ -48,20 +51,20 @@ async def regenerate_queue(
     response_model_exclude={'queue'},
 )
 async def perform_repetition(
-    id_: str = Path(description='Learning session ID'),
-    user: RequestUser = ...,
-    repetition_data: schemas.RecordRepetitionDataSchema = ...,
-    app: App = ...,
+    id_: str,
+    user_id: CurrentUserID,
+    repetition_data: schemas.RecordRepetitionDataSchema,
+    learning_sessions: dependencies.LearningSessionManagerDependency,
 ) -> schemas.LearningSessionSchema:
     # TODO: Consider returning only new current node cause only this value actually changes
-    return await app.state.learning_session.perform_repetition(
-        session_id=id_, user_id=str(user.sub), **repetition_data.model_dump()
+    return await learning_sessions.perform_repetition(
+        session_id=id_, user_id=str(user_id), **repetition_data.model_dump()
     )
 
 
 @router.post('/{id_}/finish', response_model_by_alias=False, response_model_exclude={'queue'})
 async def finish(
-    id_: str = Path(description='Learning session ID'),
-    app: App = ...,
+    id_: str,
+    learning_sessions: dependencies.LearningSessionManagerDependency,
 ) -> schemas.LearningSessionSchema:
-    return await app.state.learning_session.finish(id_)
+    return await learning_sessions.finish(id_)

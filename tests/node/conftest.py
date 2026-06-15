@@ -7,7 +7,7 @@ import pytest_asyncio
 from faker import Faker
 
 from minager.node.dto import NodeSubtreeStatistics
-from minager.node.managers import PalaceNodeManager
+from minager.node.managers import KnowledgeTreeNodeManager
 from minager.node.models import Node
 
 
@@ -28,7 +28,7 @@ def node_create_data_factory(faker: Faker) -> Callable[..., dict]:
 
 @pytest_asyncio.fixture()
 async def subtree(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
     faker: Faker,
 ) -> tuple[Node, NodeSubtreeStatistics]:

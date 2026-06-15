@@ -2,31 +2,37 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from minager.core.clients.knowledge_tree.client import PalaceNodeServiceClient
+from minager import settings
 from minager.core.surorm.core.tester import SurrealConnectionTester
-from minager.learning_session.managers import LearningSessionManager
-from minager.node.managers import PalaceNodeManager
-
-from .settings import config, main_db_engine
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    tester = SurrealConnectionTester(config.palace_node_db)
+    config = settings.config
+
+    tester = SurrealConnectionTester(config.surreal)
     is_connected = tester.wait()
     if not is_connected:
-        raise ValueError('Unable to establish connection with knowledge_tree db.')
-    app.state.nodes = PalaceNodeManager(config.palace_node_db)
-    palace_service_client = PalaceNodeServiceClient(config=config.palace_node_db)
-    await palace_service_client.__aenter__()
-    app.state.learning_session = LearningSessionManager(
-        config=config.learning_session_db,
-        palace_client=palace_service_client,
+        raise ValueError('Unable to establish connection with surreal db.')
+    # TODO: Add connection testing for other databases
+
+    app.state.config = config
+    app.state.postgres_engine = settings.postgres_engine
+    app.state.postgres_session_factory = settings.postgres_connection_factory
+    app.state.surreal = settings.surreal
+    app.state.mongo = settings.mongo
+
+    await app.state.surreal.connect()
+    await app.state.surreal.use(namespace=config.surreal.namespace, database=config.surreal.name)
+    await app.state.surreal.signin(
+        {
+            'username': config.surreal.username,
+            'password': config.surreal.password.get_secret_value(),
+        }
     )
-    await app.state.nodes.__aenter__()
-    await app.state.learning_session.__aenter__()
+
     yield
-    await palace_service_client.__aexit__(None, None, None)
-    await app.state.nodes.__aexit__(None, None, None)
-    await app.state.learning_session.__aexit__(None, None, None)
-    await main_db_engine.dispose()
+
+    await app.state.postgres_engine.dispose()
+    await app.state.surreal.close()
+    app.state.mongo.close()

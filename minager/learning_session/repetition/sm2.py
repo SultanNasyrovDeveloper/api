@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from minager.node.schemas import NodeDetailSchema
+# TODO: This should be imported from knowledge tree client
+from minager.node.models import Node
 
 from .base import BaseLearningStrategy
 
@@ -15,7 +16,7 @@ class StudyNodeResult:
 
 
 class SuperMemo2LearningStrategy(BaseLearningStrategy):
-    def study_node(self, node: NodeDetailSchema, rating: int) -> StudyNodeResult:
+    def study_node(self, node: Node, rating: int) -> StudyNodeResult:
         """
         Handle node repetition using supermemo2 strategy.
 

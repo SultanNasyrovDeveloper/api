@@ -2,39 +2,50 @@ from collections.abc import AsyncGenerator
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Request
-from pydantic import BaseModel
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
+from surrealdb import AsyncWsSurrealConnection
 
-from minager.auth.jwt import jwt_service
-from minager.auth.managers import UserManager
-from minager.core.db.models import Model
-from minager.settings import AuthBearerToken
-
-from .settings import main_db
+from .settings import ApplicationConfig
 
 
-async def get_main_db_session() -> AsyncGenerator[AsyncSession, None]:
-    async with main_db() as session:
-        yield session
-
-
-def get_request_app(request: Request) -> FastAPI:
+async def get_app(request: Request) -> FastAPI:
     return request.app
 
 
-App = Annotated[FastAPI, Depends(get_request_app)]
+App = Annotated[FastAPI, Depends(get_app)]
 
 
-async def get_request_user(token: str = Depends(AuthBearerToken)) -> dict | None:
-    return jwt_service.verify_token_type(token, 'access')
+async def get_config(app: App) -> ApplicationConfig:
+    return app.state.config
 
 
-RequestUser = Annotated[dict, Depends(get_request_user)]
+AppConfig = Annotated[ApplicationConfig, Depends(get_config)]
 
 
-async def get_request_db_user(request_user: RequestUser) -> Model:
-    async with UserManager() as session:
-        return await session.get(request_user['sub'])
+async def get_postgres_session(app: App) -> AsyncGenerator[AsyncSession]:
+    async with app.state.postgres_session_factory() as session:
+        try:
+            yield session
+            await session.commit()
+
+        except Exception:
+            await session.rollback()
+            raise
 
 
-RequestDBUser = Annotated[BaseModel, Depends(get_request_db_user)]
+PostgresSession = Annotated[AsyncSession, Depends(get_postgres_session)]
+
+
+async def get_mongo_session(app: App, config: AppConfig) -> AsyncIOMotorDatabase:
+    return app.state.mongo[config.mongo.name]
+
+
+MongoSession = Annotated[AsyncIOMotorDatabase, Depends(get_mongo_session)]
+
+
+async def get_surreal_connection(app: App) -> AsyncWsSurrealConnection:
+    return app.state.surreal
+
+
+SurrealConnection = Annotated[AsyncWsSurrealConnection, Depends(get_surreal_connection)]

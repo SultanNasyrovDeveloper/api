@@ -1,12 +1,10 @@
-import asyncio
 from datetime import UTC, datetime
 
 from bson import ObjectId
 from motor import motor_asyncio as motor
 from pymongo import ReturnDocument
 
-from minager.core.clients.knowledge_tree.client import PalaceNodeServiceClient
-from minager.core.settings.db import DBConnectionConfig
+from minager.core.clients.knowledge_tree import KnowledgeTreeClient
 
 from .models import LearningSession
 from .repetition.sm2 import SuperMemo2LearningStrategy
@@ -16,25 +14,10 @@ from .utils import shuffle
 class LearningSessionManager:
     COLLECTION = 'session'
 
-    def __init__(self, config: DBConnectionConfig, palace_client: PalaceNodeServiceClient):
-        self._config = config
-        self._url = config.to_str(scheme='mongodb')
-        self.palace_client = palace_client
-        self.client: motor.AsyncIOMotorClient | None = None
-        self.connection = None
+    def __init__(self, connection: motor.AsyncIOMotorCollection, knowledge_tree_client: KnowledgeTreeClient):
+        self.connection = connection
+        self.knowledge_tree_client = knowledge_tree_client
         self.learning_strategy = SuperMemo2LearningStrategy()
-
-    async def __aenter__(self):
-        """Initialize Motor client connection."""
-        self.client = motor.AsyncIOMotorClient(self._url)
-        self.client.get_io_loop = asyncio.get_running_loop
-        self.connection = self.client[self._config.name][self.COLLECTION]
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Close Motor client connection."""
-        if self.client:
-            self.client.close()
 
     async def get_my_active_session(self, user_id: str) -> LearningSession | None:
         session_data = await self.connection.find_one({'user_id': user_id, 'is_active': True})
@@ -60,7 +43,7 @@ class LearningSessionManager:
             else:
                 return session
         target = data.get('target')
-        repetition_queue = await self.palace_client.get_subtree_ids(target, 50)
+        repetition_queue = await self.knowledge_tree_client.get_subtree_ids(target, 50)
         shuffled_repetition_queue = shuffle(repetition_queue)
         session_to_create = LearningSession(
             user_id=user_id,
@@ -74,7 +57,7 @@ class LearningSessionManager:
 
     async def regenerate_queue(self, id_: str) -> LearningSession:
         session = await self.get(id_)
-        repetition_queue = await self.palace_client.get_subtree_ids(session.target, 50)
+        repetition_queue = await self.knowledge_tree_client.get_subtree_ids(session.target, 50)
         shuffled_repetition_queue = shuffle(repetition_queue)
         update_data = {
             'current_node': shuffled_repetition_queue[0] if len(shuffled_repetition_queue) > 0 else None,
@@ -93,10 +76,10 @@ class LearningSessionManager:
         self, session_id: str, node_id: str, rating: int, user_id: str
     ) -> LearningSession:
         session = await self.get(session_id)
-        repeated_node = await self.palace_client.get(node_id)
+        repeated_node = await self.knowledge_tree_client.get(node_id)
         # Check if node was repeated not long ago do not save another repetition
         study_result = self.learning_strategy.study_node(repeated_node, rating)
-        await self.palace_client.update(
+        await self.knowledge_tree_client.update(
             node_id,
             {
                 'last_repetition': datetime.now(UTC),

@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 
 from sqlmodel import Field
 
-from minager.core.db.models import Model
+from minager.core.db.postgres.models import Model
 
 from .utils import utc_now_naive
 

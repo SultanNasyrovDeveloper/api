@@ -12,12 +12,12 @@ from collections.abc import Callable
 import pytest
 
 from minager.node.enums import MovePosition
-from minager.node.managers import PalaceNodeManager
+from minager.node.managers import KnowledgeTreeNodeManager
 
 
 @pytest.mark.asyncio
 async def test_move_node_prevents_cycle_creation(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """
@@ -57,7 +57,7 @@ async def test_move_node_prevents_cycle_creation(
 
 @pytest.mark.asyncio
 async def test_move_node_prevents_self_reference(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """
@@ -87,7 +87,7 @@ async def test_move_node_prevents_self_reference(
 
 @pytest.mark.asyncio
 async def test_move_nonexistent_node_fails(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """
@@ -114,7 +114,7 @@ async def test_move_nonexistent_node_fails(
 
 @pytest.mark.asyncio
 async def test_move_to_nonexistent_parent_fails(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """
@@ -142,7 +142,7 @@ async def test_move_to_nonexistent_parent_fails(
 
 @pytest.mark.asyncio
 async def test_move_node_with_subtree(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """

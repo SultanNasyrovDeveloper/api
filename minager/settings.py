@@ -1,11 +1,14 @@
+from asyncio import get_running_loop
 from pathlib import Path
 
 from fastapi.security import OAuth2PasswordBearer
+from motor import motor_asyncio as motor
 from pwdlib import PasswordHash
 from pwdlib.hashers.bcrypt import BcryptHasher
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from surrealdb import AsyncSurreal
 
 from minager.core.settings import SMTPServerConfiguration
 from minager.core.settings.db import DBConnectionConfig
@@ -31,17 +34,21 @@ class ApplicationConfig(BaseSettings):
     logging: LoggingConfig = LoggingConfig()
 
     # Databases
-    main_db: DBConnectionConfig
-    palace_node_db: SurrealConfig
-    learning_session_db: DBConnectionConfig
+    postgres: DBConnectionConfig
+    surreal: SurrealConfig
+    mongo: DBConnectionConfig
 
     model_config = SettingsConfigDict(env_nested_delimiter='__', env_file=('.env.local', '.env'))
 
 
 config = ApplicationConfig()
 
-main_db_engine = create_async_engine(config.main_db.to_str(), echo=config.debug)
-main_db = async_sessionmaker(main_db_engine, expire_on_commit=False, autoflush=True)
+postgres_engine = create_async_engine(config.postgres.to_str(), echo=config.debug)
+postgres_connection_factory = async_sessionmaker(postgres_engine, expire_on_commit=False, autoflush=True)
+
+mongo = motor.AsyncIOMotorClient(config.mongo.to_str(scheme='mongodb'))
+mongo.get_io_loop = get_running_loop
+surreal = AsyncSurreal(f'ws://{config.surreal.host}:{config.surreal.port}')
 
 crypt_context = PasswordHash((BcryptHasher(),))
 AuthBearerToken = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/users/token')

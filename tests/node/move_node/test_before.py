@@ -13,12 +13,12 @@ from collections.abc import Callable
 import pytest
 
 from minager.node.enums import MovePosition
-from minager.node.managers import PalaceNodeManager
+from minager.node.managers import KnowledgeTreeNodeManager
 
 
 @pytest.mark.asyncio
 async def test_move_node_before_sibling(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """
@@ -71,7 +71,7 @@ async def test_move_node_before_sibling(
 
 @pytest.mark.asyncio
 async def test_move_before_first_child(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """
@@ -120,7 +120,7 @@ async def test_move_before_first_child(
 
 @pytest.mark.asyncio
 async def test_move_before_last_child(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """
@@ -169,7 +169,7 @@ async def test_move_before_last_child(
 
 @pytest.mark.asyncio
 async def test_reorder_within_same_parent_using_before(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """
@@ -213,7 +213,7 @@ async def test_reorder_within_same_parent_using_before(
 
 @pytest.mark.asyncio
 async def test_move_before_adjacent_sibling(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """
@@ -253,7 +253,7 @@ async def test_move_before_adjacent_sibling(
 
 @pytest.mark.asyncio
 async def test_move_before_with_single_target_sibling(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """

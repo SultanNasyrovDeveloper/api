@@ -40,15 +40,13 @@ class BaseNodeManager(surorm.Manager, metaclass=ABCMeta):
     async def move(self, id_: str, to: str, position: enums.MovePosition) -> models.Node: ...
 
 
-class PalaceNodeManager(BaseNodeManager):
+class KnowledgeTreeNodeManager(BaseNodeManager):
     async def create(self, data: dict) -> models.Node | None:
-        self._check_connection()
         query = surorm.Create(self.model).content(data).return_('after')
         response = await self.query(query)
         return models.Node.model_validate(response)
 
     async def get(self, node_id: str) -> models.Node | None:
-        self._check_connection()
         query = surorm.Select(
             surorm.Alias('parent_id', surorm.F.array.first('->child.out')),
             surorm.Alias('ancestors', queries.ancestors_query),
@@ -60,7 +58,6 @@ class PalaceNodeManager(BaseNodeManager):
     async def search(
         self, query: str = '', page: int = 1, size: int = 15, user_id: str | None = None, **kwargs
     ) -> list[schemas.SearchNodeResultSchema]:
-        self._check_connection()
         conditions = []
         if user_id:
             kwargs['owner_id'] = user_id
@@ -90,7 +87,6 @@ class PalaceNodeManager(BaseNodeManager):
         return [schemas.SearchNodeResultSchema.model_validate(item) for item in response]
 
     async def add_child(self, parent_id: str, data: dict) -> models.Node | None:
-        self._check_connection()
         # TODO: Must first check if parent node exists
         last_child_order_query = queries.get_last_child_order_query(parent_id)
         last_child_order: str = await self.select_one(last_child_order_query)
@@ -111,7 +107,6 @@ class PalaceNodeManager(BaseNodeManager):
         return await self.get(new_node.get('id').id) if new_node else None
 
     async def get_subtree(self, id_: str) -> models.TreeNode:
-        self._check_connection()
         stmt = surorm.Select(
             'id',
             'title',
@@ -124,7 +119,6 @@ class PalaceNodeManager(BaseNodeManager):
         return models.TreeNode.model_validate(tree_root)
 
     async def get_children(self, uid: str) -> list[models.ListNode]:
-        self._check_connection()
         query = surorm.Select('VALUE <-child<-node.{id, title, order}').from_(
             surorm.F.type.thing(models.Node, uid), only=True
         )
@@ -139,13 +133,11 @@ class PalaceNodeManager(BaseNodeManager):
         return validated_children
 
     async def get_subtree_statistics(self, id_: str) -> dto.NodeSubtreeStatistics:
-        self._check_connection()
         query = queries.get_node_statistics_query(id_)
         stats = await self.query(query)
         return dto.NodeSubtreeStatistics.model_validate(stats or {})
 
     async def get_statistics(self, node_id: str) -> dto.NodeOverallStatistics:
-        self._check_connection()
         node = await self.get(node_id)
         subtree_stats = await self.get_subtree_statistics(node_id)
         return dto.NodeOverallStatistics.model_validate(
@@ -157,7 +149,6 @@ class PalaceNodeManager(BaseNodeManager):
         )
 
     async def patch(self, id_: str, data: dict) -> models.Node | None:
-        self._check_connection()
         query = surorm.Update(surorm.Record(models.Node, id_)).merge(data)
         await self.query(query.sql())
         return await self.get(id_)
@@ -174,7 +165,6 @@ class PalaceNodeManager(BaseNodeManager):
         return await service.move(id_, to, position)
 
     async def delete(self, uid: str):
-        self._check_connection()
         query = surorm.Transaction(
             surorm.DefineVariable('root', surorm.F.type.thing('node', uid)),
             surorm.DefineVariable(
@@ -196,7 +186,6 @@ class PalaceNodeManager(BaseNodeManager):
         limit: int = 30,
         _strategy: str | None = None,  # Add later
     ) -> list[str]:
-        self._check_connection()
         query = surorm.Transaction(
             surorm.DefineVariable('root', surorm.F.type.thing('node', root_id)),
             surorm.DefineVariable(

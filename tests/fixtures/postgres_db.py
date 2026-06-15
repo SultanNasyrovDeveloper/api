@@ -5,13 +5,13 @@ import pytest
 import pytest_asyncio
 from alembic.config import Config as AlembicConfig
 from sqlalchemy import create_engine, text
-from sqlalchemy import delete as sa_delete
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from alembic import command as alembic_command
 from minager import settings
-from minager.auth.models import User, UserProfile
+from minager.app import app
 from minager.core.settings.db import DBConnectionConfig
+from minager.dependencies import get_postgres_session
 
 
 def _alembic_ini_path() -> str:
@@ -19,30 +19,11 @@ def _alembic_ini_path() -> str:
 
 
 @pytest.fixture(scope='session')
-def postgres_original_config() -> DBConnectionConfig:
-    return settings.config.main_db
-
-
-@pytest.fixture(scope='session', autouse=True)
-def postgres_test_config(
-    postgres_original_config: DBConnectionConfig,
-) -> Generator[DBConnectionConfig, None, None]:
-
-    test_config = postgres_original_config.test
-    test_engine = create_async_engine(test_config.to_str(), echo=False)
-    test_session = async_sessionmaker(test_engine, expire_on_commit=False)
-
-    original_engine = settings.main_db_engine
-    original_session = settings.main_db
-    settings.main_db_engine = test_engine
-    settings.main_db = test_session
-    settings.config.main_db = test_config
-
-    yield settings.config.main_db
-
-    settings.main_db = original_session
-    settings.main_db_engine = original_engine
-    settings.config.main_db = postgres_original_config
+def postgres_test_config() -> DBConnectionConfig:
+    test_config = settings.config.postgres.test
+    if not test_config:
+        raise ValueError('Unable to locate postgres database configuration for tests.')
+    return test_config
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -76,10 +57,37 @@ def postgres_db_setup(
     admin_engine.dispose()
 
 
+@pytest_asyncio.fixture(scope='session')
+async def pg_engine(postgres_test_config: DBConnectionConfig, postgres_db_setup: None):
+    engine = create_async_engine(postgres_test_config.to_str(), echo=False)
+    yield engine
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture()
+async def pg_connection(pg_engine) -> AsyncGenerator:
+    async with pg_engine.connect() as conn:
+        await conn.begin()  # outer transaction — never committed
+        yield conn
+        await conn.rollback()  # rollback everything the test wrote
+
+
+@pytest_asyncio.fixture()
+async def pg_session(pg_connection) -> AsyncGenerator[AsyncSession, None]:
+    session = AsyncSession(
+        bind=pg_connection,
+        expire_on_commit=False,
+        join_transaction_mode='create_savepoint',  # session.commit() → SAVEPOINT / RELEASE SAVEPOINT
+    )
+    yield session
+    await session.close()
+
+
 @pytest_asyncio.fixture(autouse=True)
-async def postgres_db(postgres_db_setup: None) -> AsyncGenerator[None, None]:
+async def override_postgres_session(pg_session: AsyncSession) -> AsyncGenerator[None, None]:
+    async def get_test_session():
+        yield pg_session
+
+    app.dependency_overrides[get_postgres_session] = get_test_session
     yield
-    async with settings.main_db() as session:
-        await session.execute(sa_delete(UserProfile))
-        await session.execute(sa_delete(User))
-        await session.commit()
+    app.dependency_overrides.pop(get_postgres_session, None)

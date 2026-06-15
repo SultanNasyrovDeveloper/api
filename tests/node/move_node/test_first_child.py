@@ -12,12 +12,12 @@ from collections.abc import Callable
 import pytest
 
 from minager.node.enums import MovePosition
-from minager.node.managers import PalaceNodeManager
+from minager.node.managers import KnowledgeTreeNodeManager
 
 
 @pytest.mark.asyncio
 async def test_move_node_as_first_child(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """
@@ -68,7 +68,7 @@ async def test_move_node_as_first_child(
 
 @pytest.mark.asyncio
 async def test_move_to_empty_parent_as_first_child(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """
@@ -113,7 +113,7 @@ async def test_move_to_empty_parent_as_first_child(
 
 @pytest.mark.asyncio
 async def test_reorder_last_to_first_within_same_parent(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """
@@ -157,7 +157,7 @@ async def test_reorder_last_to_first_within_same_parent(
 
 @pytest.mark.asyncio
 async def test_reorder_middle_to_first_within_same_parent(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """
@@ -197,7 +197,7 @@ async def test_reorder_middle_to_first_within_same_parent(
 
 @pytest.mark.asyncio
 async def test_move_already_first_child_is_noop(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     """

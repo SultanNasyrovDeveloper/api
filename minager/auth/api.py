@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 
-from . import dependencies, jwt, managers, models, schemas, services
+from . import dependencies, jwt, models, schemas
 
 auth_router = APIRouter(tags=['Authentication'])
 users_router = APIRouter(prefix='/users', tags=['Users'])
@@ -11,21 +11,48 @@ users_router = APIRouter(prefix='/users', tags=['Users'])
     response_model=schemas.UserDetailSchema,
     status_code=status.HTTP_201_CREATED,
 )
-async def signup(user_data: schemas.UserCreateDataSchema) -> models.User:
-    return await services.UserSignupService().signup(user_data)
+async def signup(
+    user_data: schemas.UserCreateDataSchema,
+    users: dependencies.UserManagerDependency,
+    user_profiles: dependencies.UserProfileManagerDependency,
+    knowledge_tree: dependencies.KnowledgeTreeClientDependency,
+) -> models.User:
+    try:
+        user = await users.create_user(user_data)
+        root = await knowledge_tree.create(
+            {
+                'owner_id': str(user.id),
+                'title': f"{user.username.title()}'s knowledge tree",
+                'order': 'aaaaaa',
+                'questions': 'What do I know?',
+            }
+        )
+        if not root:
+            await users.delete(str(user.id))
+            raise ValueError('Unable to create knowledge tree root.')
+        await user_profiles.create_profile(
+            schemas.UserProfileCreateSchema(
+                user_id=user.id,
+                knowledge_tree_root_id=root.id.id,
+            )
+        )
+        return user
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @auth_router.post('/token', response_model=schemas.TokenPairSchema)
-async def get_token(credentials: schemas.LoginCredentialsSchema) -> schemas.TokenPairSchema:
-    async with managers.UserManager() as manager:
-        user = await manager.authenticate(credentials.username, credentials.password)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Incorrect email or password',
-                headers={'WWW-Authenticate': 'Bearer'},
-            )
-        await manager.update_last_login(user.id)
+async def get_token(
+    credentials: schemas.LoginCredentialsSchema, users: dependencies.UserManagerDependency
+) -> schemas.TokenPairSchema:
+    user = await users.authenticate(credentials.username, credentials.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Incorrect email or password',
+            headers={'WWW-Authenticate': 'Bearer'},
+        )
+    await users.update_last_login(user.id)
     return jwt.jwt_service.create_token_pair(user.id)
 
 
@@ -36,7 +63,7 @@ async def refresh_token(request: schemas.RefreshTokenRequestSchema) -> schemas.A
 
 @users_router.get('/me', response_model=schemas.UserWithProfileSchema)
 async def get_me(
-    user: dependencies.CurrentActiveUser,
+    user: dependencies.CurrentUser,
     profile: dependencies.CurrentUserProfile,
 ) -> schemas.UserWithProfileSchema:
     return schemas.UserWithProfileSchema.build(user, profile)
@@ -44,13 +71,12 @@ async def get_me(
 
 @users_router.patch('/me', response_model=schemas.UserDetailSchema)
 async def update_me(
-    user: dependencies.CurrentActiveUser,
+    user: dependencies.CurrentUser,
+    users: dependencies.UserManagerDependency,
     user_data: schemas.UserUpdateDataSchema,
 ) -> models.User:
-    """Update current user's authentication fields (email, password)."""
     try:
-        async with managers.UserManager() as manager:
-            updated_user = await manager.update_user(user.id, user_data)
+        updated_user = await users.update_user(user.id, user_data)
         return updated_user
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
@@ -58,19 +84,17 @@ async def update_me(
 
 @users_router.get('/me/profile', response_model=schemas.UserProfileDetailSchema)
 async def get_my_profile(profile: dependencies.CurrentUserProfile) -> models.UserProfile:
-    """Get current user's profile."""
     return profile
 
 
 @users_router.patch('/me/profile', response_model=schemas.UserProfileDetailSchema)
 async def update_my_profile(
-    user: dependencies.CurrentActiveUser,
+    user: dependencies.CurrentUser,
+    user_profiles: dependencies.UserProfileManagerDependency,
     profile_data: schemas.UserProfileUpdateDataSchema,
 ) -> models.UserProfile:
-    """Update current user's profile (display name, bio)."""
     try:
-        async with managers.UserProfileManager() as manager:
-            updated_profile = await manager.update_profile(user.id, profile_data)
+        updated_profile = await user_profiles.update_profile(user.id, profile_data)
         return updated_profile
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e

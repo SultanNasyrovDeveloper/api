@@ -6,13 +6,13 @@ from faker import Faker
 from minager.auth.schemas import UserWithProfileSchema
 from minager.node.dto import NodeSubtreeStatistics
 from minager.node.enums import MovePosition
-from minager.node.managers import PalaceNodeManager
+from minager.node.managers import KnowledgeTreeNodeManager
 from minager.node.models import Node
 
 
 @pytest.mark.asyncio
 async def test_create_node(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     node_data = node_create_data_factory()
@@ -32,7 +32,7 @@ async def test_create_node(
 
 
 @pytest.mark.asyncio
-async def test_get_node(test_palace_node_manager: PalaceNodeManager, test_user_root_node: Node):
+async def test_get_node(test_palace_node_manager: KnowledgeTreeNodeManager, test_user_root_node: Node):
     retrieved_node = await test_palace_node_manager.get(str(test_user_root_node.pk))
 
     assert isinstance(retrieved_node, Node)
@@ -44,14 +44,14 @@ async def test_get_node(test_palace_node_manager: PalaceNodeManager, test_user_r
 
 
 @pytest.mark.asyncio
-async def test_get_node_nonexistent_id(test_palace_node_manager: PalaceNodeManager):
+async def test_get_node_nonexistent_id(test_palace_node_manager: KnowledgeTreeNodeManager):
     result = await test_palace_node_manager.get('nonexistent_id')
     assert result is None
 
 
 @pytest.mark.asyncio
 async def test_add_child(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     test_user_root_node: Node,
     node_create_data_factory: Callable[..., dict],
 ):
@@ -66,7 +66,7 @@ async def test_add_child(
 
 @pytest.mark.asyncio
 async def test_patch_node(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     test_user_root_node: Node,
     faker: Faker,
 ):
@@ -79,7 +79,7 @@ async def test_patch_node(
 
 @pytest.mark.asyncio
 async def test_get_subtree(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     subtree: tuple[Node, NodeSubtreeStatistics],
 ):
     subtree_root, _subtree_statistics = subtree
@@ -91,7 +91,7 @@ async def test_get_subtree(
 
 @pytest.mark.asyncio
 async def test_get_subtree_statistics(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     subtree: tuple[Node, NodeSubtreeStatistics],
 ):
     subtree_root, expected_statistics = subtree
@@ -107,7 +107,7 @@ async def test_get_subtree_statistics(
 
 @pytest.mark.asyncio
 async def test_delete_node(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     root = await test_palace_node_manager.create(node_create_data_factory())
@@ -121,7 +121,7 @@ async def test_delete_node(
 
 @pytest.mark.asyncio
 async def test_search_nodes_pagination(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     owner_id = 'user_list'
@@ -133,7 +133,7 @@ async def test_search_nodes_pagination(
 
 @pytest.mark.asyncio
 async def test_move_node_first_child(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     initial_new_parent_children_count = 3
@@ -153,7 +153,7 @@ async def test_move_node_first_child(
 
 @pytest.mark.asyncio
 async def test_move_node_last_child(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     initial_new_parent_children_count = 3
@@ -173,7 +173,7 @@ async def test_move_node_last_child(
 
 @pytest.mark.asyncio
 async def test_move_node_after(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     initial_new_parent_children_count = 3
@@ -197,7 +197,7 @@ async def test_move_node_after(
 
 @pytest.mark.asyncio
 async def test_move_node_before(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],
 ):
     initial_new_parent_children_count = 3
@@ -221,7 +221,7 @@ async def test_move_node_before(
 
 @pytest.mark.asyncio
 async def test_search_provides_ancestor_context_for_disambiguation(
-    test_palace_node_manager: PalaceNodeManager,
+    test_palace_node_manager: KnowledgeTreeNodeManager,
     test_user: UserWithProfileSchema,
     test_user_root_node: Node,
     node_create_data_factory: Callable[..., dict],

@@ -1,12 +1,14 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
 
+from minager.app import app
+from minager.auth.dependencies import get_knowledge_tree_client
 from minager.auth.jwt import jwt_service
 from minager.auth.managers import UserManager
-from minager.auth.schemas import UserWithProfileSchema
+from minager.auth.schemas import UserCreateDataSchema, UserWithProfileSchema
 from tests.conftest import TEST_USER_PASSWORD
 
 pytestmark = pytest.mark.asyncio
@@ -62,25 +64,27 @@ async def test_signup_missing_fields_returns_422(app_client: AsyncClient):
     assert response.status_code == 422
 
 
-async def test_signup_atomicity_cleans_up_user_on_tree_failure(app_client: AsyncClient):
+async def test_signup_atomicity_cleans_up_user_on_tree_failure(
+    app_client: AsyncClient,
+    user_manager: UserManager,
+):
     suffix = uuid4().hex[:8]
     payload = {
         'email': f'atomic_{suffix}@example.com',
         'username': f'atomicuser_{suffix}',
         'password': 'StrongPass123!',
     }
-    mock_create = AsyncMock(return_value=None)
-    with patch(
-        'minager.auth.services.KnowledgeTreeClient.create',
-        mock_create,
-    ):
+    mock_client = AsyncMock()
+    mock_client.create = AsyncMock(return_value=None)
+    app.dependency_overrides[get_knowledge_tree_client] = lambda: mock_client
+    try:
         response = await app_client.post(f'{USERS_BASE}/signup', json=payload)
+    finally:
+        app.dependency_overrides.pop(get_knowledge_tree_client)
 
     assert response.status_code == 400
 
-    # The user row must have been rolled back — email should be re-usable
-    async with UserManager() as mgr:
-        user = await mgr.get_by_email(payload['email'])
+    user = await user_manager.get_by_email(payload['email'])
     assert user is None
 
 
@@ -90,7 +94,7 @@ async def test_signup_atomicity_cleans_up_user_on_tree_failure(app_client: Async
 
 
 async def test_get_token_success(app_client: AsyncClient, test_user: UserWithProfileSchema):
-    payload = {'email': test_user.email, 'password': TEST_USER_PASSWORD}
+    payload = {'username': test_user.email, 'password': TEST_USER_PASSWORD}
     response = await app_client.post(f'{AUTH_BASE}/token', json=payload)
     assert response.status_code == 200
     data = response.json()
@@ -102,13 +106,13 @@ async def test_get_token_success(app_client: AsyncClient, test_user: UserWithPro
 async def test_get_token_wrong_password_returns_401(
     app_client: AsyncClient, test_user: UserWithProfileSchema
 ):
-    payload = {'email': test_user.email, 'password': 'WrongPassword!'}
+    payload = {'username': test_user.email, 'password': 'WrongPassword!'}
     response = await app_client.post(f'{AUTH_BASE}/token', json=payload)
     assert response.status_code == 401
 
 
 async def test_get_token_unknown_email_returns_401(app_client: AsyncClient):
-    payload = {'email': 'nobody@example.com', 'password': 'SomePass123!'}
+    payload = {'username': 'nobody@example.com', 'password': 'SomePass123!'}
     response = await app_client.post(f'{AUTH_BASE}/token', json=payload)
     assert response.status_code == 401
 
@@ -118,12 +122,15 @@ async def test_get_token_missing_fields_returns_422(app_client: AsyncClient):
     assert response.status_code == 422
 
 
-async def test_get_token_updates_last_login(app_client: AsyncClient, test_user: UserWithProfileSchema):
-    payload = {'email': test_user.email, 'password': TEST_USER_PASSWORD}
+async def test_get_token_updates_last_login(
+    app_client: AsyncClient,
+    test_user: UserWithProfileSchema,
+    user_manager: UserManager,
+):
+    payload = {'username': test_user.email, 'password': TEST_USER_PASSWORD}
     await app_client.post(f'{AUTH_BASE}/token', json=payload)
 
-    async with UserManager() as mgr:
-        user = await mgr.get_by_email(test_user.email)
+    user = await user_manager.get_by_email(test_user.email)
     assert user.last_login is not None
 
 
@@ -203,25 +210,22 @@ async def test_update_me_email_success(
 
 
 async def test_update_me_duplicate_email_returns_400(
-    app_client: AsyncClient, test_user: UserWithProfileSchema, auth_headers: dict
+    app_client: AsyncClient,
+    test_user: UserWithProfileSchema,
+    auth_headers: dict,
+    user_manager: UserManager,
 ):
     suffix = uuid4().hex[:8]
-    async with UserManager() as mgr:
-        other = await mgr.create_user(
-            __import__('minager.auth.schemas', fromlist=['UserCreateDataSchema']).UserCreateDataSchema(
-                email=f'other_{suffix}@example.com',
-                username=f'other_{suffix}',
-                password='OtherPass123!',
-            )
+    other = await user_manager.create_user(
+        UserCreateDataSchema(
+            email=f'other_{suffix}@example.com',
+            username=f'other_{suffix}',
+            password='OtherPass123!',
         )
-    try:
-        response = await app_client.patch(
-            f'{USERS_BASE}/me', json={'email': other.email}, headers=auth_headers
-        )
-        assert response.status_code == 400
-    finally:
-        async with UserManager() as mgr:
-            await mgr.delete(str(other.id))
+    )
+    response = await app_client.patch(f'{USERS_BASE}/me', json={'email': other.email}, headers=auth_headers)
+    assert response.status_code == 400
+    # No cleanup needed — pg_connection rollback undoes everything after the test
 
 
 async def test_update_me_requires_auth(app_client: AsyncClient):

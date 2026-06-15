@@ -1,7 +1,7 @@
 import importlib.util
 from pathlib import Path
 
-from ..orm.manager import Manager
+from ..orm.managers import Manager
 from ..statements.create import Create
 from ..statements.define import DefineField, DefineTable
 from ..statements.delete import Delete
