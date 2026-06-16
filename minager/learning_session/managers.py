@@ -91,8 +91,7 @@ class LearningSessionManager:
             },
         )
         session_update_data: dict = {'last_activity_datetime': datetime.now(UTC)}
-        if node_id in session.queue:
-            session.queue.remove(node_id)
+        session.queue = [n for n in session.queue if n != node_id]
         if node_id == session.current_node:
             if not session.queue and session.bad_repetition_queue:
                 session_update_data['current_node'] = (

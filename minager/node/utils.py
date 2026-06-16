@@ -20,11 +20,8 @@ def construct_tree(nodes: list[dict]) -> dict:
     Generates tree like structure where each node has list of its children from
     flat database list of nodes based on id and parent_id fields.
     """
-    if not isinstance(nodes, list):
-        return nodes
-
     if not len(nodes):
-        return {}
+        raise ValueError('List is empty.')
 
     root = nodes[0]
     tree = {'id': root['id'].id, 'data': root, 'children': {}}

@@ -20,6 +20,7 @@ from minager.node.managers import KnowledgeTreeNodeManager
 pytest_plugins = [
     'tests.fixtures.surreal_db',
     'tests.fixtures.postgres_db',
+    'tests.fixtures.mongo_db',
 ]
 
 TEST_USER_PASSWORD = 'TestPassword123!'

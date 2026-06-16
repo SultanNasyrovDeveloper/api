@@ -26,13 +26,12 @@ def surreal_test_config() -> SurrealConfig:
 @pytest_asyncio.fixture(scope='session')
 async def surreal_test_connection(surreal_test_config: SurrealConfig) -> AsyncGenerator:
     conn = AsyncSurreal(f'ws://{surreal_test_config.host}:{surreal_test_config.port}')
+    credentials = {
+        'username': surreal_test_config.username,
+        'password': surreal_test_config.password.get_secret_value(),
+    }
     await conn.connect()
-    await conn.signin(
-        {
-            'username': surreal_test_config.username,
-            'password': surreal_test_config.password.get_secret_value(),
-        }
-    )
+    await conn.signin(credentials)
     await conn.use(namespace=surreal_test_config.namespace, database=surreal_test_config.name)
     yield conn
     await conn.close()
@@ -63,10 +62,7 @@ def test_palace_node_manager(
 
 @pytest_asyncio.fixture(autouse=True)
 async def override_surreal_connection(surreal_test_connection) -> AsyncGenerator[None, None]:
-    async def get_test_surreal():
-        return surreal_test_connection
-
-    app.dependency_overrides[get_surreal_connection] = get_test_surreal
+    app.dependency_overrides[get_surreal_connection] = lambda: surreal_test_connection
     yield
     app.dependency_overrides.pop(get_surreal_connection, None)
 
@@ -85,6 +81,7 @@ async def test_user_root_node(
     test_palace_node_manager: KnowledgeTreeNodeManager,
     test_user: UserWithProfileSchema,
 ) -> AsyncGenerator[Node, None]:
+    assert test_user.knowledge_tree_root_id
     root_node = await test_palace_node_manager.get(test_user.knowledge_tree_root_id)
     if not root_node:
         raise ValueError('Unable to find root node for test.')
