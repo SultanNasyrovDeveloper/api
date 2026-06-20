@@ -8,7 +8,7 @@ from minager.node.api import router as node_router
 from .lifespan import lifespan
 from .settings import config
 
-app = FastAPI(title='Minager', debug=config.debug, version='1.0', lifespan=lifespan)
+app = FastAPI(title='Minager', debug=config.debug, version='0.0.1', lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['http://localhost:3000', 'http://127.0.0.1:3000'],

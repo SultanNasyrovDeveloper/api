@@ -67,6 +67,7 @@ class LearningSession(MongoDBModel):
     @property
     def is_expired(self) -> bool:
         """Check if session has been inactive for more than 1 hour."""
+        # TODO: Extract expiration time to application config
         return self.last_activity_datetime.replace(tzinfo=UTC) < datetime.now(tz=UTC) - timedelta(hours=1)
 
     @computed_field
