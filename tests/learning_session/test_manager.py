@@ -29,7 +29,7 @@ async def test_start_creates_session(
     await test_palace_node_manager.add_child(test_user_root_node.pk, node_data_factory())
     session = await test_learning_session_manager.start(
         user_id=str(test_user_context.sub),
-        data={'target': test_user_root_node.id.id},
+        data={'targets': [test_user_root_node.id.id]},
     )
     assert isinstance(session, LearningSession)
     assert session.id is not None
@@ -45,7 +45,7 @@ async def test_start_returns_existing_active_session(
 ):
     second = await test_learning_session_manager.start(
         user_id=str(test_user_context.sub),
-        data={'target': active_session.target},
+        data={'targets': active_session.targets},
     )
     assert second.id == active_session.id
 
@@ -60,7 +60,7 @@ async def test_start_replaces_expired_session(
 
     new_session = await test_learning_session_manager.start(
         user_id=str(test_user_context.sub),
-        data={'target': active_session.target},
+        data={'targets': active_session.targets},
     )
     assert new_session.id != active_session.id
     assert new_session.is_active is True

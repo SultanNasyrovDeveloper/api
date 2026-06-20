@@ -30,7 +30,7 @@ class LearningSession(MongoDBModel):
     id: MongoDBId | None = Field(alias='_id', default=None)
     is_active: bool = Field(default=True, description='Whether session is currently active')
     user_id: str = Field(description='ID of the user who owns this session')
-    target: str = Field(description='Root node ID of the subtree being studied')
+    targets: list[str] = Field(description='Root node IDs of the subtrees being studied')
 
     # Node queues
     current_node: str | None = Field(default=None, description='Node ID currently being reviewed')

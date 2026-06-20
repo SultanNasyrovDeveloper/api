@@ -106,6 +106,73 @@ async def test_get_subtree_statistics(
 
 
 @pytest.mark.asyncio
+async def test_get_subtree_ids_single_root(
+    test_palace_node_manager: KnowledgeTreeNodeManager,
+    node_create_data_factory: Callable[..., dict],
+):
+    root = await test_palace_node_manager.create(node_create_data_factory())
+    children = [
+        await test_palace_node_manager.add_child(root.pk, node_create_data_factory()) for _ in range(3)
+    ]
+
+    ids = await test_palace_node_manager.get_subtree_ids([root.pk])
+
+    all_pks = {c.pk for c in children} | {root.pk}
+    assert all_pks == set(ids)
+
+
+@pytest.mark.asyncio
+async def test_get_subtree_ids_multiple_roots_combines_both_subtrees(
+    test_palace_node_manager: KnowledgeTreeNodeManager,
+    node_create_data_factory: Callable[..., dict],
+):
+    root_a = await test_palace_node_manager.create(node_create_data_factory())
+    root_b = await test_palace_node_manager.create(node_create_data_factory())
+    children_a = [
+        await test_palace_node_manager.add_child(root_a.pk, node_create_data_factory()) for _ in range(2)
+    ]
+    children_b = [
+        await test_palace_node_manager.add_child(root_b.pk, node_create_data_factory()) for _ in range(2)
+    ]
+
+    ids = await test_palace_node_manager.get_subtree_ids([root_a.pk, root_b.pk])
+
+    all_expected = {c.pk for c in children_a + children_b} | {root_a.pk, root_b.pk}
+    assert all_expected == set(ids)
+
+
+@pytest.mark.asyncio
+async def test_get_subtree_ids_deduplicates_when_same_root_passed_twice(
+    test_palace_node_manager: KnowledgeTreeNodeManager,
+    node_create_data_factory: Callable[..., dict],
+):
+    root = await test_palace_node_manager.create(node_create_data_factory())
+    for _ in range(3):
+        await test_palace_node_manager.add_child(root.pk, node_create_data_factory())
+
+    ids = await test_palace_node_manager.get_subtree_ids([root.pk, root.pk])
+
+    assert len(ids) == len(set(ids))
+
+
+@pytest.mark.asyncio
+async def test_get_subtree_ids_respects_limit(
+    test_palace_node_manager: KnowledgeTreeNodeManager,
+    node_create_data_factory: Callable[..., dict],
+):
+    root_a = await test_palace_node_manager.create(node_create_data_factory())
+    root_b = await test_palace_node_manager.create(node_create_data_factory())
+    for _ in range(5):
+        await test_palace_node_manager.add_child(root_a.pk, node_create_data_factory())
+    for _ in range(5):
+        await test_palace_node_manager.add_child(root_b.pk, node_create_data_factory())
+
+    ids = await test_palace_node_manager.get_subtree_ids([root_a.pk, root_b.pk], limit=3)
+
+    assert len(ids) <= 3
+
+
+@pytest.mark.asyncio
 async def test_delete_node(
     test_palace_node_manager: KnowledgeTreeNodeManager,
     node_create_data_factory: Callable[..., dict],

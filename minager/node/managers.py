@@ -182,17 +182,17 @@ class KnowledgeTreeNodeManager(BaseNodeManager):
 
     async def get_subtree_ids(
         self,
-        root_id: str,
+        root_ids: list[str],
         limit: int = 30,
-        _strategy: str | None = None,  # Add later
     ) -> list[str]:
+        roots_array = surorm.Array(*[surorm.F.type.thing('node', id_) for id_ in root_ids])
         query = surorm.Transaction(
-            surorm.DefineVariable('root', surorm.F.type.thing('node', root_id)),
+            surorm.DefineVariable('roots', roots_array),
             surorm.DefineVariable(
                 'descendants',
-                surorm.Select('id', 'title', 'next_optimal_repetition')
-                .from_(f'{surorm.Variable("root")}.{{..+collect+inclusive}}<-child<-node')
-                .order_by('next_optimal_repetition')
+                surorm.Select('id')
+                .from_(f'{surorm.Variable("roots")}.{{..+collect+inclusive}}<-child<-node')
+                .group('id', all_=False)
                 .limit(limit),
             ),
         ).return_(surorm.Variable('descendants'))

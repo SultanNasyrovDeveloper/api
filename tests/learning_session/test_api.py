@@ -64,7 +64,7 @@ async def test_start_session_creates_session(
     node_data_factory,
 ):
     await test_palace_node_manager.add_child(test_user_root_node.pk, node_data_factory())
-    payload = {'target': test_user_root_node.id.id}
+    payload = {'targets': [test_user_root_node.id.id]}
     response = await app_client.post(f'{BASE}/start', json=payload, headers=auth_headers)
     assert response.status_code == 201
     body = response.json()
@@ -78,7 +78,7 @@ async def test_start_session_returns_existing_if_active(
     auth_headers: dict,
     active_session: LearningSession,
 ):
-    payload = {'target': active_session.target}
+    payload = {'targets': active_session.targets}
     response = await app_client.post(f'{BASE}/start', json=payload, headers=auth_headers)
     assert response.status_code == 201
     assert response.json()['id'] == str(active_session.id)
@@ -88,7 +88,7 @@ async def test_start_session_requires_auth(
     app_client: AsyncClient,
     test_user_root_node: Node,
 ):
-    response = await app_client.post(f'{BASE}/start', json={'target': test_user_root_node.id.id})
+    response = await app_client.post(f'{BASE}/start', json={'targets': [test_user_root_node.id.id]})
     assert response.status_code in (401, 403)
 
 

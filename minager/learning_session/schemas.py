@@ -8,7 +8,9 @@ from .models import LearningSession
 class StartLearningSessionSchema(BaseModel):
     """Request schema for starting a new learning session."""
 
-    target: str = Field(description='Root node ID of the subtree to study')
+    targets: list[str] = Field(
+        min_length=1, max_length=10, description='Root node IDs of the subtrees to study'
+    )
 
 
 # Alias the model for backward compatibility and API responses

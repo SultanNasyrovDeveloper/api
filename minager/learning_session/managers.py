@@ -42,12 +42,12 @@ class LearningSessionManager:
                 await self.finish(session.id)
             else:
                 return session
-        target = data.get('target')
-        repetition_queue = await self.knowledge_tree_client.get_subtree_ids(target, 50)
+        targets = data.get('targets')
+        repetition_queue = await self.knowledge_tree_client.get_subtree_ids(targets, 50)
         shuffled_repetition_queue = shuffle(repetition_queue)
         session_to_create = LearningSession(
             user_id=user_id,
-            target=target,
+            targets=targets,
             current_node=(shuffled_repetition_queue[0] if len(shuffled_repetition_queue) > 0 else None),
             queue=(shuffled_repetition_queue[1:] if len(shuffled_repetition_queue) > 1 else []),
         )
@@ -57,7 +57,7 @@ class LearningSessionManager:
 
     async def regenerate_queue(self, id_: str) -> LearningSession:
         session = await self.get(id_)
-        repetition_queue = await self.knowledge_tree_client.get_subtree_ids(session.target, 50)
+        repetition_queue = await self.knowledge_tree_client.get_subtree_ids(session.targets, 50)
         shuffled_repetition_queue = shuffle(repetition_queue)
         update_data = {
             'current_node': shuffled_repetition_queue[0] if len(shuffled_repetition_queue) > 0 else None,
@@ -75,6 +75,7 @@ class LearningSessionManager:
     async def perform_repetition(
         self, session_id: str, node_id: str, rating: int, user_id: str
     ) -> LearningSession:
+        # TODO: Move this into a service
         session = await self.get(session_id)
         repeated_node = await self.knowledge_tree_client.get(node_id)
         # Check if node was repeated not long ago do not save another repetition

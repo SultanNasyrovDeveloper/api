@@ -12,75 +12,122 @@ The current session implementation generates a flat shuffled queue of up to 50 n
 Session queue = FILTER (what nodes) + TRAVERSAL ORDER (how to visit them)
 ```
 
-These compose independently. A "Due + BFS" session reviews only overdue nodes but visits them breadth-first. A "Fill + Random" session targets empty nodes in random order. This gives flexibility without combinatorial complexity in the codebase.
+These compose independently. A "Due + BFS" session reviews only overdue nodes but visits them breadth-first. An "All + Random" session targets the full subtree in random order. This gives flexibility without combinatorial complexity in the codebase.
 
 ---
 
 ## Session Types
 
-Before filter strategies, there is a higher-level distinction: sessions can have different **purposes** with different semantics.
+Sessions have two distinct types with different interaction models.
 
-**Review session** (current)
+**Review session** (default)
 - Goal: test recall and update SM2 data
-- User rates recall quality (0–5)
+- User rates recall quality (0–5) via `perform_repetition`
 - SM2 algorithm updates difficulty, interval, next repetition date
+- Always excludes empty nodes (`size == 0`) — reviewing empty content is meaningless
+- Supports `bad_repetition_queue` for nodes rated < 3
 
 **Fill session**
 - Goal: write content for empty nodes
-- User fills in content, not rating recall
-- End action is "filled" or "skipped", not a 0–5 rating
-- SM2 fields may not be updated
+- Always targets only empty nodes (`size == 0`) — type implies filter
+- User signals `filled` or `skipped` via `perform_repetition` (action-only, no rating)
+- No SM2 update on completion
+- No `bad_repetition_queue` — skipped nodes are dropped, not re-queued
+- `filter_strategy` is ignored (fill is always `size == 0`)
 
-These are different enough in intent that they may warrant separate session types rather than being collapsed into a single model with a strategy flag.
+Combined session type (fill + review in one session) is deferred — needs more design work.
 
 ---
 
-## Filter Strategies
+## Enums
 
-Determine which nodes from the subtree enter the queue.
+### `SessionType`
+| Value | Description |
+|---|---|
+| `review` | Default. Test recall, SM2 update |
+| `fill` | Write content for empty nodes |
 
-| Strategy | Condition | Use case |
+### `FilterStrategy` (review sessions only)
+| Value | Condition | Default |
 |---|---|---|
-| **Due** | `next_optimal_repetition <= now` | Core SM2 — only review what's scheduled |
-| **All** | no filter | Current behavior, full subtree |
-| **Struggle** | `repetitions >= 3` and `last_rating < 3` | Remediation — nodes that won't stick |
-| **First encounter** | `owner_views == 0` or `repetitions == 0` | Initial pass on newly added content |
-| **Fill** | `size == 0` | Content creation session |
+| `all` | No filter — full subtree | ✅ |
+| `due` | `next_optimal_repetition <= now` | |
+| `struggle` | `repetitions >= 3 AND last_rating < 3` | |
+| `first_encounter` | `repetitions == 0` | |
 
-The existing `_strategy` parameter placeholder in `get_subtree_ids` is where this logic hooks in.
+### `TraversalOrder`
+| Value | Description | Default |
+|---|---|---|
+| `random` | Simple shuffle | ✅ |
+| `bfs` | Level-by-level (free via SurrealDB `{..+collect}` natural order) | |
 
----
-
-## Traversal Order
-
-Determines the order of the filtered node set. Orthogonal to filter strategy.
-
-**Random** (current)
-- Simple shuffle. No structure awareness.
-
-**BFS**
-- Visits nodes closest to the subtree root first, then deeper levels.
-- Nearly free: SurrealDB's `{..+collect}` modifier already returns nodes in BFS (level-by-level) order. Removing the current `ORDER BY next_optimal_repetition` override gives BFS for free.
-- Sibling order within each level is not controllable from SurrealQL — acceptable tradeoff.
-
-**Branch-grouped / nearly DFS**
-- Goal: keep related nodes together so the user studies a topic continuously rather than jumping across branches.
-- Strict DFS is not required. A branch-aware approximation achieves the same UX benefit.
-- Discussed approach: store a traversal stack on the session document itself. Session starts with root's direct children on the stack. As each node is reviewed, its children are pushed to the stack (piggybacked onto the existing `get(node_id)` call in `perform_repetition` — no extra DB round trip). The stack stays small at all times (bounded by tree depth × branching factor, not total node count).
-- Full strict DFS ordering is not the target. The goal is grouping by branch, which this achieves efficiently.
+`branch_grouped` (DFS approximation) is deferred — requires extra child lookup per repetition and no batching is available.
 
 ---
 
-## Current State
+## Queue
 
-- `TraverseStrategy` enum exists: `random`, `outdated`, `dfs`, `newest` — none fully implemented beyond shuffle.
-- `get_subtree_ids` has a `_strategy` placeholder parameter.
-- Session model has `traverse_strategy` and `repetition_strategy` fields already.
+- Type: `list[str]` (node IDs) — unchanged
+- Cap: configured via env variable, default 50. Always applied regardless of filter strategy — a large subtree can produce hundreds of matches even under `due` or `struggle`.
+- `regenerate_queue` is the natural continuation mechanism when the queue drains.
 
 ---
 
-## Open Questions
+## Model Changes
 
-- Should fill sessions be a separate session type in the model, or a filter strategy on a review session?
-- What is the right default queue size per strategy? Due naturally self-limits; All needs a cap.
-- Should traversal order be exposed as a separate field on the session, or collapsed into named presets for simpler API?
+Single `LearningSession` model (no split). Changes:
+- Add `session_type: SessionType` (default `review`)
+- Replace `traverse_strategy` with `filter_strategy: FilterStrategy` (default `all`) and `traversal_order: TraversalOrder` (default `random`)
+- `bad_repetition_queue` stays — semantically review-only, ignored for fill sessions
+- Delete `TraverseStrategy` enum entirely (was never implemented)
+
+---
+
+## `perform_repetition` Refactor
+
+Single unified endpoint for both session types.
+
+**Request payload (flat):**
+```
+{
+  node_id: str,
+  rating?: int (0–5),   # review sessions
+  action?: "filled" | "skipped"  # fill sessions
+}
+```
+
+Validation of correct fields (rating vs. action) happens server-side after loading the session. Manager dispatches to the appropriate strategy class based on `session_type`.
+
+**Strategy classes** (in `repetition/`):
+- `sm2.py` — existing SM2 review logic (unchanged)
+- `fill.py` — new, action-only, no SM2 update
+
+---
+
+## `get_subtree_ids` Changes
+
+Add conditional `WHERE` clause based on `filter_strategy` and conditional `ORDER BY` based on `traversal_order`.
+
+| filter_strategy | WHERE clause |
+|---|---|
+| `all` | none |
+| `due` | `next_optimal_repetition <= time::now()` |
+| `struggle` | `repetitions >= 3 AND last_rating < 3` |
+| `first_encounter` | `repetitions == 0` |
+
+Fill sessions always use `WHERE size == 0`.
+
+| traversal_order | ORDER BY |
+|---|---|
+| `random` | none (shuffle in Python after fetch) |
+| `bfs` | none (SurrealDB `{..+collect}` returns BFS order naturally — remove current `ORDER BY next_optimal_repetition`) |
+
+---
+
+## Session Start Defaults
+
+| Field | Default |
+|---|---|
+| `session_type` | `review` |
+| `filter_strategy` | `all` |
+| `traversal_order` | `random` |

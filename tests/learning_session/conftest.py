@@ -55,6 +55,6 @@ async def active_session(
         await test_palace_node_manager.add_child(test_user_root_node.pk, node_data_factory())
     session = await test_learning_session_manager.start(
         user_id=str(test_user_context.sub),
-        data={'target': test_user_root_node.id.id},
+        data={'targets': [test_user_root_node.id.id]},
     )
     yield session
