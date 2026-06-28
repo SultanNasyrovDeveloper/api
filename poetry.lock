@@ -3946,6 +3946,22 @@ typing-extensions = {version = ">=4.10.0", markers = "python_version < \"3.13\""
 full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.18)", "pyyaml"]
 
 [[package]]
+name = "surorm"
+version = "0.0.6"
+description = ""
+optional = false
+python-versions = ">=3.12"
+groups = ["main"]
+files = [
+    {file = "surorm-0.0.6-py3-none-any.whl", hash = "sha256:cd0ce0c8787aed205c502165117b57df18cf8647ada7c23f1e483d6b0a060b65"},
+    {file = "surorm-0.0.6.tar.gz", hash = "sha256:63370e919ae59e0a70921030a2a3856079388079edaf2809c6f688b7e8d12bd0"},
+]
+
+[package.dependencies]
+pydantic = ">=2.0"
+surrealdb = ">=1.0.0"
+
+[[package]]
 name = "surrealdb"
 version = "1.0.8"
 description = "SurrealDB python client"
@@ -4545,4 +4561,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "37b850e59ec96d394283496aee2be95cef93499e3d18ad6e7a5b630a50d75b61"
+content-hash = "2cc83dfb7e44914950874931eb060635b05f15cff224d3a7dc677752da42c996"

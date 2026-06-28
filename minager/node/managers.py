@@ -190,9 +190,10 @@ class KnowledgeTreeNodeManager(BaseNodeManager):
             surorm.DefineVariable('roots', roots_array),
             surorm.DefineVariable(
                 'descendants',
-                surorm.Select('id')
+                surorm.Select('id', 'next_optimal_repetition')
                 .from_(f'{surorm.Variable("roots")}.{{..+collect+inclusive}}<-child<-node')
-                .group('id', all_=False)
+                # .group('id', all_=False)
+                .order_by('next_optimal_repetition')
                 .limit(limit),
             ),
         ).return_(surorm.Variable('descendants'))

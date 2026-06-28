@@ -48,7 +48,7 @@ class Node(Model):
     size: int = Field(data_model.Number, default=0)
     repetitions: int = Field(data_model.Number, default=0)
 
-    last_interval: int = Field(data_model.Number)
+    last_interval: int | float = Field(data_model.Number)
     last_repetition: datetime = Field(data_model.Datetime)
     next_optimal_repetition: datetime = Field(data_model.Datetime)
 
