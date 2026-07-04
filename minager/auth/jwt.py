@@ -3,10 +3,9 @@ from typing import Self
 from uuid import UUID
 
 import jwt
-from fastapi import HTTPException, status
-from jwt.exceptions import InvalidTokenError
+from jwt.exceptions import InvalidTokenError as JWTLibraryInvalidTokenError
 
-from minager.auth import schemas
+from minager.auth import exceptions, schemas
 from minager.settings import ApplicationConfig, config
 
 
@@ -72,7 +71,7 @@ class JWTService:
     def decode_token(self, token: str) -> schemas.TokenPayloadSchema:
         """
         Decode and validate JWT token.
-        Raises HTTPException if token is invalid or expired.
+        Raises InvalidTokenError if token is invalid or expired.
         """
         try:
             payload = jwt.decode(
@@ -87,26 +86,18 @@ class JWTService:
                 iat=payload['iat'],
                 type=payload['type'],
             )
-        except InvalidTokenError as e:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Could not validate credentials',
-                headers={'WWW-Authenticate': 'Bearer'},
-            ) from e
+        except JWTLibraryInvalidTokenError as e:
+            raise exceptions.InvalidTokenError from e
 
     def verify_token_type(self, token: str, expected_type: str) -> schemas.TokenPayloadSchema:
         """
         Verify token is of expected type (access or refresh).
-        Raises HTTPException if type doesn't match.
+        Raises InvalidTokenTypeError if type doesn't match.
         """
         payload = self.decode_token(token)
 
         if payload.type != expected_type:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Could not validate credentials',
-                headers={'WWW-Authenticate': 'Bearer'},
-            )
+            raise exceptions.InvalidTokenTypeError
 
         return payload
 
@@ -119,7 +110,3 @@ class JWTService:
         new_access_token = self.create_access_token(payload.sub)
 
         return schemas.AccessTokenSchema(access_token=new_access_token)
-
-
-# Global JWT service instance
-jwt_service = JWTService.from_config()

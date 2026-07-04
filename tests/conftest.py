@@ -8,13 +8,14 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from minager.app import app
-from minager.auth.jwt import jwt_service
-from minager.auth.managers import UserManager, UserProfileManager
+from minager.auth.dependencies import jwt_service
+from minager.auth.repositories import UserProfileRepository, UserRepository
 from minager.auth.schemas import (
     UserCreateDataSchema,
     UserProfileCreateSchema,
     UserWithProfileSchema,
 )
+from minager.auth.services import UserProfileService, UserService
 from minager.node.managers import KnowledgeTreeNodeManager
 
 pytest_plugins = [
@@ -47,7 +48,7 @@ async def test_user(
     test_palace_node_manager: KnowledgeTreeNodeManager,
 ) -> UserWithProfileSchema:
     suffix = uuid4().hex[:8]
-    user = await UserManager(session=pg_session).create_user(
+    user = await UserService(repository=UserRepository(session=pg_session)).register(
         UserCreateDataSchema(
             email=f'test_{suffix}@test.example.com',
             username=f'testuser_{suffix}',
@@ -63,7 +64,9 @@ async def test_user(
             'order': 'aaaaaa',
         }
     )
-    user_profile = await UserProfileManager(session=pg_session).create_profile(
+    user_profile = await UserProfileService(
+        repository=UserProfileRepository(session=pg_session)
+    ).create_profile(
         UserProfileCreateSchema(
             user_id=user.id,
             knowledge_tree_root_id=root_node.id.id,

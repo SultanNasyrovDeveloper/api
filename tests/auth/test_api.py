@@ -5,10 +5,10 @@ import pytest
 from httpx import AsyncClient
 
 from minager.app import app
-from minager.auth.dependencies import get_knowledge_tree_client
-from minager.auth.jwt import jwt_service
-from minager.auth.managers import UserManager
+from minager.auth.dependencies import get_knowledge_tree_client, jwt_service
+from minager.auth.repositories import UserRepository
 from minager.auth.schemas import UserCreateDataSchema, UserWithProfileSchema
+from minager.auth.services import UserService
 from tests.conftest import TEST_USER_PASSWORD
 
 pytestmark = pytest.mark.asyncio
@@ -66,7 +66,7 @@ async def test_signup_missing_fields_returns_422(app_client: AsyncClient):
 
 async def test_signup_atomicity_cleans_up_user_on_tree_failure(
     app_client: AsyncClient,
-    user_manager: UserManager,
+    user_repository: UserRepository,
 ):
     suffix = uuid4().hex[:8]
     payload = {
@@ -84,7 +84,7 @@ async def test_signup_atomicity_cleans_up_user_on_tree_failure(
 
     assert response.status_code == 400
 
-    user = await user_manager.get_by_email(payload['email'])
+    user = await user_repository.get_by_email(payload['email'])
     assert user is None
 
 
@@ -125,12 +125,12 @@ async def test_get_token_missing_fields_returns_422(app_client: AsyncClient):
 async def test_get_token_updates_last_login(
     app_client: AsyncClient,
     test_user: UserWithProfileSchema,
-    user_manager: UserManager,
+    user_repository: UserRepository,
 ):
     payload = {'username': test_user.email, 'password': TEST_USER_PASSWORD}
     await app_client.post(f'{AUTH_BASE}/token', json=payload)
 
-    user = await user_manager.get_by_email(test_user.email)
+    user = await user_repository.get_by_email(test_user.email)
     assert user.last_login is not None
 
 
@@ -213,10 +213,10 @@ async def test_update_me_duplicate_email_returns_400(
     app_client: AsyncClient,
     test_user: UserWithProfileSchema,
     auth_headers: dict,
-    user_manager: UserManager,
+    user_service: UserService,
 ):
     suffix = uuid4().hex[:8]
-    other = await user_manager.create_user(
+    other = await user_service.register(
         UserCreateDataSchema(
             email=f'other_{suffix}@example.com',
             username=f'other_{suffix}',

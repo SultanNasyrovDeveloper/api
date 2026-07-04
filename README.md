@@ -155,7 +155,7 @@ All routes are prefixed with `/api/v1`.
 
 ## Architecture
 
-Minager follows a **monoservices** pattern — single repo and deployment, separate database per logical service.
+Minager follows a **modular monolith** pattern — single repo and deployment, separate database per logical service.
 
 ```
 minager/
@@ -178,6 +178,14 @@ API (api.py)  →  Manager (managers.py)  →  Service (services/)  →  Databas
 - No cross-service imports — services communicate via `core/clients/` abstractions.
 - No database foreign keys — logical relationships only (IDs stored as strings across DBs).
 - Always access data through managers, never directly via models.
+
+### Inter-module communication
+
+Services never import each other directly. `core/clients/` is the seam between them, following a Ports & Adapters (hexagonal) pattern: an abstract port + a stable DTO contract + a concrete adapter that, today, calls the target service's Business layer in-process. That keeps the door open to swap in a network-backed adapter later, without touching any call site. See `CLAUDE.md` for the full rationale and known debt.
+
+### Auth & identity
+
+Permission checks (`is_active`, `is_verified`, `is_superuser`) hit PostgreSQL live through auth's Business layer on every request — deliberate while this is a single-process monolith, since it's cheap in-process and gives instant-effect revocation for free. JWT-embedded claims or gateway-verified trusted headers are a documented future direction, not current behavior — see `CLAUDE.md`.
 
 ## Testing
 

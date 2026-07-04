@@ -18,7 +18,7 @@ from .models import Model
 type Identifier = int | str
 
 
-class BaseDatabaseManager[ModelT: Model]:
+class BaseRepository[ModelT: Model]:
     id_field_name: str = 'id'
     model_class: type[ModelT]
 
@@ -38,7 +38,7 @@ class BaseDatabaseManager[ModelT: Model]:
         return getattr(item, self.id_field_name)
 
 
-class DatabaseManager[ModelT](BaseDatabaseManager[ModelT]):
+class Repository[ModelT](BaseRepository[ModelT]):
     async def get(self, id_: Identifier) -> ModelT:
         id_field = getattr(self.model_class, self.id_field_name)
         return await self.select_one(self.get_query().where(id_field == id_))
@@ -94,7 +94,7 @@ class DatabaseManager[ModelT](BaseDatabaseManager[ModelT]):
         pass
 
 
-class PostgresDatabaseManager[ModelT](DatabaseManager[ModelT]):
+class PostgresRepository[ModelT](Repository[ModelT]):
     async def bulk_create(
         self,
         items: list[dict | BaseModel | ModelT],
