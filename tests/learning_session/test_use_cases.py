@@ -2,32 +2,32 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from bson import ObjectId
 
-from minager.learning_session.managers import LearningSessionManager
+from minager.learning_session.exceptions import SessionNotFoundError
 from minager.learning_session.models import LearningSession
+from minager.learning_session.repositories import LearningSessionRepository
+from minager.learning_session.use_cases import (
+    PerformRepetitionUseCase,
+    RegenerateQueueUseCase,
+    StartSessionUseCase,
+)
 from minager.node.managers import KnowledgeTreeNodeManager
 from minager.node.models import Node
 from tests.conftest import UserTestContext
 
 pytestmark = pytest.mark.asyncio
 
-BASE = '/api/v1/learning-session/learning-sessions'
-
-
-# ---------------------------------------------------------------------------
-# start()
-# ---------------------------------------------------------------------------
-
 
 async def test_start_creates_session(
-    test_learning_session_manager: LearningSessionManager,
+    test_start_session_use_case: StartSessionUseCase,
     test_user_context: UserTestContext,
     test_user_root_node: Node,
     test_palace_node_manager: KnowledgeTreeNodeManager,
     node_data_factory: Callable[..., dict],
 ):
     await test_palace_node_manager.add_child(test_user_root_node.pk, node_data_factory())
-    session = await test_learning_session_manager.start(
+    session = await test_start_session_use_case.execute(
         user_id=str(test_user_context.sub),
         data={'targets': [test_user_root_node.id.id]},
     )
@@ -39,11 +39,11 @@ async def test_start_creates_session(
 
 
 async def test_start_returns_existing_active_session(
-    test_learning_session_manager: LearningSessionManager,
+    test_start_session_use_case: StartSessionUseCase,
     test_user_context: UserTestContext,
     active_session: LearningSession,
 ):
-    second = await test_learning_session_manager.start(
+    second = await test_start_session_use_case.execute(
         user_id=str(test_user_context.sub),
         data={'targets': active_session.targets},
     )
@@ -51,76 +51,51 @@ async def test_start_returns_existing_active_session(
 
 
 async def test_start_replaces_expired_session(
-    test_learning_session_manager: LearningSessionManager,
+    test_start_session_use_case: StartSessionUseCase,
+    test_learning_session_repository: LearningSessionRepository,
     test_user_context: UserTestContext,
     active_session: LearningSession,
 ):
     two_hours_ago = datetime.now(UTC) - timedelta(hours=2)
-    await test_learning_session_manager.update(active_session.id, {'last_activity_datetime': two_hours_ago})
+    await test_learning_session_repository.update(
+        active_session.id, {'last_activity_datetime': two_hours_ago}
+    )
 
-    new_session = await test_learning_session_manager.start(
+    new_session = await test_start_session_use_case.execute(
         user_id=str(test_user_context.sub),
         data={'targets': active_session.targets},
     )
     assert new_session.id != active_session.id
     assert new_session.is_active is True
 
-    old_session = await test_learning_session_manager.get(active_session.id)
+    old_session = await test_learning_session_repository.get(active_session.id)
     assert old_session.is_active is False
 
 
-# ---------------------------------------------------------------------------
-# get_my_active_session()
-# ---------------------------------------------------------------------------
-
-
-async def test_get_my_active_session_returns_session(
-    test_learning_session_manager: LearningSessionManager,
-    test_user_context: UserTestContext,
+async def test_regenerate_queue_resets_current_node(
+    test_regenerate_queue_use_case: RegenerateQueueUseCase,
     active_session: LearningSession,
 ):
-    result = await test_learning_session_manager.get_my_active_session(str(test_user_context.sub))
-    assert result is not None
-    assert result.id == active_session.id
+    updated = await test_regenerate_queue_use_case.execute(active_session.id)
+    assert updated.current_node is not None
 
 
-async def test_get_my_active_session_returns_none_when_no_session(
-    test_learning_session_manager: LearningSessionManager,
-    test_user_context: UserTestContext,
+async def test_regenerate_queue_raises_when_session_missing(
+    test_regenerate_queue_use_case: RegenerateQueueUseCase,
 ):
-    result = await test_learning_session_manager.get_my_active_session(str(test_user_context.sub))
-    assert result is None
-
-
-async def test_get_my_active_session_finishes_expired_session(
-    test_learning_session_manager: LearningSessionManager,
-    test_user_context: UserTestContext,
-    active_session: LearningSession,
-):
-    two_hours_ago = datetime.now(UTC) - timedelta(hours=2)
-    await test_learning_session_manager.update(active_session.id, {'last_activity_datetime': two_hours_ago})
-
-    result = await test_learning_session_manager.get_my_active_session(str(test_user_context.sub))
-    assert result is None
-
-    finished = await test_learning_session_manager.get(active_session.id)
-    assert finished.is_active is False
-
-
-# ---------------------------------------------------------------------------
-# perform_repetition()
-# ---------------------------------------------------------------------------
+    with pytest.raises(SessionNotFoundError):
+        await test_regenerate_queue_use_case.execute(str(ObjectId()))
 
 
 async def test_perform_repetition_good_rating_advances_queue(
-    test_learning_session_manager: LearningSessionManager,
+    test_perform_repetition_use_case: PerformRepetitionUseCase,
     test_user_context: UserTestContext,
     active_session: LearningSession,
 ):
     previous_node = active_session.current_node
     previous_queue_len = len(active_session.queue)
 
-    updated = await test_learning_session_manager.perform_repetition(
+    updated = await test_perform_repetition_use_case.execute(
         session_id=active_session.id,
         node_id=active_session.current_node,
         rating=4,
@@ -132,11 +107,11 @@ async def test_perform_repetition_good_rating_advances_queue(
 
 
 async def test_perform_repetition_bad_rating_adds_to_bad_queue(
-    test_learning_session_manager: LearningSessionManager,
+    test_perform_repetition_use_case: PerformRepetitionUseCase,
     test_user_context: UserTestContext,
     active_session: LearningSession,
 ):
-    updated = await test_learning_session_manager.perform_repetition(
+    updated = await test_perform_repetition_use_case.execute(
         session_id=active_session.id,
         node_id=active_session.current_node,
         rating=1,
@@ -146,12 +121,12 @@ async def test_perform_repetition_bad_rating_adds_to_bad_queue(
 
 
 async def test_perform_repetition_switches_to_bad_queue_when_main_empty(
-    test_learning_session_manager: LearningSessionManager,
+    test_perform_repetition_use_case: PerformRepetitionUseCase,
     test_user_context: UserTestContext,
     active_session: LearningSession,
 ):
     # Rate current node badly to populate bad_repetition_queue
-    after_bad = await test_learning_session_manager.perform_repetition(
+    after_bad = await test_perform_repetition_use_case.execute(
         session_id=active_session.id,
         node_id=active_session.current_node,
         rating=1,
@@ -164,7 +139,7 @@ async def test_perform_repetition_switches_to_bad_queue_when_main_empty(
     # queue becomes empty, which is why we loop on bad_repetition_queue).
     session = after_bad
     while session.bad_repetition_queue:
-        session = await test_learning_session_manager.perform_repetition(
+        session = await test_perform_repetition_use_case.execute(
             session_id=session.id,
             node_id=session.current_node,
             rating=4,
@@ -176,7 +151,7 @@ async def test_perform_repetition_switches_to_bad_queue_when_main_empty(
 
 
 async def test_perform_repetition_updates_node_in_surreal(
-    test_learning_session_manager: LearningSessionManager,
+    test_perform_repetition_use_case: PerformRepetitionUseCase,
     test_palace_node_manager: KnowledgeTreeNodeManager,
     test_user_context: UserTestContext,
     active_session: LearningSession,
@@ -185,7 +160,7 @@ async def test_perform_repetition_updates_node_in_surreal(
     before = await test_palace_node_manager.get(node_id)
     before_repetitions = before.repetitions or 0
 
-    await test_learning_session_manager.perform_repetition(
+    await test_perform_repetition_use_case.execute(
         session_id=active_session.id,
         node_id=node_id,
         rating=4,
@@ -197,29 +172,27 @@ async def test_perform_repetition_updates_node_in_surreal(
     assert after.last_repetition is not None
 
 
-# ---------------------------------------------------------------------------
-# finish()
-# ---------------------------------------------------------------------------
+async def test_perform_repetition_raises_when_session_missing(
+    test_perform_repetition_use_case: PerformRepetitionUseCase,
+    test_user_context: UserTestContext,
+):
+    with pytest.raises(SessionNotFoundError):
+        await test_perform_repetition_use_case.execute(
+            session_id=str(ObjectId()),
+            node_id='irrelevant-node-id',
+            rating=4,
+            user_id=str(test_user_context.sub),
+        )
 
 
-async def test_finish_marks_session_inactive(
-    test_learning_session_manager: LearningSessionManager,
+async def test_perform_repetition_raises_when_session_belongs_to_another_user(
+    test_perform_repetition_use_case: PerformRepetitionUseCase,
     active_session: LearningSession,
 ):
-    finished = await test_learning_session_manager.finish(active_session.id)
-    assert finished.is_active is False
-    assert finished.current_node is None
-    assert finished.queue == []
-
-
-# ---------------------------------------------------------------------------
-# regenerate_queue()
-# ---------------------------------------------------------------------------
-
-
-async def test_regenerate_queue_resets_current_node(
-    test_learning_session_manager: LearningSessionManager,
-    active_session: LearningSession,
-):
-    updated = await test_learning_session_manager.regenerate_queue(active_session.id)
-    assert updated.current_node is not None
+    with pytest.raises(SessionNotFoundError):
+        await test_perform_repetition_use_case.execute(
+            session_id=active_session.id,
+            node_id=active_session.current_node,
+            rating=4,
+            user_id='some-other-user-id',
+        )

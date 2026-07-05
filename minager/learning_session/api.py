@@ -1,8 +1,8 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, HTTPException, status
 
 from minager.core.auth.dependencies import CurrentUserID
 
-from . import dependencies, schemas
+from . import dependencies, exceptions, schemas
 
 router = APIRouter(prefix='/learning-sessions')
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix='/learning-sessions')
 )
 async def get_my_active_session(
     user_id: CurrentUserID,
-    learning_sessions: dependencies.LearningSessionManagerDependency,
+    learning_sessions: dependencies.LearningSessionServiceDependency,
 ) -> schemas.LearningSessionSchema | None:
     return await learning_sessions.get_my_active_session(str(user_id))
 
@@ -28,9 +28,9 @@ async def get_my_active_session(
 async def start(
     user_id: CurrentUserID,
     data: schemas.StartLearningSessionSchema,
-    learning_sessions: dependencies.LearningSessionManagerDependency,
+    start_session: dependencies.StartSessionUseCaseDependency,
 ) -> schemas.LearningSessionSchema:
-    return await learning_sessions.start(user_id=str(user_id), data=data.model_dump(mode='json'))
+    return await start_session.execute(user_id=str(user_id), data=data.model_dump(mode='json'))
 
 
 @router.post(
@@ -40,9 +40,12 @@ async def start(
 )
 async def regenerate_queue(
     id_: str,
-    learning_sessions: dependencies.LearningSessionManagerDependency,
+    regenerate_queue_use_case: dependencies.RegenerateQueueUseCaseDependency,
 ) -> schemas.LearningSessionSchema:
-    return await learning_sessions.regenerate_queue(id_)
+    try:
+        return await regenerate_queue_use_case.execute(id_)
+    except exceptions.SessionNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.post(
@@ -54,17 +57,23 @@ async def perform_repetition(
     id_: str,
     user_id: CurrentUserID,
     repetition_data: schemas.RecordRepetitionDataSchema,
-    learning_sessions: dependencies.LearningSessionManagerDependency,
+    perform_repetition_use_case: dependencies.PerformRepetitionUseCaseDependency,
 ) -> schemas.LearningSessionSchema:
     # TODO: Consider returning only new current node cause only this value actually changes
-    return await learning_sessions.perform_repetition(
-        session_id=id_, user_id=str(user_id), **repetition_data.model_dump()
-    )
+    try:
+        return await perform_repetition_use_case.execute(
+            session_id=id_, user_id=str(user_id), **repetition_data.model_dump()
+        )
+    except exceptions.SessionNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.post('/{id_}/finish', response_model_by_alias=False, response_model_exclude={'queue'})
 async def finish(
     id_: str,
-    learning_sessions: dependencies.LearningSessionManagerDependency,
+    learning_sessions: dependencies.LearningSessionServiceDependency,
 ) -> schemas.LearningSessionSchema:
-    return await learning_sessions.finish(id_)
+    try:
+        return await learning_sessions.finish(id_)
+    except exceptions.SessionNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e

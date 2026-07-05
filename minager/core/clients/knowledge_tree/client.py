@@ -1,10 +1,10 @@
 from minager.node.managers import KnowledgeTreeNodeManager
 
-from .base import AbstractPalaceClient
+from .base import AbstractKnowledgeTreeClient
 
 
-class PalaceNodeServiceClient(KnowledgeTreeNodeManager, AbstractPalaceClient):
+class KnowledgeTreeClientImpl(KnowledgeTreeNodeManager, AbstractKnowledgeTreeClient):
     pass
 
 
-KnowledgeTreeClient = PalaceNodeServiceClient
+KnowledgeTreeClient = KnowledgeTreeClientImpl

@@ -6,8 +6,14 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from surrealdb import AsyncWsSurrealConnection
 
 from minager.core.clients.knowledge_tree import KnowledgeTreeClient
-from minager.learning_session.managers import LearningSessionManager
 from minager.learning_session.models import LearningSession
+from minager.learning_session.repositories import LearningSessionRepository
+from minager.learning_session.services import LearningSessionService
+from minager.learning_session.use_cases import (
+    PerformRepetitionUseCase,
+    RegenerateQueueUseCase,
+    StartSessionUseCase,
+)
 from minager.node.managers import KnowledgeTreeNodeManager
 from minager.node.models import Node
 from tests.conftest import UserTestContext
@@ -33,19 +39,60 @@ def node_data_factory(test_user_context: UserTestContext) -> Callable[..., dict]
 
 
 @pytest.fixture()
-def test_learning_session_manager(
-    mongo_test_db: AsyncIOMotorDatabase,
-    surreal_test_connection: AsyncWsSurrealConnection,
-) -> LearningSessionManager:
-    return LearningSessionManager(
-        connection=mongo_test_db[LearningSessionManager.COLLECTION],
-        knowledge_tree_client=KnowledgeTreeClient(connection=surreal_test_connection),
+def test_knowledge_tree_client(surreal_test_connection: AsyncWsSurrealConnection) -> KnowledgeTreeClient:
+    return KnowledgeTreeClient(connection=surreal_test_connection)
+
+
+@pytest.fixture()
+def test_learning_session_repository(mongo_test_db: AsyncIOMotorDatabase) -> LearningSessionRepository:
+    return LearningSessionRepository(connection=mongo_test_db[LearningSessionRepository.COLLECTION])
+
+
+@pytest.fixture()
+def test_learning_session_service(
+    test_learning_session_repository: LearningSessionRepository,
+) -> LearningSessionService:
+    return LearningSessionService(repository=test_learning_session_repository)
+
+
+@pytest.fixture()
+def test_start_session_use_case(
+    test_learning_session_repository: LearningSessionRepository,
+    test_learning_session_service: LearningSessionService,
+    test_knowledge_tree_client: KnowledgeTreeClient,
+) -> StartSessionUseCase:
+    return StartSessionUseCase(
+        repository=test_learning_session_repository,
+        service=test_learning_session_service,
+        knowledge_tree_client=test_knowledge_tree_client,
+    )
+
+
+@pytest.fixture()
+def test_regenerate_queue_use_case(
+    test_learning_session_repository: LearningSessionRepository,
+    test_knowledge_tree_client: KnowledgeTreeClient,
+) -> RegenerateQueueUseCase:
+    return RegenerateQueueUseCase(
+        repository=test_learning_session_repository,
+        knowledge_tree_client=test_knowledge_tree_client,
+    )
+
+
+@pytest.fixture()
+def test_perform_repetition_use_case(
+    test_learning_session_repository: LearningSessionRepository,
+    test_knowledge_tree_client: KnowledgeTreeClient,
+) -> PerformRepetitionUseCase:
+    return PerformRepetitionUseCase(
+        repository=test_learning_session_repository,
+        knowledge_tree_client=test_knowledge_tree_client,
     )
 
 
 @pytest_asyncio.fixture()
 async def active_session(
-    test_learning_session_manager: LearningSessionManager,
+    test_start_session_use_case: StartSessionUseCase,
     test_palace_node_manager: KnowledgeTreeNodeManager,
     test_user_context: UserTestContext,
     test_user_root_node: Node,
@@ -53,7 +100,7 @@ async def active_session(
 ) -> AsyncGenerator[LearningSession, None]:
     for _ in range(3):
         await test_palace_node_manager.add_child(test_user_root_node.pk, node_data_factory())
-    session = await test_learning_session_manager.start(
+    session = await test_start_session_use_case.execute(
         user_id=str(test_user_context.sub),
         data={'targets': [test_user_root_node.id.id]},
     )

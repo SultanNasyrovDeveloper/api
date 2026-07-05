@@ -1,8 +1,8 @@
 import pytest
 from httpx import AsyncClient
 
-from minager.learning_session.managers import LearningSessionManager
 from minager.learning_session.models import LearningSession
+from minager.learning_session.repositories import LearningSessionRepository
 from minager.node.managers import KnowledgeTreeNodeManager
 from minager.node.models import Node
 
@@ -114,15 +114,15 @@ async def test_perform_repetition_bad_rating_populates_bad_queue(
     app_client: AsyncClient,
     auth_headers: dict,
     active_session: LearningSession,
-    test_learning_session_manager: LearningSessionManager,
+    test_learning_session_repository: LearningSessionRepository,
 ):
     rated_node = active_session.current_node
     payload = {'node_id': rated_node, 'rating': 1}
     response = await app_client.post(f'{BASE}/{active_session.id}/repeat', json=payload, headers=auth_headers)
     assert response.status_code == 200
 
-    # Verify via manager (queue excluded from API response)
-    session = await test_learning_session_manager.get(active_session.id)
+    # Verify via repository (queue excluded from API response)
+    session = await test_learning_session_repository.get(active_session.id)
     assert rated_node in session.bad_repetition_queue
 
 
