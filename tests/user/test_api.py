@@ -5,10 +5,11 @@ import pytest
 from httpx import AsyncClient
 
 from minager.app import app
-from minager.auth.dependencies import get_knowledge_tree_client, jwt_service
-from minager.auth.repositories import UserRepository
-from minager.auth.schemas import UserCreateDataSchema, UserWithProfileSchema
-from minager.auth.services import UserService
+from minager.core.auth.dependencies import jwt_service
+from minager.user.dependencies import get_knowledge_tree_client
+from minager.user.repositories import UserRepository
+from minager.user.schemas import UserCreateDataSchema, UserWithProfileSchema
+from minager.user.services import UserService
 from tests.conftest import TEST_USER_PASSWORD
 
 pytestmark = pytest.mark.asyncio

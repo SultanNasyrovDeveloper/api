@@ -32,11 +32,10 @@ poetry run alembic revision --autogenerate -m "description"
 
 ```
 minager/
-├── core/              # Shared infrastructure — imported by all services
+├── core/              # Shared infrastructure — imported by all services (includes core/auth: token verification + the user Port/Adapter seam)
 ├── node/              # Knowledge tree  →  SurrealDB
 ├── learning_session/  # Study sessions  →  MongoDB
-├── auth/              # Auth/users       →  PostgreSQL
-└── user_profile/      # Profiles         →  PostgreSQL
+└── user/              # User & profile  →  PostgreSQL
 ```
 
 ### Layered architecture
@@ -77,7 +76,6 @@ SurrealDB graph traversal syntax used throughout `queries.py`:
 
 - **UseCase-extraction heuristic.** When a Service method should be pulled out into its own UseCase class is not yet codified.
 - **`core/clients/` → Ports & Adapters rename.** The pattern itself is decided (see "Inter-module communication" below), but the renamed layout (e.g. `core/ports/<domain>/`) and the timing of migrating it across existing clients is not — don't rename ad hoc.
-- **Identity port implementation.** Hoisting `JWTService`/`CurrentUserID` out of `auth` into `core` is a stated direction (see "Identity & permissions across services" below), not yet implemented — don't assume `core` already exposes it.
 
 ### App startup / dependency wiring
 
@@ -97,22 +95,47 @@ Services must not import from each other directly. `minager/core/clients/` provi
 
 **Decided:** adapters call the target service's Business layer (`services.py`), never its Repository/Persistence layer directly. A Repository method assumes a shared process and shared DB connection — neither survives service extraction, so depending on it is debt you will be forced to repay later. A Service method maps ~1:1 onto what a future network endpoint looks like, so today's in-process call becomes tomorrow's adapter swap, not a rewrite.
 
-**Known debt:** `KnowledgeTreeClient` (`minager/core/clients/knowledge_tree/client.py`) predates this decision — it subclasses `KnowledgeTreeNodeManager` directly (inheritance, not composition) and reaches Persistence, not Business. Fix this as part of `node`'s SurORM/layered-architecture migration, not as a standalone task.
+**Decided:** the Adapter *class* lives in the target (provider) service, not in `core` — e.g. the adapter that translates `user`'s models for cross-service consumption lives in `user`, implementing a port defined in `core`. The Port + DTO stay in `core` because they're owned by the consumer side and must stay technology/service-agnostic; the Adapter is service-specific by nature (it has intimate knowledge of the provider's Business layer), so the provider is best positioned to keep it correct as its own internals evolve — the alternative (adapter living in `core`) means whoever changes the provider's services has to remember to go edit a translation living in an unrelated module. This does mean something has to import both the Port (from `core`) and the concrete Adapter (from the provider service) to wire up the actual `Depends(...)` values — that wiring is a narrow, single-purpose "composition root" file living in `core/clients/<domain>/dependencies.py`, not business logic, and it's the one place allowed to import a provider service directly. Consumers (`node`, `learning_session`, etc.) only ever import from that `core` wiring module, never from the provider.
 
-`core/clients/` is the current location/naming for this pattern; expect it to be renamed toward a `core/ports/<domain>/{base.py, schemas.py, adapter(s)}` layout once more domains adopt it (see open questions above) — don't rename ad hoc.
+Naming rule for these `core/clients/<domain>/` folders: name the folder after the **concept exposed to consumers**, not necessarily after the provider module — e.g. `knowledge_tree` (not `node`). The provider module name and the client folder name are allowed to differ; don't assume they should match. (The `user` Port/Adapter used to live under `core/clients/user/`, coincidentally matching the provider module's name — it has since moved into `core/auth/`, see "Cross-service user access" below, which is the one deliberate exception to this naming rule.)
 
-### Identity & permissions across services
+A Port/Adapter pair is only worth the indirection when different providers could plausibly answer the same question differently, or when the answer requires a live, provider-specific lookup (DB access, business rules). Pure infrastructure with one obvious implementation — token verification is the example below — doesn't need a Port; it belongs in `core` as a plain dependency, consumed directly.
 
-`node` and `learning_session` currently import `CurrentUserID` directly from `minager.auth.dependencies` — a cross-service import that predates the decision above and still needs fixing. No code has changed as a result of this design pass; this section documents direction, not current state.
+**Known debt:** `KnowledgeTreeClient` (`minager/core/clients/knowledge_tree/client.py`) predates this decision — it subclasses `KnowledgeTreeNodeManager` directly (inheritance, not composition), reaches Persistence, not Business, *and* lives in `core` instead of in `node`. Fix this as part of `node`'s SurORM/layered-architecture migration, not as a standalone task.
 
-Two different concerns are bundled together in `auth/dependencies.py` today:
+`core/clients/` is the current location/naming for this pattern; expect it to be renamed toward a `core/ports/<domain>/{port.py, schemas.py, adapter(s)}` layout once more domains adopt it (see open questions above) — don't rename ad hoc.
 
-1. **Token decoding** (`JWTService`, `get_jwt_payload`, `get_current_user_id` → `CurrentUserID`) — pure crypto against the configured secret, no database access. This doesn't structurally belong to `auth`. Planned direction: hoist `JWTService` and identity-only resolution into `core`, so every service (`auth` included) depends on a `core`-owned `CurrentUserID` instead of reaching into `auth`.
-2. **Permission/data resolution** (`CurrentUser`, `CurrentVerifiedUser`, `CurrentSuperuser`, `CurrentUserProfile`) — these need real, live data (`is_active`, `is_verified`, `is_superuser`, profile fields) and stay behind a proper Business-layer-backed adapter, per the Ports & Adapters rule above.
+### Cross-service user access
 
-**Decided for now:** while this is a single-process monolith, permission checks hit PostgreSQL live on every request via auth's Business layer (`UserService`, `UserProfileService`). This is deliberate, not a stopgap — in-process DB access is cheap here, and it gives correctness for free (e.g. deactivating a user takes effect immediately, no staleness window to reason about). Do not replace this with JWT-embedded permission claims while there is no separate gateway/edge process verifying tokens on the app's behalf — claims-based permissions only pay off once verification genuinely happens somewhere other than the service consuming them.
+Token verification and user/profile persistence used to both live under `auth/`, which is why `auth/dependencies.py` ended up bundling two structurally different concerns together (pure crypto vs. live DB lookups). They were first split into `core/auth/` (token mechanics) and `core/clients/user/` (the Port/Adapter seam for live user lookups) as two separate top-level folders — that intermediate step has since been collapsed: `core/clients/user/` no longer exists, and everything about "who is calling and what can they do" now lives in one place, `core/auth/`:
 
-**Deferred (roadmap, not designed in detail):** if an API gateway or reverse proxy is ever introduced in front of (possibly split-out) services, it would terminate/verify the JWT and inject trusted identity/permission data as request headers. At that point, a second adapter behind the same identity port (e.g. a header-reading adapter) would replace the DB-backed one, and the instant-vs-token-lifetime-bounded revocation tradeoff above would need revisiting. Nothing here should be built preemptively — it has no consumer until a gateway exists.
+```
+minager/core/auth/
+├── jwt.py           # JWTService — encode/decode/verify, keyed only off a UUID subject
+├── schemas.py       # TokenPayloadSchema, TokenPairSchema, AccessTokenSchema, RefreshTokenRequestSchema
+├── dto.py           # DTO — User, UserProfile (decoupled from user's SQLAlchemy models of the same name)
+├── port.py          # Port — AbstractUserClient (ABC): get_active_user, get_user_profile
+├── exceptions.py    # AuthError, InvalidTokenError, InvalidTokenTypeError
+└── dependencies.py  # JWTServiceDependency, get_current_user_id, CurrentUserID (pure JWT, no DB)
+                     # + composition root: get_user_client, UserClientDependency, imports
+                     # UserClient from minager.user.adapter, builds CurrentUser /
+                     # CurrentVerifiedUser / CurrentSuperuser / CurrentUserProfile
+```
+
+`JWTService` itself still has zero coupling to the `User` model — decoding a token only ever produces a `UUID` subject. `CurrentUserID` stays pure-JWT, no DB call. `CurrentUser`/`CurrentVerifiedUser`/`CurrentSuperuser`/`CurrentUserProfile` are the DB-backed half living in the same file/folder: a proper Port + composition root (per the Ports & Adapters rules above), just no longer under a separate `core/clients/<domain>/` folder. This was a deliberate exception to the "name the folder after the concept exposed to consumers" rule — `core/clients/knowledge_tree/` still follows that rule and is unaffected — because "auth" and "resolve the calling identity" were judged to be one concept, not two, once there was only a single Port living under the old `core/clients/user/`. If a second, unrelated port shows up later, it gets its own `core/clients/<domain>/` (or `core/ports/<domain>/`) home; don't fold new ports into `core/auth` by default.
+
+Every consumer (`node`, `learning_session`) imports `CurrentUserID`/`CurrentUser`/etc. straight from `core.auth.dependencies`.
+
+**`minager/user/`** (renamed from `auth` — password hashing, registration, login-credential checking, and profile CRUD are about the `User`/`UserProfile` entities, not about authentication mechanics) owns:
+
+- `models.py` / `repositories.py` / `services.py` / `use_cases.py` — `User`/`UserProfile` persistence and business rules (registration, `authenticate()`, profile updates).
+- `api.py` — `/users/signup`, `/users/me`, `/users/me/profile`, plus `/token` and `/refresh`. The latter two mint/refresh tokens via `core.auth`'s `JWTService`, but checking credentials before minting one is `user`'s job, so the endpoints stay here rather than in `core`.
+- `adapter.py` — `UserClient(AbstractUserClient)`. This is the one remaining cross-service seam: resolving `get_active_user`/`get_user_profile` needs a live, provider-specific DB lookup (unlike token decoding), so it implements the Port defined in `core.auth`.
+- `dependencies.py` — **also** keeps its own local `CurrentUser`/`CurrentUserProfile` (via `UserServiceDependency`/`UserProfileServiceDependency`), returning the full ORM model rather than `core.auth.dto`'s trimmed DTO. This is *not* a redundant copy of `core.auth.dependencies.CurrentUser`: `user/api.py`'s own routes (`/me`, `/me/profile`) need fields the cross-service DTO deliberately omits (`created_at`, `updated_at`, `last_login`) — the DTO is scoped to what *other* services need, not to what the provider's own presentation layer needs. A service is allowed to bypass its own Port and use its native Service/model directly; the Port only matters for consumers crossing the service boundary.
+
+**Decided for now:** while this is a single-process monolith, permission checks hit PostgreSQL live on every request via `user`'s Business layer (`UserService`, `UserProfileService`). This is deliberate, not a stopgap — in-process DB access is cheap here, and it gives correctness for free (e.g. deactivating a user takes effect immediately, no staleness window to reason about). Do not replace this with JWT-embedded permission claims while there is no separate gateway/edge process verifying tokens on the app's behalf — claims-based permissions only pay off once verification genuinely happens somewhere other than the service consuming them. (Revisited and reaffirmed after a design walkthrough of what JWT-embedded `is_verified`/`is_superuser` claims would require — the staleness tradeoffs and orchestration complexity weren't worth it without a gateway.)
+
+**Deferred (roadmap, not designed in detail):** if an API gateway or reverse proxy is ever introduced in front of (possibly split-out) services, it would terminate/verify the JWT and inject trusted identity/permission data as request headers. At that point, a second adapter behind the same `core.auth` port (e.g. a header-reading adapter) would replace the DB-backed one, and the instant-vs-token-lifetime-bounded revocation tradeoff above would need revisiting. Nothing here should be built preemptively — it has no consumer until a gateway exists.
 
 ### Test isolation
 
@@ -138,7 +161,7 @@ MONGO__HOST=... MONGO__PORT=... MONGO__NAME=...
 
 ## Critical rules
 
-1. **No cross-service imports** — use `minager/core/clients/` for inter-service data access.
+1. **No cross-service imports** — use `minager/core/clients/` (or `core/auth` for the user Port, see "Cross-service user access") for inter-service data access.
 2. **No DB foreign keys** — services live in different databases; relationships are logical (string IDs).
 3. **Always go through the layers** — Presentation → Business → Persistence → Database. Never query a model directly from `api.py` or a Service; that's the Repository's job. The only exception is a resource with no `services.py` entry at all (pure CRUD, no business rules), where `api.py` may call the Repository directly.
 4. **No business objects/DTOs** — Repositories return real DB/ORM models; the Business layer uses those models directly.

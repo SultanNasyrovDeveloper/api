@@ -1,9 +1,9 @@
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from minager.auth.api import auth_router, users_router
 from minager.learning_session.api import router as learning_session_router
 from minager.node.api import router as node_router
+from minager.user.api import auth_router, users_router
 
 from .lifespan import lifespan
 from .settings import config

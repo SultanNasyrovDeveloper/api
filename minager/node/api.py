@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 
-from minager.auth.dependencies import CurrentUserID
+from minager.core.auth.dependencies import CurrentUserID
 from minager.core.types import PaginatedResult
 
 from . import dependencies, dto, models, schemas

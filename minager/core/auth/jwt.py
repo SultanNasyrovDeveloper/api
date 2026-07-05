@@ -5,8 +5,9 @@ from uuid import UUID
 import jwt
 from jwt.exceptions import InvalidTokenError as JWTLibraryInvalidTokenError
 
-from minager.auth import exceptions, schemas
 from minager.settings import ApplicationConfig, config
+
+from . import exceptions, schemas
 
 
 class JWTService:

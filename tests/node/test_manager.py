@@ -3,11 +3,11 @@ from collections.abc import Callable
 import pytest
 from faker import Faker
 
-from minager.auth.schemas import UserWithProfileSchema
 from minager.node.dto import NodeSubtreeStatistics
 from minager.node.enums import MovePosition
 from minager.node.managers import KnowledgeTreeNodeManager
 from minager.node.models import Node
+from minager.user.schemas import UserWithProfileSchema
 
 
 @pytest.mark.asyncio

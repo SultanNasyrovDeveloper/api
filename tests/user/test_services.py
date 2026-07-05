@@ -4,15 +4,15 @@ from uuid import uuid4
 import pytest
 from faker import Faker
 
-from minager.auth import exceptions
-from minager.auth.repositories import UserRepository
-from minager.auth.schemas import (
+from minager.user import exceptions
+from minager.user.repositories import UserRepository
+from minager.user.schemas import (
     UserCreateDataSchema,
     UserProfileUpdateDataSchema,
     UserUpdateDataSchema,
     UserWithProfileSchema,
 )
-from minager.auth.services import UserProfileService, UserService
+from minager.user.services import UserProfileService, UserService
 from tests.conftest import TEST_USER_PASSWORD
 
 pytestmark = pytest.mark.asyncio

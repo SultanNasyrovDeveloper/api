@@ -6,13 +6,13 @@ from surrealdb import AsyncSurreal
 
 from minager import settings
 from minager.app import app
-from minager.auth.schemas import UserWithProfileSchema
 from minager.core import surorm
 from minager.core.surorm.core.settings import SurrealConfig
 from minager.core.surorm.orm.managers import Manager as SurrealManager
 from minager.dependencies import get_surreal_connection
 from minager.node.managers import KnowledgeTreeNodeManager
 from minager.node.models import Node
+from minager.user.schemas import UserWithProfileSchema
 
 
 @pytest.fixture(scope='session')

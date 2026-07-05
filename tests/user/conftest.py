@@ -2,8 +2,8 @@ import pytest
 from faker import Faker
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from minager.auth.repositories import UserProfileRepository, UserRepository
-from minager.auth.services import UserProfileService, UserService
+from minager.user.repositories import UserProfileRepository, UserRepository
+from minager.user.services import UserProfileService, UserService
 
 fake = Faker()
 

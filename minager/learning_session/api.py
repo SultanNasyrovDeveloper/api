@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status
 
-from minager.auth.dependencies import CurrentUserID
+from minager.core.auth.dependencies import CurrentUserID
 
 from . import dependencies, schemas
 

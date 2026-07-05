@@ -1,5 +1,9 @@
 from fastapi import APIRouter, HTTPException, status
 
+from minager.core.auth import dependencies as auth_dependencies
+from minager.core.auth import exceptions as auth_exceptions
+from minager.core.auth import schemas as auth_schemas
+
 from . import dependencies, exceptions, schemas
 
 auth_router = APIRouter(tags=['Authentication'])
@@ -18,16 +22,16 @@ async def signup(
     try:
         user, profile = await sign_up.execute(user_data)
         return schemas.UserWithProfileSchema.build(user, profile)
-    except exceptions.AuthError as e:
+    except exceptions.UserError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
-@auth_router.post('/token', response_model=schemas.TokenPairSchema)
+@auth_router.post('/token', response_model=auth_schemas.TokenPairSchema)
 async def get_token(
     credentials: schemas.LoginCredentialsSchema,
     users: dependencies.UserServiceDependency,
-    jwt_service: dependencies.JWTServiceDependency,
-) -> schemas.TokenPairSchema:
+    jwt_service: auth_dependencies.JWTServiceDependency,
+) -> auth_schemas.TokenPairSchema:
     user = await users.authenticate(credentials.username, credentials.password)
     if not user:
         raise HTTPException(
@@ -39,14 +43,14 @@ async def get_token(
     return jwt_service.create_token_pair(user.id)
 
 
-@auth_router.post('/refresh', response_model=schemas.AccessTokenSchema)
+@auth_router.post('/refresh', response_model=auth_schemas.AccessTokenSchema)
 async def refresh_token(
-    request: schemas.RefreshTokenRequestSchema,
-    jwt_service: dependencies.JWTServiceDependency,
-) -> schemas.AccessTokenSchema:
+    request: auth_schemas.RefreshTokenRequestSchema,
+    jwt_service: auth_dependencies.JWTServiceDependency,
+) -> auth_schemas.AccessTokenSchema:
     try:
         return jwt_service.refresh_access_token(request.refresh_token)
-    except exceptions.AuthError as e:
+    except auth_exceptions.AuthError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
@@ -71,12 +75,14 @@ async def update_me(
     try:
         updated_user = await users.update_user(user.id, user_data)
         return updated_user
-    except exceptions.AuthError as e:
+    except exceptions.UserError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @users_router.get('/me/profile', response_model=schemas.UserProfileDetailSchema)
-async def get_my_profile(profile: dependencies.CurrentUserProfile) -> schemas.UserProfileDetailSchema:
+async def get_my_profile(
+    profile: dependencies.CurrentUserProfile,
+) -> schemas.UserProfileDetailSchema:
     return profile
 
 

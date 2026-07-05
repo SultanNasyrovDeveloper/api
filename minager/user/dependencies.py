@@ -1,21 +1,14 @@
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from minager.auth import exceptions
-from minager.auth.jwt import JWTService
-from minager.auth.models import User, UserProfile
-from minager.auth.repositories import UserProfileRepository, UserRepository
-from minager.auth.schemas import TokenPayloadSchema
-from minager.auth.services import UserProfileService, UserService
-from minager.auth.use_cases import SignUpUseCase
+from minager.core.auth.dependencies import CurrentUserID
 from minager.core.clients.knowledge_tree import KnowledgeTreeClient
 from minager.dependencies import PostgresSession, SurrealConnection
-
-security = HTTPBearer()
-jwt_service = JWTService.from_config()
+from minager.user.models import User, UserProfile
+from minager.user.repositories import UserProfileRepository, UserRepository
+from minager.user.services import UserProfileService, UserService
+from minager.user.use_cases import SignUpUseCase
 
 
 def get_knowledge_tree_client(connection: SurrealConnection) -> KnowledgeTreeClient:
@@ -68,39 +61,8 @@ def get_sign_up_use_case(
 SignUpUseCaseDependency = Annotated[SignUpUseCase, Depends(get_sign_up_use_case)]
 
 
-def get_jwt_service() -> JWTService:
-    return jwt_service
-
-
-JWTServiceDependency = Annotated[JWTService, Depends(get_jwt_service)]
-
-
-async def get_jwt_payload(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
-    jwt_service: JWTServiceDependency,
-) -> TokenPayloadSchema:
-    token = credentials.credentials
-    try:
-        return jwt_service.verify_token_type(token, 'access')
-    except exceptions.AuthError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e),
-            headers={'WWW-Authenticate': 'Bearer'},
-        ) from e
-
-
-TokenPayload = Annotated[TokenPayloadSchema, Depends(get_jwt_payload)]
-
-
-async def get_current_user_id(token_payload: TokenPayload) -> UUID:
-    return token_payload.sub
-
-
-CurrentUserID = Annotated[UUID, Depends(get_current_user_id)]
-
-
 async def get_current_user(user_id: CurrentUserID, users: UserServiceDependency) -> User:
+    """Full ORM user, unlike core.auth.dto.User which omits created_at/last_login/updated_at."""
     user = await users.get_active_user(user_id)
     if not user:
         raise HTTPException(
@@ -112,24 +74,6 @@ async def get_current_user(user_id: CurrentUserID, users: UserServiceDependency)
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
-
-
-def get_current_verified_user(user: CurrentUser) -> User:
-    if not user.is_verified:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Email not verified')
-    return user
-
-
-CurrentVerifiedUser = Annotated[User, Depends(get_current_verified_user)]
-
-
-def get_current_superuser(user: CurrentUser) -> User:
-    if not user.is_superuser:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Not enough permissions')
-    return user
-
-
-CurrentSuperuser = Annotated[User, Depends(get_current_superuser)]
 
 
 async def get_current_user_profile(

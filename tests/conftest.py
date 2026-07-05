@@ -8,15 +8,15 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from minager.app import app
-from minager.auth.dependencies import jwt_service
-from minager.auth.repositories import UserProfileRepository, UserRepository
-from minager.auth.schemas import (
+from minager.core.auth.dependencies import jwt_service
+from minager.node.managers import KnowledgeTreeNodeManager
+from minager.user.repositories import UserProfileRepository, UserRepository
+from minager.user.schemas import (
     UserCreateDataSchema,
     UserProfileCreateSchema,
     UserWithProfileSchema,
 )
-from minager.auth.services import UserProfileService, UserService
-from minager.node.managers import KnowledgeTreeNodeManager
+from minager.user.services import UserProfileService, UserService
 
 pytest_plugins = [
     'tests.fixtures.surreal_db',

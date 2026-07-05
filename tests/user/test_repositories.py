@@ -2,8 +2,8 @@ from uuid import uuid4
 
 import pytest
 
-from minager.auth.repositories import UserProfileRepository, UserRepository
-from minager.auth.schemas import UserWithProfileSchema
+from minager.user.repositories import UserProfileRepository, UserRepository
+from minager.user.schemas import UserWithProfileSchema
 
 pytestmark = pytest.mark.asyncio
 

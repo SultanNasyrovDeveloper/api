@@ -3,8 +3,8 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-from minager.auth.models import Model
 from minager.settings import ApplicationConfig
+from minager.user.models import Model
 
 alembic_config = context.config
 
