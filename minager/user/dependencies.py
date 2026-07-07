@@ -4,15 +4,15 @@ from fastapi import Depends, HTTPException, status
 
 from minager.core.auth.dependencies import CurrentUserID
 from minager.core.clients.knowledge_tree import KnowledgeTreeClient
-from minager.dependencies import PostgresSession, SurrealConnection
+from minager.dependencies import PostgresSession, SurrealSession
 from minager.user.models import User, UserProfile
 from minager.user.repositories import UserProfileRepository, UserRepository
 from minager.user.services import UserProfileService, UserService
 from minager.user.use_cases import SignUpUseCase
 
 
-def get_knowledge_tree_client(connection: SurrealConnection) -> KnowledgeTreeClient:
-    return KnowledgeTreeClient(connection=connection)
+def get_knowledge_tree_client(session: SurrealSession) -> KnowledgeTreeClient:
+    return KnowledgeTreeClient(session=session)
 
 
 KnowledgeTreeClientDependency = Annotated[KnowledgeTreeClient, Depends(get_knowledge_tree_client)]

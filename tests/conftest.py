@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from minager.app import app
 from minager.core.auth.dependencies import jwt_service
-from minager.node.managers import KnowledgeTreeNodeManager
+from minager.node.repositories import NodeRepository
 from minager.user.repositories import UserProfileRepository, UserRepository
 from minager.user.schemas import (
     UserCreateDataSchema,
@@ -45,7 +45,7 @@ async def app_client(palace_node_db_setup: None) -> AsyncGenerator[AsyncClient, 
 @pytest_asyncio.fixture()
 async def test_user(
     pg_session: AsyncSession,
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_repository: NodeRepository,
 ) -> UserWithProfileSchema:
     suffix = uuid4().hex[:8]
     user = await UserService(repository=UserRepository(session=pg_session)).register(
@@ -55,7 +55,7 @@ async def test_user(
             password=TEST_USER_PASSWORD,
         )
     )
-    root_node = await test_palace_node_manager.create(
+    root_node = await test_palace_node_repository.create(
         {
             'owner_id': str(user.id),
             'title': 'Mind Palace',
@@ -69,7 +69,7 @@ async def test_user(
     ).create_profile(
         UserProfileCreateSchema(
             user_id=user.id,
-            knowledge_tree_root_id=root_node.id.id,
+            knowledge_tree_root_id=root_node.id.id_,
         )
     )
     return UserWithProfileSchema.build(user, user_profile)

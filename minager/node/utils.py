@@ -15,6 +15,7 @@ def parse_id(id_: str) -> list[str]:
     return id_.split(':')
 
 
+# TODO: THis should live along with use case
 def construct_tree(nodes: list[dict]) -> dict:
     """
     Generates tree like structure where each node has list of its children from

@@ -2,6 +2,7 @@ from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
+from surorm import Session
 from surrealdb import AsyncSurreal
 
 from minager import settings
@@ -9,10 +10,15 @@ from minager.app import app
 from minager.core import surorm
 from minager.core.surorm.core.settings import SurrealConfig
 from minager.core.surorm.orm.managers import Manager as SurrealManager
-from minager.dependencies import get_surreal_connection
-from minager.node.managers import KnowledgeTreeNodeManager
+from minager.dependencies import get_surreal_session
 from minager.node.models import Node
+from minager.node.repositories import NodeRepository
+from minager.node.services import NodeService
 from minager.user.schemas import UserWithProfileSchema
+
+
+def _node_session(connection) -> Session:
+    return Session(connection=connection)
 
 
 @pytest.fixture(scope='session')
@@ -53,18 +59,23 @@ async def palace_node_db_setup(
 
 
 @pytest.fixture()
-def test_palace_node_manager(
+def test_palace_node_repository(
     surreal_test_connection,
     palace_node_db_setup: None,
-) -> KnowledgeTreeNodeManager:
-    return KnowledgeTreeNodeManager(connection=surreal_test_connection)
+) -> NodeRepository:
+    return NodeRepository(session=_node_session(surreal_test_connection))
+
+
+@pytest.fixture()
+def test_palace_node_service(test_palace_node_repository: NodeRepository) -> NodeService:
+    return NodeService(repository=test_palace_node_repository)
 
 
 @pytest_asyncio.fixture(autouse=True)
 async def override_surreal_connection(surreal_test_connection) -> AsyncGenerator[None, None]:
-    app.dependency_overrides[get_surreal_connection] = lambda: surreal_test_connection
+    app.dependency_overrides[get_surreal_session] = lambda: _node_session(surreal_test_connection)
     yield
-    app.dependency_overrides.pop(get_surreal_connection, None)
+    app.dependency_overrides.pop(get_surreal_session, None)
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -78,11 +89,11 @@ async def clean_surreal_data(
 
 @pytest_asyncio.fixture
 async def test_user_root_node(
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_repository: NodeRepository,
     test_user: UserWithProfileSchema,
 ) -> AsyncGenerator[Node, None]:
     assert test_user.knowledge_tree_root_id
-    root_node = await test_palace_node_manager.get(test_user.knowledge_tree_root_id)
+    root_node = await test_palace_node_repository.get(test_user.knowledge_tree_root_id)
     if not root_node:
         raise ValueError('Unable to find root node for test.')
     yield root_node

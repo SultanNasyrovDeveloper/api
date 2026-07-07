@@ -4,8 +4,9 @@ from fastapi import status
 from httpx import AsyncClient
 
 from minager.node.enums import MovePosition
-from minager.node.managers import KnowledgeTreeNodeManager
 from minager.node.models import Node
+from minager.node.repositories import NodeRepository
+from minager.node.services import NodeService
 
 from ..conftest import UserTestContext
 
@@ -86,7 +87,7 @@ async def test_add_child_requires_auth(app_client: AsyncClient, test_user_root_n
 async def test_add_child_creates_node(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_repository: NodeRepository,
     auth_headers: dict,
     faker: Faker,
 ):
@@ -97,7 +98,7 @@ async def test_add_child_creates_node(
     body = response.json()
     assert 'id' in body
 
-    new_node = await test_palace_node_manager.get(body['id'])
+    new_node = await test_palace_node_repository.get(body['id'])
     assert new_node
     assert new_node.parent_pk == test_user_root_node.pk
     assert new_node.title == data['title']
@@ -123,7 +124,7 @@ async def test_add_child_validates_required_fields(
 async def test_add_child_sets_owner_id_from_token(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_repository: NodeRepository,
     test_user_context: UserTestContext,
     auth_headers: dict,
     faker: Faker,
@@ -135,7 +136,7 @@ async def test_add_child_sets_owner_id_from_token(
     body = response.json()
     assert 'id' in body
 
-    new_node = await test_palace_node_manager.get(body['id'])
+    new_node = await test_palace_node_repository.get(body['id'])
     assert new_node
     assert new_node.owner_id == str(test_user_context.sub)
 
@@ -144,7 +145,7 @@ async def test_add_child_sets_owner_id_from_token(
 async def test_add_child_with_is_learn_false(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_repository: NodeRepository,
     auth_headers: dict,
     faker,
 ):
@@ -158,7 +159,7 @@ async def test_add_child_with_is_learn_false(
     response = await app_client.post(url, json=data, headers=auth_headers)
     assert response.status_code == 201
     body = response.json()
-    new_node = await test_palace_node_manager.get(body['id'])
+    new_node = await test_palace_node_repository.get(body['id'])
     assert new_node
     assert not new_node.is_learn
 
@@ -247,12 +248,12 @@ async def test_get_node_detail_returns_node(
 async def test_get_children_returns_paginated_list(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_service: NodeService,
     faker,
 ):
     # Create some children first
     for _ in range(3):
-        await test_palace_node_manager.add_child(
+        await test_palace_node_service.add_child(
             test_user_root_node.pk,
             {
                 'title': faker.name(),
@@ -448,12 +449,12 @@ async def test_get_subtree_statistics_returns_valid_structure(
 async def test_get_subtree_statistics_with_children(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_service: NodeService,
     faker,
 ):
     # Create children
     for _ in range(3):
-        await test_palace_node_manager.add_child(
+        await test_palace_node_service.add_child(
             test_user_root_node.pk,
             {
                 'title': faker.name(),
@@ -565,16 +566,16 @@ async def test_get_subtree_statistics_with_children(
 async def test_move_node_as_last_child(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_service: NodeService,
     node_create_data_factory,
     auth_headers: dict,
 ):
     # Create two children
-    child1 = await test_palace_node_manager.add_child(
+    child1 = await test_palace_node_service.add_child(
         test_user_root_node.pk,
         node_create_data_factory(),
     )
-    child2 = await test_palace_node_manager.add_child(
+    child2 = await test_palace_node_service.add_child(
         test_user_root_node.pk,
         node_create_data_factory(order='bbbbb'),
     )
@@ -592,15 +593,15 @@ async def test_move_node_as_last_child(
 async def test_move_node_as_first_child(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_service: NodeService,
     node_create_data_factory,
     auth_headers: dict,
 ):
-    child1 = await test_palace_node_manager.add_child(
+    child1 = await test_palace_node_service.add_child(
         test_user_root_node.pk,
         node_create_data_factory(),
     )
-    child2 = await test_palace_node_manager.add_child(
+    child2 = await test_palace_node_service.add_child(
         test_user_root_node.pk,
         node_create_data_factory(order='bbbbb'),
     )
@@ -615,15 +616,15 @@ async def test_move_node_as_first_child(
 async def test_move_node_before(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_service: NodeService,
     node_create_data_factory,
     auth_headers: dict,
 ):
-    child1 = await test_palace_node_manager.add_child(
+    child1 = await test_palace_node_service.add_child(
         test_user_root_node.pk,
         node_create_data_factory(),
     )
-    child2 = await test_palace_node_manager.add_child(
+    child2 = await test_palace_node_service.add_child(
         test_user_root_node.pk,
         node_create_data_factory(order='bbbbb'),
     )
@@ -638,15 +639,15 @@ async def test_move_node_before(
 async def test_move_node_after(
     app_client: AsyncClient,
     test_user_root_node: Node,
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_service: NodeService,
     node_create_data_factory,
     auth_headers: dict,
 ):
-    child1 = await test_palace_node_manager.add_child(
+    child1 = await test_palace_node_service.add_child(
         test_user_root_node.pk,
         node_create_data_factory(),
     )
-    child2 = await test_palace_node_manager.add_child(
+    child2 = await test_palace_node_service.add_child(
         test_user_root_node.pk,
         node_create_data_factory(order='bbbbb'),
     )

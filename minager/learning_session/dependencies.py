@@ -3,15 +3,15 @@ from typing import Annotated
 from fastapi import Depends
 
 from minager.core.clients.knowledge_tree import KnowledgeTreeClient
-from minager.dependencies import MongoSession, SurrealConnection
+from minager.dependencies import MongoSession, SurrealSession
 
 from .repositories import LearningSessionRepository
 from .services import LearningSessionService
 from .use_cases import PerformRepetitionUseCase, RegenerateQueueUseCase, StartSessionUseCase
 
 
-def get_knowledge_tree_client(connection: SurrealConnection) -> KnowledgeTreeClient:
-    return KnowledgeTreeClient(connection=connection)
+def get_knowledge_tree_client(session: SurrealSession) -> KnowledgeTreeClient:
+    return KnowledgeTreeClient(session=session)
 
 
 KnowledgeTreeClientDependency = Annotated[KnowledgeTreeClient, Depends(get_knowledge_tree_client)]

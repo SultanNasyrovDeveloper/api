@@ -12,8 +12,9 @@ from minager.learning_session.use_cases import (
     RegenerateQueueUseCase,
     StartSessionUseCase,
 )
-from minager.node.managers import KnowledgeTreeNodeManager
 from minager.node.models import Node
+from minager.node.repositories import NodeRepository
+from minager.node.services import NodeService
 from tests.conftest import UserTestContext
 
 pytestmark = pytest.mark.asyncio
@@ -23,13 +24,13 @@ async def test_start_creates_session(
     test_start_session_use_case: StartSessionUseCase,
     test_user_context: UserTestContext,
     test_user_root_node: Node,
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_service: NodeService,
     node_data_factory: Callable[..., dict],
 ):
-    await test_palace_node_manager.add_child(test_user_root_node.pk, node_data_factory())
+    await test_palace_node_service.add_child(test_user_root_node.pk, node_data_factory())
     session = await test_start_session_use_case.execute(
         user_id=str(test_user_context.sub),
-        data={'targets': [test_user_root_node.id.id]},
+        data={'targets': [test_user_root_node.id.id_]},
     )
     assert isinstance(session, LearningSession)
     assert session.id is not None
@@ -152,12 +153,12 @@ async def test_perform_repetition_switches_to_bad_queue_when_main_empty(
 
 async def test_perform_repetition_updates_node_in_surreal(
     test_perform_repetition_use_case: PerformRepetitionUseCase,
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_repository: NodeRepository,
     test_user_context: UserTestContext,
     active_session: LearningSession,
 ):
     node_id = active_session.current_node
-    before = await test_palace_node_manager.get(node_id)
+    before = await test_palace_node_repository.get(node_id)
     before_repetitions = before.repetitions or 0
 
     await test_perform_repetition_use_case.execute(
@@ -167,7 +168,7 @@ async def test_perform_repetition_updates_node_in_surreal(
         user_id=str(test_user_context.sub),
     )
 
-    after = await test_palace_node_manager.get(node_id)
+    after = await test_palace_node_repository.get(node_id)
     assert after.repetitions == before_repetitions + 1
     assert after.last_repetition is not None
 

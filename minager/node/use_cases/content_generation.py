@@ -5,7 +5,7 @@ from huggingface_hub import ChatCompletionOutput, InferenceClient
 
 from minager.settings import config
 
-from ..models import Node
+from .. import exceptions, models, repositories
 
 PROMPT = """
 You are a knowledge architect/scientific trainer.
@@ -83,7 +83,7 @@ class HuggingFaceNodeContentGenerator(BaseNodeContentGenerator):
     def from_config(cls) -> Self:
         return cls(token=config.huggingface_api_token, model=config.huggingface_llm_model)
 
-    async def generate(self, node: Node, *args, **kwargs) -> str:
+    async def generate(self, node: models.Node, *args, **kwargs) -> str:
         prepared_prompt = PROMPT.format(
             title=node.title, questions=node.questions, address='not filled for now'
         )
@@ -96,3 +96,15 @@ class HuggingFaceNodeContentGenerator(BaseNodeContentGenerator):
             if choice.message:
                 output.append(choice.message['content'])
         return '\n'.join(output)
+
+
+class GenerateNodeContentUseCase:
+    def __init__(self, repository: repositories.NodeRepository):
+        self.repository = repository
+
+    async def execute(self, id_: str) -> str:
+        node = await self.repository.get(id_)
+        if not node:
+            raise exceptions.NodeNotFoundError
+        generator = HuggingFaceNodeContentGenerator.from_config()
+        return await generator.generate(node)

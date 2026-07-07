@@ -3,6 +3,7 @@ from collections.abc import AsyncGenerator, Callable
 import pytest
 import pytest_asyncio
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from surorm import Session
 from surrealdb import AsyncWsSurrealConnection
 
 from minager.core.clients.knowledge_tree import KnowledgeTreeClient
@@ -14,8 +15,8 @@ from minager.learning_session.use_cases import (
     RegenerateQueueUseCase,
     StartSessionUseCase,
 )
-from minager.node.managers import KnowledgeTreeNodeManager
 from minager.node.models import Node
+from minager.node.services import NodeService
 from tests.conftest import UserTestContext
 
 
@@ -40,7 +41,7 @@ def node_data_factory(test_user_context: UserTestContext) -> Callable[..., dict]
 
 @pytest.fixture()
 def test_knowledge_tree_client(surreal_test_connection: AsyncWsSurrealConnection) -> KnowledgeTreeClient:
-    return KnowledgeTreeClient(connection=surreal_test_connection)
+    return KnowledgeTreeClient(session=Session(connection=surreal_test_connection))
 
 
 @pytest.fixture()
@@ -93,15 +94,15 @@ def test_perform_repetition_use_case(
 @pytest_asyncio.fixture()
 async def active_session(
     test_start_session_use_case: StartSessionUseCase,
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_service: NodeService,
     test_user_context: UserTestContext,
     test_user_root_node: Node,
     node_data_factory: Callable[..., dict],
 ) -> AsyncGenerator[LearningSession, None]:
     for _ in range(3):
-        await test_palace_node_manager.add_child(test_user_root_node.pk, node_data_factory())
+        await test_palace_node_service.add_child(test_user_root_node.pk, node_data_factory())
     session = await test_start_session_use_case.execute(
         user_id=str(test_user_context.sub),
-        data={'targets': [test_user_root_node.id.id]},
+        data={'targets': [test_user_root_node.id.id_]},
     )
     yield session

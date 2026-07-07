@@ -16,6 +16,5 @@ class NodeSubtreeStatistics(BaseModel):
 
 
 class NodeOverallStatistics(BaseModel):
-    indexes: dict
     subtree: NodeSubtreeStatistics
     node: NodeStatisticsMixin

@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
 
+from surorm.data_model import Datetime
+
 from minager.core.clients.knowledge_tree import KnowledgeTreeClient
 
 from . import exceptions
@@ -81,12 +83,13 @@ class PerformRepetitionUseCase:
         repeated_node = await self.knowledge_tree_client.get(node_id)
         study_result = self.learning_strategy.study_node(repeated_node, rating)
         await self.knowledge_tree_client.update(
-            node_id,
-            {
-                'last_repetition': datetime.now(UTC),
+            repeated_node,
+            **{
+                # TODO: Datetime usage is just a temp fix. Add proper values handling in surorm
+                'last_repetition': Datetime(datetime.now(UTC)),
                 'difficulty': study_result.difficulty,
                 'last_interval': study_result.interval,
-                'next_optimal_repetition': study_result.next_repetition,
+                'next_optimal_repetition': Datetime(study_result.next_repetition),
                 'repetitions': repeated_node.repetitions + 1,
                 'cpr': repeated_node.cpr + 1 if rating >= 3 else 0,
             },

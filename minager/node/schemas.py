@@ -26,7 +26,7 @@ class NodeDetailSchema(mixins.NodeStatisticsMixin, mixins.IdMixin, mixins.Parent
     owner_id: str | None = None
     tags: list[int] = Field(default_factory=list)
     ancestors: list[models.ListNode] = Field(default_factory=list)
-    children: list[models.ListNode] = Field(default_factory=list)
+    # children: list[models.ListNode] = Field(default_factory=list)
 
 
 class UpdatedNodeSchema(mixins.NodeStatisticsMixin, mixins.IdMixin, mixins.ParentIdMixin):
@@ -36,7 +36,6 @@ class UpdatedNodeSchema(mixins.NodeStatisticsMixin, mixins.IdMixin, mixins.Paren
     content: str = ''
     is_learn: bool = True
     order: str = ''
-    children: list[models.ListNode] = Field(default_factory=list)
     tags: list[int] = Field(default_factory=list)
     ancestors: list[models.ListNode] = Field(default_factory=list)
 

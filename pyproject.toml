@@ -121,11 +121,11 @@ sqlmodel = "^0.0.24"
 alembic = "^1.16.1"
 motor = "^3.7.1"
 asyncpg = "^0.30.0"
-surrealdb = "^1.0.8"
+surrealdb = "^2.0.0"
 huggingface-hub = "^1.3.1"
 pwdlib = "^0.3.0"
 fastapi-users = "^15.0.5"
-surorm = "0.0.7"
+surorm = "0.0.20"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.18.1"

@@ -3947,34 +3947,36 @@ full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart 
 
 [[package]]
 name = "surorm"
-version = "0.0.7"
+version = "0.0.20"
 description = ""
 optional = false
 python-versions = ">=3.12"
 groups = ["main"]
 files = [
-    {file = "surorm-0.0.7-py3-none-any.whl", hash = "sha256:f95033f549b52d9ccd393582db0edd694847df44aebfeeeee4db4d88b2b03af7"},
-    {file = "surorm-0.0.7.tar.gz", hash = "sha256:6abd3d74eb99942e622f3895fc9e56d6b4010c00ed7588620938bf75424f441f"},
+    {file = "surorm-0.0.20-py3-none-any.whl", hash = "sha256:3d3532a1848d3b86fc11f4e43c33fc9d6d3a3f0d1cf1d04c7d9a3869d6e38bb4"},
+    {file = "surorm-0.0.20.tar.gz", hash = "sha256:37efd54423a743a664622216c3a385cf5f599cf220424a22de48c3cde83eb671"},
 ]
 
 [package.dependencies]
 pydantic = ">=2.0"
-surrealdb = ">=1.0.0"
+surrealdb = ">=2.0.0"
 
 [[package]]
 name = "surrealdb"
-version = "1.0.8"
+version = "2.0.0"
 description = "SurrealDB python client"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "surrealdb-1.0.8-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:afc95b38d915ac7cb9adafc32d6e9b5a9548470095dad67efe626dd3b7bdbfc7"},
-    {file = "surrealdb-1.0.8-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:4052ea81bbb999bc4e48a38bbd852f89d52840bcc52573dbfa009b1260045271"},
-    {file = "surrealdb-1.0.8-cp39-abi3-manylinux_2_24_aarch64.whl", hash = "sha256:ca0d6d4deee59f2100580da8ca2df449543d2c2945dc12299217b712278bf812"},
-    {file = "surrealdb-1.0.8-cp39-abi3-manylinux_2_24_x86_64.whl", hash = "sha256:b85d2ae0f43306496690081a07b06231f30383952280002275fe6083eafc2a2a"},
-    {file = "surrealdb-1.0.8-cp39-abi3-win_amd64.whl", hash = "sha256:977c5f4602d16476f70557c6e729c4035c6323be580a756a26f79a103e0df46d"},
-    {file = "surrealdb-1.0.8.tar.gz", hash = "sha256:14a9b2e24b8a2fbe15b6894617a2c2aababaf02e7fb95bd755ab9182b40c92c6"},
+    {file = "surrealdb-2.0.0-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:5ade2dfd53fedd7c7ddb3b102d6223ccefa30ad8a1df1cde261ce8004e97aa2f"},
+    {file = "surrealdb-2.0.0-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:8b0b24ea230a53ea6c67c51c8e45332d9383b4b8f42246b64c034a2b26d0cc2a"},
+    {file = "surrealdb-2.0.0-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e3a4e9c35964af1dc6ce01fe2aa553d6c3fcd0a8bd02c05e38fc88433395ba74"},
+    {file = "surrealdb-2.0.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1e0d61545611cf86f13825932315e65c79a9f1bfb1c0fe3b40b0e48562b8673c"},
+    {file = "surrealdb-2.0.0-cp39-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:d5dd4df823b407f58077a9dddc4f4bff938e365d091df56d2fe4108e980f8b87"},
+    {file = "surrealdb-2.0.0-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:e7163637c813e2e6daec7660c4d83462509c1c77ecb4086bdb3766af6fdfb571"},
+    {file = "surrealdb-2.0.0-cp39-abi3-win_amd64.whl", hash = "sha256:ba43f1156b2a6d00e8e595764505156db2f7fd5d023e189c59e9673fa9949fe8"},
+    {file = "surrealdb-2.0.0.tar.gz", hash = "sha256:70a2656bf5b6d844cf4c029d6e0a7309ca95b9ba282663f31c8b6e642fc8463a"},
 ]
 
 [package.dependencies]
@@ -4561,4 +4563,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "4af4d646f55e48ddeb21d7d8331881c691741e3abfc4d061251ff9a69095b96d"
+content-hash = "5da87797fdf07ba2cccb03cef4273e8fce573c078fc0149b8e42688f16348455"

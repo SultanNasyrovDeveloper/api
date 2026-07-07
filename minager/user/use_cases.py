@@ -38,7 +38,7 @@ class SignUpUseCase:
         profile = await self.user_profile_service.create_profile(
             schemas.UserProfileCreateSchema(
                 user_id=user.id,
-                knowledge_tree_root_id=root.id.id,
+                knowledge_tree_root_id=root.id.id_,
             )
         )
         return user, profile

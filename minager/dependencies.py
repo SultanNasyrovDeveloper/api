@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Request
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
-from surrealdb import AsyncWsSurrealConnection
+from surorm import Session
 
 from .settings import ApplicationConfig
 
@@ -44,8 +44,8 @@ async def get_mongo_session(app: App, config: AppConfig) -> AsyncIOMotorDatabase
 MongoSession = Annotated[AsyncIOMotorDatabase, Depends(get_mongo_session)]
 
 
-async def get_surreal_connection(app: App) -> AsyncWsSurrealConnection:
-    return app.state.surreal
+def get_surreal_session(app: App) -> Session:
+    return Session(connection=app.state.surreal)
 
 
-SurrealConnection = Annotated[AsyncWsSurrealConnection, Depends(get_surreal_connection)]
+SurrealSession = Annotated[Session, Depends(get_surreal_session)]

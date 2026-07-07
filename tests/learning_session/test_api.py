@@ -3,8 +3,8 @@ from httpx import AsyncClient
 
 from minager.learning_session.models import LearningSession
 from minager.learning_session.repositories import LearningSessionRepository
-from minager.node.managers import KnowledgeTreeNodeManager
 from minager.node.models import Node
+from minager.node.services import NodeService
 
 pytestmark = pytest.mark.asyncio
 
@@ -60,11 +60,11 @@ async def test_start_session_creates_session(
     app_client: AsyncClient,
     auth_headers: dict,
     test_user_root_node: Node,
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_service: NodeService,
     node_data_factory,
 ):
-    await test_palace_node_manager.add_child(test_user_root_node.pk, node_data_factory())
-    payload = {'targets': [test_user_root_node.id.id]}
+    await test_palace_node_service.add_child(test_user_root_node.pk, node_data_factory())
+    payload = {'targets': [test_user_root_node.id.id_]}
     response = await app_client.post(f'{BASE}/start', json=payload, headers=auth_headers)
     assert response.status_code == 201
     body = response.json()
@@ -88,7 +88,7 @@ async def test_start_session_requires_auth(
     app_client: AsyncClient,
     test_user_root_node: Node,
 ):
-    response = await app_client.post(f'{BASE}/start', json={'targets': [test_user_root_node.id.id]})
+    response = await app_client.post(f'{BASE}/start', json={'targets': [test_user_root_node.id.id_]})
     assert response.status_code in (401, 403)
 
 

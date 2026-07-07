@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import ClassVar
 
 from pydantic import BaseModel
 from pydantic import Field as SchemaField
-from surrealdb import RecordID
-
-from minager.core.surorm import data_model
-from minager.core.surorm.orm.field import Field
-from minager.core.surorm.orm.models import Model
+from surorm.data_model import Boolean, Datetime, Float, Int, RecordID, String
+from surorm.functions import F
+from surorm.orm import Field, Model, Relation
+from surorm.statements import Select
 
 from . import mixins
 
@@ -17,6 +15,7 @@ from . import mixins
 class ListNode(BaseModel, mixins.IdMixin):
     title: str
     order: str | None = SchemaField(default=None)
+    ancestors: list[ListNode] = SchemaField(default_factory=list)
 
 
 class TreeNode(BaseModel, mixins.IdMixin, mixins.ParentIdMixin):
@@ -27,39 +26,46 @@ class TreeNode(BaseModel, mixins.IdMixin, mixins.ParentIdMixin):
 
 
 class Node(Model):
-    __table_name__: ClassVar[str] = 'node'
+    __table__: ClassVar[str] = 'node'
 
-    id: RecordID = Field(data_model.Record)
+    parent_id: RecordID | None = Field(computed=lambda _: F.array.first('->child.out'), default=None)
 
-    parent_id: RecordID | None = Field(data_model.Record, default=None, exclude=True)
-    ancestors: list[ListNode] = Field(type_=data_model.Object, default_factory=list, exclude=True)
-    children: list[ListNode] = Field(type_=data_model.Object, default_factory=list, exclude=True)
+    is_learn: Boolean
+    title: String
+    order: String
+    owner_id: String
+    questions: String
 
-    is_learn: bool = Field(data_model.Boolean)
-    title: str = Field(data_model.String)
-    order: str = Field(data_model.String)
-    owner_id: str = Field(data_model.String)
-    questions: str = Field(data_model.String)
+    cpr: Int = Field(default=0)
+    owner_views: Int = Field(default=0)
+    difficulty: Float = Field(default=2.6)
+    last_rating: Float = Field(default=0)
+    size: Int = Field(default=0)
+    repetitions: Int = Field(default=0)
 
-    cpr: int = Field(data_model.Number, default=0)
-    owner_views: int = Field(data_model.Number, default=0)
-    difficulty: float = Field(data_model.Number, default=2.6)
-    last_rating: float = Field(data_model.Number, default=0)
-    size: int = Field(data_model.Number, default=0)
-    repetitions: int = Field(data_model.Number, default=0)
+    last_interval: Int | Float
+    last_repetition: Datetime
+    next_optimal_repetition: Datetime
 
-    last_interval: int | float = Field(data_model.Number)
-    last_repetition: datetime = Field(data_model.Datetime)
-    next_optimal_repetition: datetime = Field(data_model.Datetime)
+    content: String
 
-    content: str = Field(data_model.Json)
+    ancestors: list[ListNode] | None = Field(
+        computed=lambda _: Select('id', 'title').from_('$this.{..+collect}->child->node'), default=None
+    )
+    children: list[ListNode] | None = Field(default=None, exclude=True)
 
     @property
     def pk(self) -> str | None:
         # TODO: Return empty string here instead of node for types
-        return self.id.id
+        return self.id.id_
 
     @property
     def parent_pk(self) -> str | None:
         # TODO: Return empty string here instead of node for types
-        return self.parent_id.id if bool(self.parent_id) else None
+        return self.parent_id.id_ if bool(self.parent_id) else None
+
+
+class Child(Relation):
+    __table__ = 'child'
+    in_: Node
+    out: Node

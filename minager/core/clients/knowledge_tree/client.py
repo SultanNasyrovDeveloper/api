@@ -1,9 +1,9 @@
-from minager.node.managers import KnowledgeTreeNodeManager
+from minager.node.repositories import NodeRepository
 
 from .base import AbstractKnowledgeTreeClient
 
 
-class KnowledgeTreeClientImpl(KnowledgeTreeNodeManager, AbstractKnowledgeTreeClient):
+class KnowledgeTreeClientImpl(NodeRepository, AbstractKnowledgeTreeClient):
     pass
 
 

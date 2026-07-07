@@ -5,10 +5,13 @@ from datetime import UTC, datetime, timedelta
 import pytest
 import pytest_asyncio
 from faker import Faker
+from surorm.data_model import Datetime
 
 from minager.node.dto import NodeSubtreeStatistics
-from minager.node.managers import KnowledgeTreeNodeManager
-from minager.node.models import Node
+from minager.node.models import Child, Node
+from minager.node.repositories import NodeRepository
+from minager.node.services import NodeService
+from minager.node.use_cases import GenerateNodeContentUseCase, MoveNodeUseCase
 
 
 @pytest.fixture
@@ -26,13 +29,39 @@ def node_create_data_factory(faker: Faker) -> Callable[..., dict]:
     return _factory
 
 
+@pytest.fixture()
+def test_move_node_use_case(test_palace_node_repository: NodeRepository) -> MoveNodeUseCase:
+    return MoveNodeUseCase(repository=test_palace_node_repository)
+
+
+@pytest.fixture()
+def test_generate_node_content_use_case(
+    test_palace_node_repository: NodeRepository,
+) -> GenerateNodeContentUseCase:
+    return GenerateNodeContentUseCase(repository=test_palace_node_repository)
+
+
+@pytest.fixture()
+def create_child_node(test_palace_node_repository: NodeRepository) -> Callable[..., Node]:
+    """Persistence-layer helper: create a node and relate it as a child, bypassing NodeService's
+    order-assignment business logic so repository tests can control `order` directly."""
+
+    async def _create_child(parent: Node, data: dict) -> Node:
+        child = await test_palace_node_repository.create(data)
+        await test_palace_node_repository.relate(child, Child, parent)
+        return await test_palace_node_repository.get(child.pk)
+
+    return _create_child
+
+
 @pytest_asyncio.fixture()
 async def subtree(
-    test_palace_node_manager: KnowledgeTreeNodeManager,
+    test_palace_node_repository: NodeRepository,
+    test_palace_node_service: NodeService,
     node_create_data_factory: Callable[..., dict],
     faker: Faker,
 ) -> tuple[Node, NodeSubtreeStatistics]:
-    root_node = await test_palace_node_manager.create(node_create_data_factory())
+    root_node = await test_palace_node_repository.create(node_create_data_factory())
     assert root_node
 
     statistics = NodeSubtreeStatistics()
@@ -66,7 +95,7 @@ async def subtree(
             repetitions=repetitions,
             owner_views=owner_views,
             size=size,
-            next_optimal_repetition=(
+            next_optimal_repetition=Datetime(
                 datetime.now(UTC) - timedelta(days=faker.pyint(max_value=5), hours=faker.pyint(max_value=23))
                 if is_outdated
                 else datetime.now(UTC)
@@ -75,12 +104,12 @@ async def subtree(
         )
 
     for _ in range(random.randint(3, 10)):
-        new_node = await test_palace_node_manager.add_child(
+        new_node = await test_palace_node_service.add_child(
             root_node.pk,
             _generate_node_data(statistics),
         )
         for _ in range(random.randint(3, 5)):
-            await test_palace_node_manager.add_child(
+            await test_palace_node_service.add_child(
                 new_node.pk,
                 _generate_node_data(statistics),
             )
