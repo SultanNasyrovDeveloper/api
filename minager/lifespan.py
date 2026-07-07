@@ -3,17 +3,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from minager import settings
-from minager.core.surorm.core.tester import SurrealConnectionTester
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     config = settings.config
-
-    tester = SurrealConnectionTester(config.surreal)
-    is_connected = tester.wait()
-    if not is_connected:
-        raise ValueError('Unable to establish connection with surreal db.')
     # TODO: Add connection testing for other databases
 
     app.state.config = config

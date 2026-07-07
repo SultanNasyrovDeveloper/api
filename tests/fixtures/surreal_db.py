@@ -2,14 +2,13 @@ from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
-from surorm import Session
+from surorm import Session, SurrealConfig
+from surorm.migrations import PerformMigrationCommand
+from surorm.statements import DefineDatabase, DefineNamespace, Remove
 from surrealdb import AsyncSurreal
 
 from minager import settings
 from minager.app import app
-from minager.core import surorm
-from minager.core.surorm.core.settings import SurrealConfig
-from minager.core.surorm.orm.managers import Manager as SurrealManager
 from minager.dependencies import get_surreal_session
 from minager.node.models import Node
 from minager.node.repositories import NodeRepository
@@ -48,14 +47,14 @@ async def palace_node_db_setup(
     surreal_test_connection,
     surreal_test_config: SurrealConfig,
 ) -> AsyncGenerator[None, None]:
-    setup_manager = SurrealManager(connection=surreal_test_connection)
-    await setup_manager.query(surorm.DefineNamespace(surreal_test_config.namespace).if_not_exists(True))
-    await setup_manager.query(surorm.DefineDatabase(surreal_test_config.name).if_not_exists(True))
-    await surorm.PerformMigrationCommand(setup_manager, settings.config.base_path).upgrade()
+    setup_session = _node_session(surreal_test_connection)
+    await setup_session.execute(DefineNamespace(surreal_test_config.namespace).if_not_exists(True))
+    await setup_session.execute(DefineDatabase(surreal_test_config.name).if_not_exists(True))
+    await PerformMigrationCommand(setup_session, settings.config.base_path).upgrade()
     yield
-    await setup_manager.query(surorm.Remove('database', surreal_test_config.name).if_exists(True))
+    await setup_session.execute(Remove('database', surreal_test_config.name).if_exists(True))
     if surreal_test_config.namespace != settings.config.surreal.namespace:
-        await setup_manager.query(surorm.Remove('namespace', surreal_test_config.namespace).if_exists(True))
+        await setup_session.execute(Remove('namespace', surreal_test_config.namespace).if_exists(True))
 
 
 @pytest.fixture()

@@ -1,81 +1,52 @@
-from minager.core import surorm
-from minager.core.surorm.migrations import MigrationOperation
+from surorm.data_model import Float, Int, String
+from surorm.functions import F
+from surorm.migrations import MigrationOperation
+from surorm.operators import Add
+from surorm.statements import DefineField, DefineTable
 
 operations = [
     MigrationOperation(
-        query=surorm.DefineTable('node').type('normal').schemafull(True).if_not_exists(True),
+        query=DefineTable('node').type('normal').schemafull(True).if_not_exists(True),
+    ),
+    MigrationOperation(
+        query=(DefineTable('child').type('relation', 'node', 'node').schemafull(True).if_not_exists(True))
+    ),
+    MigrationOperation(query=DefineField('is_learn', 'bool').on('node').if_not_exists(True).default('true')),
+    MigrationOperation(query=DefineField('owner_id', 'string').on('node').if_not_exists(True)),
+    MigrationOperation(query=DefineField('title', 'string').on('node').if_not_exists(True)),
+    MigrationOperation(
+        query=DefineField('questions', 'string').on('node').if_not_exists(True).default(String(''))
+    ),
+    MigrationOperation(query=DefineField('order', 'string').on('node').if_not_exists(True)),
+    MigrationOperation(
+        query=DefineField('content', 'string').on('node').if_not_exists(True).default(String(''))
+    ),
+    MigrationOperation(query=DefineField('size', 'number').on('node').if_not_exists(True).default(Int(0))),
+    MigrationOperation(query=DefineField('cpr', 'number').on('node').if_not_exists(True).default(Int(0))),
+    MigrationOperation(
+        query=DefineField('last_rating', 'number').on('node').if_not_exists(True).default(Float(0))
+    ),
+    MigrationOperation(
+        query=DefineField('difficulty', 'number').on('node').if_not_exists(True).default(Float(2.4))
+    ),
+    MigrationOperation(
+        query=DefineField('owner_views', 'number').on('node').if_not_exists(True).default(Int(0))
+    ),
+    MigrationOperation(
+        query=DefineField('repetitions', 'number').on('node').if_not_exists(True).default(Int(0))
+    ),
+    MigrationOperation(
+        query=DefineField('last_interval', 'number').on('node').if_not_exists(True).default(Int(0))
+    ),
+    MigrationOperation(
+        query=DefineField('last_repetition', 'datetime').on('node').if_not_exists(True).default(F.time.now())
     ),
     MigrationOperation(
         query=(
-            surorm.DefineTable('child').type('relation', 'node', 'node').schemafull(True).if_not_exists(True)
-        )
-    ),
-    MigrationOperation(
-        query=surorm.DefineField('is_learn', 'bool').on('node').if_not_exists(True).default('true')
-    ),
-    MigrationOperation(query=surorm.DefineField('owner_id', 'string').on('node').if_not_exists(True)),
-    MigrationOperation(query=surorm.DefineField('title', 'string').on('node').if_not_exists(True)),
-    MigrationOperation(
-        query=surorm.DefineField('questions', 'string')
-        .on('node')
-        .if_not_exists(True)
-        .default(surorm.String(''))
-    ),
-    MigrationOperation(query=surorm.DefineField('order', 'string').on('node').if_not_exists(True)),
-    MigrationOperation(
-        query=surorm.DefineField('content', 'string')
-        .on('node')
-        .if_not_exists(True)
-        .default(surorm.String(''))
-    ),
-    MigrationOperation(
-        query=surorm.DefineField('size', 'number').on('node').if_not_exists(True).default(surorm.Number(0))
-    ),
-    MigrationOperation(
-        query=surorm.DefineField('cpr', 'number').on('node').if_not_exists(True).default(surorm.Number(0))
-    ),
-    MigrationOperation(
-        query=surorm.DefineField('last_rating', 'number')
-        .on('node')
-        .if_not_exists(True)
-        .default(surorm.Number(0))
-    ),
-    MigrationOperation(
-        query=surorm.DefineField('difficulty', 'number')
-        .on('node')
-        .if_not_exists(True)
-        .default(surorm.Number(2.4))
-    ),
-    MigrationOperation(
-        query=surorm.DefineField('owner_views', 'number')
-        .on('node')
-        .if_not_exists(True)
-        .default(surorm.Number(0))
-    ),
-    MigrationOperation(
-        query=surorm.DefineField('repetitions', 'number')
-        .on('node')
-        .if_not_exists(True)
-        .default(surorm.Number(0))
-    ),
-    MigrationOperation(
-        query=surorm.DefineField('last_interval', 'number')
-        .on('node')
-        .if_not_exists(True)
-        .default(surorm.Number(0))
-    ),
-    MigrationOperation(
-        query=surorm.DefineField('last_repetition', 'datetime')
-        .on('node')
-        .if_not_exists(True)
-        .default(surorm.F.time.now())
-    ),
-    MigrationOperation(
-        query=(
-            surorm.DefineField('next_optimal_repetition', 'datetime')
+            DefineField('next_optimal_repetition', 'datetime')
             .on('node')
             .if_not_exists(True)
-            .default(surorm.Add(surorm.F.time.now(), surorm.F.duration.from_days(1)))
+            .default(Add(F.time.now(), F.duration.from_days(1)))
         )
     ),
 ]

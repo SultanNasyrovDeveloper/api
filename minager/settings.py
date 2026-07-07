@@ -8,12 +8,12 @@ from pwdlib.hashers.bcrypt import BcryptHasher
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from surorm.core.settings import SurrealConfig
 from surrealdb import AsyncSurreal
 
 from minager.core.settings import SMTPServerConfiguration
 from minager.core.settings.db import DBConnectionConfig
 from minager.core.settings.logging import LoggingConfig
-from minager.core.surorm.core.settings import SurrealConfig
 
 
 class ApplicationConfig(BaseSettings):
