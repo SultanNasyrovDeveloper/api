@@ -1,22 +1,10 @@
 from datetime import UTC, datetime, timedelta
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import Field, computed_field
 
-from minager.core.db.mongo import MongoDBId
+from minager.core.db.mongodb import MongoDBModel
 
 from . import enums
-
-
-class MongoDBModel(BaseModel):
-    """
-    Base model for MongoDB documents with common configuration.
-    """
-
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True,
-        populate_by_name=True,
-        from_attributes=True,
-    )
 
 
 class LearningSession(MongoDBModel):
@@ -27,7 +15,6 @@ class LearningSession(MongoDBModel):
     nodes from a target subtree using spaced repetition.
     """
 
-    id: MongoDBId | None = Field(alias='_id', default=None)
     is_active: bool = Field(default=True, description='Whether session is currently active')
     user_id: str = Field(description='ID of the user who owns this session')
     targets: list[str] = Field(description='Root node IDs of the subtrees being studied')

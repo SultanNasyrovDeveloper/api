@@ -19,8 +19,13 @@ from minager.core.settings.logging import LoggingConfig
 class ApplicationConfig(BaseSettings):
     debug: bool = False
     base_path: str = str(Path(__file__).parent)
+
+    # AI
     huggingface_api_token: str | None = Field(default=None)
     huggingface_llm_model: str = 'meta-llama/Llama-3.1-8B-Instruct'
+
+    openai_api_token: str
+    openai_chat_model: str
 
     # Security
     jwt_hashing_algorithm: str = 'HS256'

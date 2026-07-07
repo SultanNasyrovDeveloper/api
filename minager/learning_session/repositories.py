@@ -20,7 +20,7 @@ class LearningSessionRepository:
         session_data = await self.connection.find_one({'user_id': user_id, 'is_active': True})
         return LearningSession.model_validate(session_data) if session_data else None
 
-    async def create(self, data: dict | LearningSession) -> LearningSession:
+    async def create(self, data: dict | LearningSession) -> LearningSession | None:
         document = data.model_dump(mode='json') if isinstance(data, LearningSession) else data
         insert_result = await self.connection.insert_one(document)
         return await self.get(insert_result.inserted_id)
