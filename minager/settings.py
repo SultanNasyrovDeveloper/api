@@ -11,6 +11,7 @@ from surorm.core.settings import SurrealConfig
 from surrealdb import AsyncSurreal
 
 from minager.core.settings import SMTPServerConfiguration
+from minager.core.settings.cors import CorsConfiguration
 from minager.core.settings.db import DBConnectionConfig
 from minager.core.settings.logging import LoggingConfig
 
@@ -18,6 +19,7 @@ from minager.core.settings.logging import LoggingConfig
 class ApplicationConfig(BaseSettings):
     debug: bool = False
     base_path: str = str(Path(__file__).parent)
+    cors: CorsConfiguration
 
     # AI
     huggingface_api_token: str | None = Field(default=None)

@@ -10,14 +10,7 @@ from .lifespan import lifespan
 from .settings import config
 
 app = FastAPI(title='Minager', debug=config.debug, version='0.0.1', lifespan=lifespan)
-app.add_middleware(
-    CORSMiddleware,
-    # TODO: Fix
-    allow_origins=['http://localhost:3000', 'http://127.0.0.1:3000'],
-    allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
-)
+app.add_middleware(CORSMiddleware, **config.cors.model_dump())
 
 
 v1_router = APIRouter(prefix='/api/v1')
