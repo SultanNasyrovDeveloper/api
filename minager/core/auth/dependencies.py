@@ -5,6 +5,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from minager.dependencies import PostgresSession
+from minager.settings import password_hash
 from minager.user import exceptions as user_exceptions
 from minager.user.adapter import UserClient
 from minager.user.repositories import UserProfileRepository, UserRepository
@@ -12,10 +13,10 @@ from minager.user.services import UserProfileService, UserService
 
 from . import dto, exceptions
 from .jwt import JWTService
+from .password import PasswordService
 from .port import AbstractUserClient
 
 security = HTTPBearer()
-
 jwt_service = JWTService.from_config()
 
 
@@ -28,10 +29,10 @@ JWTServiceDependency = Annotated[JWTService, Depends(get_jwt_service)]
 
 async def get_current_user_id(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
-    jwt_service: JWTServiceDependency,
+    jwt_service_: JWTServiceDependency,
 ) -> UUID:
     try:
-        payload = jwt_service.verify_token_type(credentials.credentials, 'access')
+        payload = jwt_service_.verify_token_type(credentials.credentials, 'access')
     except exceptions.AuthError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -94,3 +95,10 @@ async def get_current_user_profile(user: CurrentUser, user_client: UserClientDep
 
 
 CurrentUserProfile = Annotated[dto.UserProfile, Depends(get_current_user_profile)]
+
+
+def get_password_service() -> PasswordService:
+    return PasswordService(password_hash=password_hash)
+
+
+PasswordServiceDependency = Annotated[PasswordService, Depends(get_password_service)]

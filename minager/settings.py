@@ -1,7 +1,6 @@
 from asyncio import get_running_loop
 from pathlib import Path
 
-from fastapi.security import OAuth2PasswordBearer
 from motor import motor_asyncio as motor
 from pwdlib import PasswordHash
 from pwdlib.hashers.bcrypt import BcryptHasher
@@ -56,5 +55,4 @@ mongo = motor.AsyncIOMotorClient(config.mongo.to_str(scheme='mongodb'))
 mongo.get_io_loop = get_running_loop
 surreal = AsyncSurreal(f'ws://{config.surreal.host}:{config.surreal.port}')
 
-crypt_context = PasswordHash((BcryptHasher(),))
-AuthBearerToken = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/users/token')
+password_hash = PasswordHash((BcryptHasher(),))

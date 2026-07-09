@@ -71,7 +71,7 @@ async def update_me(
     user: dependencies.CurrentUser,
     users: dependencies.UserServiceDependency,
     user_data: schemas.UserUpdateDataSchema,
-) -> schemas.UserDetailSchema:
+):
     try:
         updated_user = await users.update_user(user.id, user_data)
         return updated_user
@@ -80,9 +80,7 @@ async def update_me(
 
 
 @users_router.get('/me/profile', response_model=schemas.UserProfileDetailSchema)
-async def get_my_profile(
-    profile: dependencies.CurrentUserProfile,
-) -> schemas.UserProfileDetailSchema:
+async def get_my_profile(profile: dependencies.CurrentUserProfile):
     return profile
 
 
@@ -91,7 +89,7 @@ async def update_my_profile(
     user: dependencies.CurrentUser,
     user_profiles: dependencies.UserProfileServiceDependency,
     profile_data: schemas.UserProfileUpdateDataSchema,
-) -> schemas.UserProfileDetailSchema:
+):
     try:
         updated_profile = await user_profiles.update_profile(user.id, profile_data)
         return updated_profile

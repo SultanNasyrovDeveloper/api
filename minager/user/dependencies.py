@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 
-from minager.core.auth.dependencies import CurrentUserID
+from minager.core.auth.dependencies import CurrentUserID, PasswordServiceDependency
 from minager.core.clients.knowledge_tree import KnowledgeTreeClient
 from minager.dependencies import PostgresSession, SurrealSession
 from minager.user.models import User, UserProfile
@@ -32,8 +32,10 @@ def get_user_profile_repository(session: PostgresSession) -> UserProfileReposito
 UserProfileRepositoryDependency = Annotated[UserProfileRepository, Depends(get_user_profile_repository)]
 
 
-def get_user_service(repository: UserRepositoryDependency) -> UserService:
-    return UserService(repository=repository)
+def get_user_service(
+    repository: UserRepositoryDependency, password: PasswordServiceDependency
+) -> UserService:
+    return UserService(repository=repository, password_service=password)
 
 
 UserServiceDependency = Annotated[UserService, Depends(get_user_service)]
