@@ -27,5 +27,16 @@ class MongoDBRepository[ModelT: MongoDBModel]:
             {'_id': id_}, {'$set': data}, return_document=ReturnDocument.AFTER
         )
         if updated is None:
-            raise ValueError(f'LearningSession({id_}) not found')
+            raise ValueError(f'{self.model_class.__name__}({id_}) not found')
         return self.model_class.model_validate(updated)
+
+    async def save(self, model: ModelT) -> ModelT:
+        """Persist a model instance, creating it when new and updating it otherwise.
+
+        Dumps in ``python`` mode so datetimes are stored as native BSON dates (matching
+        ``update``), not ISO strings.
+        """
+        data = model.model_dump(mode='python', exclude={'id'})
+        if model.id is not None:
+            return await self.update(model.id, data)
+        return await self.create(data)

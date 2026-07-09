@@ -9,6 +9,7 @@ from minager import settings
 from minager.app import app
 from minager.dependencies import get_mongo_session
 from minager.learning_session.repositories import LearningSessionRepository
+from minager.repetition_assistant.repositories import AssistantReviewConversationRepository
 
 
 @pytest_asyncio.fixture(scope='session')
@@ -35,4 +36,5 @@ async def override_mongo_session(mongo_test_db: AsyncIOMotorDatabase) -> AsyncGe
 @pytest_asyncio.fixture(autouse=True)
 async def clean_mongo_data(mongo_test_db: AsyncIOMotorDatabase) -> AsyncGenerator[None, None]:
     await mongo_test_db[LearningSessionRepository.COLLECTION].delete_many({})
+    await mongo_test_db[AssistantReviewConversationRepository.COLLECTION].delete_many({})
     yield

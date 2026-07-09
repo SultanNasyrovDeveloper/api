@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from minager.learning_session.api import router as learning_session_router
 from minager.node.api import router as node_router
+from minager.repetition_assistant.api import router as repetition_assistant_router
 from minager.user.api import auth_router, users_router
 
 from .lifespan import lifespan
@@ -33,5 +34,8 @@ v1_router.include_router(
     router=learning_session_router, prefix='/learning-session', tags=['Learning session']
 )
 v1_router.include_router(router=node_router, prefix='/node', tags=['Knowledge Tree'])
+v1_router.include_router(
+    router=repetition_assistant_router, prefix='/repetition-assistant', tags=['Repetition assistant']
+)
 
 app.include_router(v1_router)

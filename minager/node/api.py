@@ -20,13 +20,13 @@ async def search(
     return PaginatedResult(page=page, results=found_nodes)
 
 
-@router.post('/{id_}/add-child', status_code=status.HTTP_201_CREATED)
+@router.post('/{id_}/add-child', status_code=status.HTTP_201_CREATED, response_model=schemas.NodeDetailSchema)
 async def add_child(
     id_: str,
     data: schemas.NodeCreateSchema,
     user_id: CurrentUserID,
     nodes: dependencies.NodeServiceDependency,
-) -> schemas.NodeDetailSchema:
+):
     validated_data = data.model_dump()
     validated_data['owner_id'] = str(user_id)
     try:
@@ -38,12 +38,12 @@ async def add_child(
     return new_node
 
 
-@router.get('/{id_}')
+@router.get('/{id_}', response_model=schemas.NodeDetailSchema)
 async def get(
     id_: str,
     user_id: CurrentUserID,
     nodes: dependencies.NodeServiceDependency,
-) -> schemas.NodeDetailSchema:
+):
     try:
         node = await nodes.get(id_, viewer_id=str(user_id))
         return node
@@ -62,7 +62,7 @@ async def generate_content(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from e
 
 
-@router.get('/{id_}/children')
+@router.get('/{id_}/children', response_model=PaginatedResult[models.ListNode])
 async def get_children(
     id_: str,
     nodes: dependencies.NodeRepositoryDependency,
@@ -70,7 +70,7 @@ async def get_children(
 ):
     children = await nodes.get_children(id_)
     # TODO: Raise 404 if node whose children we trying to access not found
-    return PaginatedResult(page=page, results=[child.model_dump() for child in children])
+    return PaginatedResult(page=page, results=children)
 
 
 @router.get('/{id_}/statistics')
@@ -124,12 +124,12 @@ async def move_node(
     return updated
 
 
-@router.patch('/{id_}')
+@router.patch('/{id_}', response_model=schemas.NodeDetailSchema)
 async def update(
     id_: str,
     update_data: schemas.NodeEditSchema,
     nodes: dependencies.NodeServiceDependency,
-) -> schemas.NodeDetailSchema:
+):
     try:
         return await nodes.update(id_, update_data.model_dump(exclude_unset=True))
     except exceptions.NodeNotFoundError as e:

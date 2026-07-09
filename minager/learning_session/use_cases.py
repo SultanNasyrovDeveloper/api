@@ -49,7 +49,7 @@ class StartSessionUseCase:
             current_node=shuffled_queue[0] if shuffled_queue else None,
             queue=shuffled_queue[1:] if len(shuffled_queue) > 1 else [],
         )
-        return await self.repository.create(session)
+        return await self.repository.save(session)
 
 
 class RegenerateQueueUseCase:

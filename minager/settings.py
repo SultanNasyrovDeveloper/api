@@ -26,6 +26,7 @@ class ApplicationConfig(BaseSettings):
 
     openai_api_token: str
     openai_chat_model: str
+    openai_speech_to_text_model: str | None = Field(default=None)
 
     # Security
     jwt_hashing_algorithm: str = 'HS256'
