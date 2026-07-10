@@ -17,7 +17,6 @@ class TraversalOrder(StrEnum):
     bfs = 'bfs'
     dfs = 'dfs'
     random = 'random'
-    due_first = 'due_first'
 
 
 class NodeRelationType(IntEnum):

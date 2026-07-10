@@ -126,8 +126,8 @@ async def test_update_user_password_success(user_service: UserService, test_user
 
     updated_user = await user_service.update_user(test_user.id, update_data)
 
-    assert user_service.verify_password(new_password, updated_user.hashed_password) is True
-    assert not user_service.verify_password(TEST_USER_PASSWORD, updated_user.hashed_password)
+    assert user_service.password_service.verify_password(new_password, updated_user.hashed_password) is True
+    assert not user_service.password_service.verify_password(TEST_USER_PASSWORD, updated_user.hashed_password)
     assert updated_user.updated_at >= test_user.updated_at
 
 

@@ -119,7 +119,7 @@ class NodeRepository(Repository[models.Node]):
         root_ids: list[str],
         filter_: enums.SubtreeFilter = enums.SubtreeFilter.all,
         order: enums.TraversalOrder = enums.TraversalOrder.bfs,
-        limit: int = 30,
+        limit: int = 50,
     ) -> list[str]:
         query_builder = queries.SubtreeIdsQuery()
         query = query_builder.build(root_ids, filter_, order)

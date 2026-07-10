@@ -4463,14 +4463,14 @@ full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart 
 
 [[package]]
 name = "surorm"
-version = "0.0.22"
+version = "0.0.24"
 description = ""
 optional = false
 python-versions = ">=3.12"
 groups = ["main"]
 files = [
-    {file = "surorm-0.0.22-py3-none-any.whl", hash = "sha256:f96916770af1dfc57e4863a7cac9f1079b39b0e993fda14432673b09316dad6e"},
-    {file = "surorm-0.0.22.tar.gz", hash = "sha256:8a686bcad74fbee47d3d8196e41dbe352ae3a1cdd1a3f92c2295d189a0c1e2c3"},
+    {file = "surorm-0.0.24-py3-none-any.whl", hash = "sha256:fd5298301253f74f61af66a746b009090a504dcd58da6e3dee04e276e5fb0f64"},
+    {file = "surorm-0.0.24.tar.gz", hash = "sha256:e9b157270fa72efc05d6d2dcb083b1967786ec18327167da373466c22b70e5ea"},
 ]
 
 [package.dependencies]
@@ -5581,4 +5581,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "213920b2b93eba8a29a9e13a6e7b45139a30542e3c4cf589259fd7ac32ab730d"
+content-hash = "cbd7f2eb2e9543847d75c42332c1e9703a980910cd997e2869aac9e2453c0fea"

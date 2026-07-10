@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 from pydantic import Field, computed_field
 
+from minager.core.clients.knowledge_tree import SubtreeFilter, TraversalOrder
 from minager.core.db.mongodb import MongoDBModel
 
 from . import enums
@@ -41,9 +42,13 @@ class LearningSession(MongoDBModel):
     )
 
     # Strategies
-    traverse_strategy: enums.TraverseStrategy = Field(
-        default=enums.TraverseStrategy.outdated,
-        description='Strategy for ordering nodes in the queue',
+    filter_strategy: SubtreeFilter = Field(
+        default=SubtreeFilter.all,
+        description='Which nodes of the target subtrees belong in the queue',
+    )
+    traversal_order: TraversalOrder = Field(
+        default=TraversalOrder.random,
+        description='Order in which the target subtrees are walked to build the queue',
     )
     repetition_strategy: enums.RepetitionStrategy = Field(
         default=enums.RepetitionStrategy.sm2,

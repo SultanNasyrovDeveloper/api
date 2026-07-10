@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from minager.core.clients.knowledge_tree import SubtreeFilter, TraversalOrder
+
 from .models import LearningSession
 
 
@@ -10,6 +12,12 @@ class StartLearningSessionSchema(BaseModel):
 
     targets: list[str] = Field(
         min_length=1, max_length=10, description='Root node IDs of the subtrees to study'
+    )
+    filter_strategy: SubtreeFilter = Field(
+        default=SubtreeFilter.all, description='Which nodes of the target subtrees belong in the queue'
+    )
+    traversal_order: TraversalOrder = Field(
+        default=TraversalOrder.random, description='Order in which the target subtrees are walked'
     )
 
 

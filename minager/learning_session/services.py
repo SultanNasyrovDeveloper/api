@@ -33,6 +33,7 @@ class LearningSessionService:
                     'finish_datetime': datetime.now(UTC),
                     'current_node': None,
                     'queue': [],
+                    'bad_repetition_queue': [],
                 },
             )
         except ValueError:

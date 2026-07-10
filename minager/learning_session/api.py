@@ -30,7 +30,14 @@ async def start(
     data: schemas.StartLearningSessionSchema,
     start_session: dependencies.StartSessionUseCaseDependency,
 ) -> schemas.LearningSessionSchema:
-    return await start_session.execute(user_id=str(user_id), data=data.model_dump(mode='json'))
+    try:
+        return await start_session.execute(user_id=str(user_id), data=data)
+    except exceptions.EmptyQueueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except AssertionError as e:
+        # A TraversalOrder member can be declared before a query backs it (e.g. `dfs`);
+        # the knowledge tree asserts on those. That is bad input, not a server fault.
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e)) from e
 
 
 @router.post(
@@ -46,6 +53,8 @@ async def regenerate_queue(
         return await regenerate_queue_use_case.execute(id_)
     except exceptions.SessionNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except AssertionError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e)) from e
 
 
 @router.post(

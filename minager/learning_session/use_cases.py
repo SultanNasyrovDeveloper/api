@@ -4,21 +4,13 @@ from surorm.data_model import Datetime
 
 from minager.core.clients.knowledge_tree import KnowledgeTreeClient
 
-from . import exceptions
+from . import exceptions, schemas
 from .models import LearningSession
 from .repetition.sm2 import SuperMemo2LearningStrategy
 from .repositories import LearningSessionRepository
 from .services import LearningSessionService
-from .utils import shuffle
 
 DEFAULT_QUEUE_LIMIT = 50
-
-
-async def _build_shuffled_queue(
-    knowledge_tree_client: KnowledgeTreeClient, targets: list[str], limit: int = DEFAULT_QUEUE_LIMIT
-) -> list[str]:
-    repetition_queue = await knowledge_tree_client.get_subtree_ids(targets, limit=limit)
-    return shuffle(repetition_queue)
 
 
 class StartSessionUseCase:
@@ -34,7 +26,7 @@ class StartSessionUseCase:
         self.service = service
         self.knowledge_tree_client = knowledge_tree_client
 
-    async def execute(self, user_id: str, data: dict) -> LearningSession:
+    async def execute(self, user_id: str, data: schemas.StartLearningSessionSchema) -> LearningSession:
         already_active = await self.repository.find_active_for_user(user_id)
         if already_active:
             if not already_active.is_expired:
@@ -42,13 +34,22 @@ class StartSessionUseCase:
             assert already_active.id
             await self.service.finish(str(already_active.id))
 
-        targets = data.get('targets')
-        shuffled_queue = await _build_shuffled_queue(self.knowledge_tree_client, targets)
+        queue = await self.knowledge_tree_client.get_subtree_ids(
+            data.targets,
+            filter_=data.filter_strategy,
+            order=data.traversal_order,
+            limit=DEFAULT_QUEUE_LIMIT,
+        )
+        if not queue:
+            raise exceptions.EmptyQueueError
+
         session = LearningSession(
             user_id=user_id,
-            targets=targets,
-            current_node=shuffled_queue[0] if shuffled_queue else None,
-            queue=shuffled_queue[1:] if len(shuffled_queue) > 1 else [],
+            targets=data.targets,
+            filter_strategy=data.filter_strategy,
+            traversal_order=data.traversal_order,
+            current_node=queue[0] if queue else None,
+            queue=queue[1:] if len(queue) > 1 else [],
         )
         return await self.repository.save(session)
 
@@ -62,10 +63,15 @@ class RegenerateQueueUseCase:
         session = await self.repository.get(id_)
         if not session:
             raise exceptions.SessionNotFoundError
-        shuffled_queue = await _build_shuffled_queue(self.knowledge_tree_client, session.targets)
+        queue = await self.knowledge_tree_client.get_subtree_ids(
+            session.targets,
+            filter_=session.filter_strategy,
+            order=session.traversal_order,
+            limit=DEFAULT_QUEUE_LIMIT,
+        )
         update_data = {
-            'current_node': shuffled_queue[0] if shuffled_queue else None,
-            'queue': shuffled_queue[1:] if len(shuffled_queue) > 1 else [],
+            'current_node': queue[0] if queue else None,
+            'queue': queue[1:] if len(queue) > 1 else [],
         }
         return await self.repository.update(id_, update_data)
 

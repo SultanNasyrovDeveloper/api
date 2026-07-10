@@ -9,6 +9,7 @@ from surrealdb import AsyncWsSurrealConnection
 from minager.core.clients.knowledge_tree import KnowledgeTreeClient
 from minager.learning_session.models import LearningSession
 from minager.learning_session.repositories import LearningSessionRepository
+from minager.learning_session.schemas import StartLearningSessionSchema
 from minager.learning_session.services import LearningSessionService
 from minager.learning_session.use_cases import (
     PerformRepetitionUseCase,
@@ -103,6 +104,6 @@ async def active_session(
         await test_palace_node_service.add_child(test_user_root_node.pk, node_data_factory())
     session = await test_start_session_use_case.execute(
         user_id=str(test_user_context.sub),
-        data={'targets': [test_user_root_node.id.id_]},
+        data=StartLearningSessionSchema(targets=[test_user_root_node.id.id_]),
     )
     yield session

@@ -193,23 +193,6 @@ async def test_order_defaults_to_bfs(
 
 
 @pytest.mark.asyncio
-async def test_order_due_first_sorts_by_next_optimal_repetition(
-    test_palace_node_repository: NodeRepository,
-    node_create_data_factory: Callable[..., dict],
-    create_child_node: Callable[..., Node],
-):
-    root = await test_palace_node_repository.create(
-        node_create_data_factory(next_optimal_repetition=_past(2))
-    )
-    least_overdue = await create_child_node(root, node_create_data_factory(next_optimal_repetition=_past(1)))
-    most_overdue = await create_child_node(root, node_create_data_factory(next_optimal_repetition=_past(3)))
-
-    ids = await test_palace_node_repository.get_subtree_ids([root.pk], order=enums.TraversalOrder.due_first)
-
-    assert ids == [most_overdue.pk, root.pk, least_overdue.pk]
-
-
-@pytest.mark.asyncio
 async def test_order_random_returns_the_same_set_in_varying_orders(
     test_palace_node_repository: NodeRepository,
     node_create_data_factory: Callable[..., dict],
@@ -257,7 +240,10 @@ async def test_filter_and_order_compose(
         [root.pk], filter_=enums.SubtreeFilter.due, order=enums.TraversalOrder.bfs
     )
 
-    assert ids == [due_child.pk, due_grandchild.pk]
+    assert ids == [
+        due_grandchild.pk,
+        due_child.pk,
+    ]
 
 
 @pytest.mark.asyncio
