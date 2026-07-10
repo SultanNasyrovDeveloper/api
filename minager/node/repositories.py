@@ -1,5 +1,5 @@
 from surorm.base import DataType
-from surorm.data_model import Array, RecordID, String
+from surorm.data_model import RecordID, String
 from surorm.functions import F
 from surorm.operators import Equals, In, Matches
 from surorm.repository import Repository
@@ -15,7 +15,7 @@ from surorm.statements import (
     Variable,
 )
 
-from . import dto, models, schemas
+from . import dto, enums, models, queries, schemas
 
 
 class NodeRepository(Repository[models.Node]):
@@ -117,17 +117,15 @@ class NodeRepository(Repository[models.Node]):
     async def get_subtree_ids(
         self,
         root_ids: list[str],
+        filter_: enums.SubtreeFilter = enums.SubtreeFilter.all,
+        order: enums.TraversalOrder = enums.TraversalOrder.bfs,
         limit: int = 30,
     ) -> list[str]:
-        roots_array = Array([F.type.thing(models.Node, id_) for id_ in root_ids])
-        query = (
-            Select(models.Node.id, models.Node.next_optimal_repetition)
-            .from_(f'{roots_array}.{{..+collect+inclusive}}<-child<-node')
-            .order_by(models.Node.next_optimal_repetition)
-            .limit(limit)
-        )
-        results = await self.execute(query)
-        return [node['id'].id for node in results.dicts()]
+        query_builder = queries.SubtreeIdsQuery()
+        query = query_builder.build(root_ids, filter_, order)
+        query = query.limit(limit)
+        result = await self.execute(query)
+        return [record['id'].id for record in result.all()]
 
     async def get_first_child_order(self, parent_id: str) -> str:
         parent = F.type.thing('node', parent_id)

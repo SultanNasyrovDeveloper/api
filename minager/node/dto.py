@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from .mixins import NodeStatisticsMixin
 
 
+# TODO: Move that into schemas
 class NodeSubtreeStatistics(BaseModel):
     count: int = 0
     average_rating: float = 0

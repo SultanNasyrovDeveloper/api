@@ -1,3 +1,5 @@
+.agents
+
 config.yml
 .idea/*
 __pycache__/

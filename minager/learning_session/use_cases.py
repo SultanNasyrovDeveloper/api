@@ -17,7 +17,7 @@ DEFAULT_QUEUE_LIMIT = 50
 async def _build_shuffled_queue(
     knowledge_tree_client: KnowledgeTreeClient, targets: list[str], limit: int = DEFAULT_QUEUE_LIMIT
 ) -> list[str]:
-    repetition_queue = await knowledge_tree_client.get_subtree_ids(targets, limit)
+    repetition_queue = await knowledge_tree_client.get_subtree_ids(targets, limit=limit)
     return shuffle(repetition_queue)
 
 
@@ -39,7 +39,8 @@ class StartSessionUseCase:
         if already_active:
             if not already_active.is_expired:
                 return already_active
-            await self.service.finish(already_active.id)
+            assert already_active.id
+            await self.service.finish(str(already_active.id))
 
         targets = data.get('targets')
         shuffled_queue = await _build_shuffled_queue(self.knowledge_tree_client, targets)

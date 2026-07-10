@@ -2,6 +2,8 @@ import pytest
 from faker import Faker
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from minager.core.auth.password import PasswordService
+from minager.settings import password_hash
 from minager.user.repositories import UserProfileRepository, UserRepository
 from minager.user.services import UserProfileService, UserService
 
@@ -25,7 +27,7 @@ def user_profile_repository(postgres_session: AsyncSession) -> UserProfileReposi
 
 @pytest.fixture
 def user_service(user_repository: UserRepository) -> UserService:
-    return UserService(repository=user_repository)
+    return UserService(repository=user_repository, password_service=PasswordService(password_hash))
 
 
 @pytest.fixture
