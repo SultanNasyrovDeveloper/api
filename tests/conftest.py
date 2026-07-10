@@ -9,7 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from minager.app import app
 from minager.core.auth.dependencies import jwt_service
+from minager.core.auth.password import PasswordService
 from minager.node.repositories import NodeRepository
+from minager.settings import password_hash
 from minager.user.repositories import UserProfileRepository, UserRepository
 from minager.user.schemas import (
     UserCreateDataSchema,
@@ -48,7 +50,9 @@ async def test_user(
     test_palace_node_repository: NodeRepository,
 ) -> UserWithProfileSchema:
     suffix = uuid4().hex[:8]
-    user = await UserService(repository=UserRepository(session=pg_session)).register(
+    user = await UserService(
+        repository=UserRepository(session=pg_session), password_service=PasswordService(password_hash)
+    ).register(
         UserCreateDataSchema(
             email=f'test_{suffix}@test.example.com',
             username=f'testuser_{suffix}',
