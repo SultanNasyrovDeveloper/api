@@ -16,7 +16,9 @@ from . import enums, models
 type QueryModifierFunction = Callable[[Select], Select]
 
 SUBTREE_FILTERS: dict[enums.SubtreeFilter, QueryModifierFunction | None] = {
-    enums.SubtreeFilter.all: lambda stmt: stmt,
+    enums.SubtreeFilter.all: lambda stmt: stmt.columns(models.Node.next_optimal_repetition).order_by(
+        models.Node.next_optimal_repetition, direction='ASC'
+    ),
     enums.SubtreeFilter.due: lambda stmt: (
         stmt.columns(models.Node.next_optimal_repetition)
         .where(LessOrEqual(models.Node.next_optimal_repetition, F.time.now()))
